@@ -7,10 +7,11 @@ type VoiceRecorderProps = {
   phaseId?: string
   exerciseId?: string
   playerId?: string
+  matchId?: string
   onSaved?: () => void
 }
 
-export function VoiceRecorder({ sessionId, phaseId, exerciseId, playerId, onSaved }: VoiceRecorderProps) {
+export function VoiceRecorder({ sessionId, phaseId, exerciseId, playerId, matchId, onSaved }: VoiceRecorderProps) {
   const [recording, setRecording] = useState(false)
   const [error, setError] = useState('')
   const [elapsed, setElapsed] = useState(0)
@@ -51,7 +52,7 @@ export function VoiceRecorder({ sessionId, phaseId, exerciseId, playerId, onSave
         window.clearInterval(intervalRef.current)
         setRecording(false)
         setElapsed(0)
-        await saveVoiceNote({ sessionId, phaseId, exerciseId, playerId, durationSeconds, mimeType, audio })
+        await saveVoiceNote({ sessionId, phaseId, exerciseId, playerId, matchId, durationSeconds, mimeType, audio })
         onSaved?.()
       }
 

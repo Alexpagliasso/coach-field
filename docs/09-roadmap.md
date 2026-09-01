@@ -2,7 +2,7 @@
 
 ## Stato Attuale
 
-Coach Field e un MVP locale/mobile-first. Funziona bene per una singola seduta seedata e per raccogliere dati individuali durante l'allenamento.
+Coach Field e un MVP locale/mobile-first. Funziona bene per una singola seduta seedata, per raccogliere dati individuali durante l'allenamento e per tracciare partite con valutazioni giocatore.
 
 ## Priorita Alta
 
@@ -12,6 +12,11 @@ Coach Field e un MVP locale/mobile-first. Funziona bene per una singola seduta s
   - duplicati giocatore;
   - repository IndexedDB.
 - Aggiungere compressione o gestione piu avanzata per backup con molte note vocali.
+- Raffinare la gestione partite:
+  - marcatori e assist;
+  - minuti giocati;
+  - formazioni;
+  - statistiche sintetiche per squadra e giocatore.
 - Aggiungere gestione multi-seduta:
   - elenco sedute;
   - creazione seduta;

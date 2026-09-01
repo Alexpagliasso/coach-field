@@ -1,4 +1,4 @@
-import type { Observation, Player, TrainingSession, VoiceNote } from '../types/domain'
+import type { Match, MatchPlayerEvaluation, Observation, Player, TrainingSession, VoiceNote } from '../types/domain'
 import type { Attendance } from '../types/domain'
 import { dbPromise } from './db'
 import { THEME_STORAGE_KEY } from '../theme'
@@ -101,6 +101,7 @@ async function deserializeVoiceNote(value: SerializedValue): Promise<VoiceNote |
     sessionId: String(record.sessionId ?? ''),
     phaseId: typeof record.phaseId === 'string' ? record.phaseId : undefined,
     exerciseId: typeof record.exerciseId === 'string' ? record.exerciseId : undefined,
+    matchId: typeof record.matchId === 'string' ? record.matchId : undefined,
     createdAt: String(record.createdAt ?? new Date().toISOString()),
     durationSeconds: Number(record.durationSeconds ?? 0),
     mimeType: String(record.mimeType ?? audioRecord.mimeType ?? 'audio/webm'),
@@ -185,17 +186,23 @@ export async function restoreBackup(payload: BackupPayload | CoachFieldExport) {
     const observations = (payload.data.observations ?? []) as Observation[]
     const sessions = (payload.data.sessions ?? []) as TrainingSession[]
     const attendance = (payload.data.attendance ?? []) as Attendance[]
+    const matches = (payload.data.matches ?? []) as Match[]
+    const matchPlayerEvaluations = (payload.data.matchPlayerEvaluations ?? []) as MatchPlayerEvaluation[]
     const voiceNotes = await Promise.all(((payload.data.voiceNotes ?? []) as SerializedValue[]).map(deserializeVoiceNote))
-    const tx = db.transaction(['players', 'observations', 'sessions', 'attendance', 'voiceNotes'], 'readwrite')
+    const tx = db.transaction(['players', 'observations', 'sessions', 'attendance', 'voiceNotes', 'matches', 'matchPlayerEvaluations'], 'readwrite')
     await tx.objectStore('players').clear()
     await tx.objectStore('observations').clear()
     await tx.objectStore('sessions').clear()
     await tx.objectStore('attendance').clear()
     await tx.objectStore('voiceNotes').clear()
+    await tx.objectStore('matches').clear()
+    await tx.objectStore('matchPlayerEvaluations').clear()
     await Promise.all(players.map((player) => tx.objectStore('players').put(player)))
     await Promise.all(observations.map((observation) => tx.objectStore('observations').put(observation)))
     await Promise.all(sessions.map((session) => tx.objectStore('sessions').put(session)))
     await Promise.all(attendance.map((item) => tx.objectStore('attendance').put(item)))
+    await Promise.all(matches.map((match) => tx.objectStore('matches').put(match)))
+    await Promise.all(matchPlayerEvaluations.map((evaluation) => tx.objectStore('matchPlayerEvaluations').put(evaluation)))
     await Promise.all(voiceNotes.filter((note): note is VoiceNote => Boolean(note)).map((note) => tx.objectStore('voiceNotes').put(note)))
     await tx.done
     return

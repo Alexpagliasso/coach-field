@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
-import { CalendarDays, Mic2, Palette, Shield, Users } from 'lucide-react'
+import { CalendarDays, Mic2, Palette, Trophy, Users } from 'lucide-react'
 import { ThemeSelectorSheet } from './ThemeSelectorSheet'
 
 const navItems = [
   { to: '/', label: 'Oggi', icon: CalendarDays },
   { to: '/players', label: 'Giocatori', icon: Users },
-  { to: '/goalkeepers', label: 'Portieri', icon: Shield },
+  { to: '/matches', label: 'Partite', icon: Trophy },
   { to: '/notes', label: 'Note', icon: Mic2 },
 ]
 

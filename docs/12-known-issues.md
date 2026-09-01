@@ -12,11 +12,17 @@ Impatto: regressioni su flussi IndexedDB o UI mobile possono passare inosservate
 
 Impatto: il file JSON puo diventare grande se l'archivio contiene molte note vocali.
 
-## Restore Distruttivo Per Alcuni Store
+## Restore Distruttivo Per Gli Store Applicativi
 
-Il restore cancella e sostituisce `players`, `observations`, `sessions` e `attendance`.
+Il restore completo cancella e sostituisce gli store applicativi presenti nel backup, incluse partite e valutazioni partita.
 
 Impatto: e utile come ripristino completo, ma non come import incrementale.
+
+## Partite Senza Statistiche Avanzate
+
+La gestione partite salva metadati, partecipanti, valutazioni, ruoli, titolare, note, risultato e valutazione squadra.
+
+Impatto: non sono ancora presenti marcatori, assist, minuti giocati, formazioni o statistiche gara avanzate.
 
 ## Una Sola Seduta Seedata
 

@@ -55,6 +55,24 @@
 2. I chip selezionati cambiano stato visivo e vengono salvati.
 3. La pagina giocatori mostra la sintesi dei ruoli ideali.
 
+## Gestire Una Partita
+
+1. L'utente apre `Partite`.
+2. Tocca `Nuova partita`.
+3. Inserisce data, avversario, tipo partita, casa/trasferta/neutro ed eventuali dettagli.
+4. Salva e viene portato al dettaglio partita.
+5. Seleziona i partecipanti dalla rosa.
+6. Apre la scheda di un giocatore per valutarlo.
+7. Inserisce rating, ruoli giocati, titolare, tag, note o nota vocale.
+8. Inserisce risultato, valutazione squadra e note staff.
+9. Tocca `Completa partita` e conferma il riepilogo.
+
+## Consultare Storico Partita Giocatore
+
+1. L'utente apre un profilo da `Giocatori`.
+2. La sezione `Partite` mostra presenze, valutazioni e media partita.
+3. Tocca una partita recente per tornare al dettaglio match.
+
 ## Salvare Osservazioni
 
 1. Nel profilo giocatore, l'utente sceglie una categoria rapida.
@@ -82,8 +100,8 @@
 ## Backup E Restore
 
 1. Da `Note`, l'utente puo esportare un backup JSON.
-2. Il backup contiene giocatori, osservazioni, sedute, presenze, impostazioni, tema e note vocali con audio base64.
+2. Il backup contiene giocatori, osservazioni, sedute, presenze, partite, valutazioni partita, impostazioni, tema e note vocali con audio base64.
 3. Il restore chiede conferma con `window.confirm`.
-4. Il restore sostituisce players, observations, sessions e attendance.
+4. Il restore sostituisce gli store applicativi inclusi nel backup completo.
 
 Nota: i backup generati dal nuovo export includono i blob audio in formato Data URL base64.

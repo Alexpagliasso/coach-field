@@ -502,6 +502,8 @@ h3 {
 .attendance-sheet,
 .adaptation-sheet,
 .add-player-sheet,
+.match-form-sheet,
+.match-evaluation-sheet,
 .theme-sheet {
   display: grid;
   grid-template-rows: auto auto auto minmax(0, 1fr) auto;
@@ -518,6 +520,8 @@ h3 {
 
 .adaptation-sheet,
 .add-player-sheet,
+.match-form-sheet,
+.match-evaluation-sheet,
 .theme-sheet {
   grid-template-rows: auto auto minmax(0, 1fr) auto;
 }
@@ -1019,6 +1023,10 @@ h3 {
   gap: 0.35rem;
 }
 
+.goalkeeper-entry {
+  justify-content: center;
+}
+
 .backup-panel {
   gap: 0.85rem;
 }
@@ -1066,6 +1074,147 @@ h3 {
 
 .row-select span {
   color: var(--text-secondary);
+}
+
+.match-card {
+  align-items: stretch;
+}
+
+.match-card > div {
+  flex: 1;
+}
+
+.match-card time {
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
+.match-card .match-score {
+  align-self: center;
+}
+
+.match-score {
+  display: inline-flex;
+  min-width: 3.8rem;
+  justify-content: center;
+  border: 1px solid var(--primary);
+  border-radius: 8px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  padding: 0.35rem 0.55rem;
+  font-weight: 950;
+}
+
+.match-score.large {
+  min-width: 5rem;
+  padding: 0.55rem 0.8rem;
+  font-size: 1.4rem;
+}
+
+.match-empty {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.match-summary {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.match-summary > div {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.score-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.section-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.section-header-row span {
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  font-weight: 850;
+  text-align: right;
+}
+
+.takeaway-section textarea,
+.content-section textarea {
+  width: 100%;
+}
+
+.subtle-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 2.8rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text-secondary);
+  padding: 0.55rem 0.75rem;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.segmented-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.segmented-grid.three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.segmented-grid button,
+.compact-tags button {
+  min-height: 2.85rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-raised);
+  color: var(--text-secondary);
+  font-weight: 900;
+}
+
+.segmented-grid button.selected,
+.compact-tags button.selected {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.compact-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.compact-tags button {
+  min-height: 2.55rem;
+  padding-inline: 0.7rem;
+}
+
+.compact-tags button.attention.selected {
+  border-color: var(--warning);
+  background: color-mix(in srgb, var(--warning) 14%, transparent);
+  color: var(--warning);
+}
+
+.match-history-card {
+  justify-content: space-between;
+}
+
+.match-history-card .compact-rating {
+  flex: 0 0 auto;
 }
 
 .quick-grid,
@@ -1439,6 +1588,17 @@ textarea {
   .attendance-sheet {
     height: 84svh;
     max-height: 48rem;
+  }
+
+  .match-form-sheet,
+  .match-evaluation-sheet {
+    height: 84svh;
+    max-height: 48rem;
+  }
+
+  .match-summary {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
   }
 }
 

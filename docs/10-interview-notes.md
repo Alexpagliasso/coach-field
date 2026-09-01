@@ -13,6 +13,7 @@ L'allenatore deve:
 - osservare bambini diversi;
 - salvare note rapide;
 - adattare i formati quando il numero di presenti cambia.
+- valutare i giocatori anche in partita senza confondere dati gara e valutazione generale.
 
 Coach Field unifica questi bisogni in un'app installabile, senza backend.
 
@@ -31,6 +32,7 @@ Coach Field unifica questi bisogni in un'app installabile, senza backend.
 - Nessuno state manager globale: codice piu semplice per MVP, ma refresh manuali dopo alcune operazioni.
 - Una seduta seedata: ottima per validare il flusso, non ancora un planner completo.
 - Backup JSON completo: utile per mettere al sicuro dati locali e audio prima di evoluzioni importanti.
+- Gestione partite separata dalle sedute: le valutazioni gara hanno store dedicato e non sovrascrivono il profilo tecnico manuale.
 
 ## Cosa Mostrare In Demo
 
@@ -42,8 +44,10 @@ Coach Field unifica questi bisogni in un'app installabile, senza backend.
 6. Aprire profilo giocatore.
 7. Assegnare rating e ruoli ideali.
 8. Salvare una nota rapida.
-9. Cambiare tema e fare refresh.
-10. Mostrare archivio note e backup.
+9. Creare una partita, selezionare partecipanti e valutare un giocatore.
+10. Tornare al profilo giocatore e mostrare storico/media partita.
+11. Cambiare tema e fare refresh.
+12. Mostrare archivio note e backup.
 
 ## Possibili Domande
 
@@ -55,10 +59,14 @@ Come gestisci migrazioni?
 
 Risposta: per ora la migrazione principale riguarda il seed giocatori. `playerSeedVersion` viene salvato in `appState`; se aumenta, `initializeDatabase()` aggiorna i dati senza cancellare sessioni e note.
 
+Come hai modellato le partite?
+
+Risposta: `Match` e `MatchPlayerEvaluation` sono store separati. La partita contiene metadati, risultato e note squadra; la valutazione giocatore contiene partecipazione, titolare, ruoli giocati, rating, tag e nota individuale.
+
 Perche localStorage per il tema?
 
 Risposta: serve applicare il tema prima del render React per ridurre il flash visivo. I dati applicativi restano in IndexedDB.
 
 Come miglioreresti il progetto?
 
-Risposta: test automatici, gestione multi-seduta, compressione backup audio, sync opzionale e report esportabili.
+Risposta: test automatici, gestione multi-seduta, statistiche partita piu ricche, compressione backup audio, sync opzionale e report esportabili.

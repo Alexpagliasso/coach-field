@@ -153,6 +153,8 @@ export function NotesPage() {
           <span><strong>{dataCounts.sessions ?? 0}</strong> allenamenti</span>
           <span><strong>{dataCounts.attendance ?? 0}</strong> presenze</span>
           <span><strong>{dataCounts.observations ?? 0}</strong> osservazioni</span>
+          <span><strong>{dataCounts.matches ?? 0}</strong> partite</span>
+          <span><strong>{dataCounts.matchPlayerEvaluations ?? 0}</strong> valutazioni partita</span>
           <span><strong>{dataCounts.voiceNotes ?? 0}</strong> note vocali</span>
           <span><strong>{dataCounts.appState ?? 0}</strong> impostazioni</span>
         </div>

@@ -1,7 +1,7 @@
 import { openDB, type DBSchema } from 'idb'
 import { PLAYER_SEED_VERSION, playersSeed } from '../data/playersSeed'
 import { sessionSeed } from '../data/sessionSeed'
-import type { AppMetaState, AppState, Attendance, Observation, Player, PlayerYear, TrainingSession, VoiceNote } from '../types/domain'
+import type { AppMetaState, AppState, Attendance, Match, MatchPlayerEvaluation, Observation, Player, PlayerYear, TrainingSession, VoiceNote } from '../types/domain'
 
 interface CoachFieldDb extends DBSchema {
   players: {
@@ -21,7 +21,7 @@ interface CoachFieldDb extends DBSchema {
   voiceNotes: {
     key: string
     value: VoiceNote
-    indexes: { 'by-player': string; 'by-created': string; 'by-phase': string }
+    indexes: { 'by-player': string; 'by-created': string; 'by-phase': string; 'by-match': string }
   }
   appState: {
     key: string
@@ -32,10 +32,20 @@ interface CoachFieldDb extends DBSchema {
     value: Attendance
     indexes: { 'by-session': string; 'by-player': string }
   }
+  matches: {
+    key: string
+    value: Match
+    indexes: { 'by-date': string; 'by-status': string; 'by-type': string }
+  }
+  matchPlayerEvaluations: {
+    key: string
+    value: MatchPlayerEvaluation
+    indexes: { 'by-match': string; 'by-player': string; 'by-match-player': [string, string] }
+  }
 }
 
-export const dbPromise = openDB<CoachFieldDb>('coach-field-db', 2, {
-  upgrade(db, oldVersion) {
+export const dbPromise = openDB<CoachFieldDb>('coach-field-db', 3, {
+  upgrade(db, oldVersion, _newVersion, transaction) {
     if (oldVersion < 1) {
       const players = db.createObjectStore('players', { keyPath: 'id' })
       players.createIndex('by-year', 'year')
@@ -59,6 +69,26 @@ export const dbPromise = openDB<CoachFieldDb>('coach-field-db', 2, {
       const attendance = db.createObjectStore('attendance', { keyPath: 'id' })
       attendance.createIndex('by-session', 'sessionId')
       attendance.createIndex('by-player', 'playerId')
+    }
+
+    if (oldVersion < 3) {
+      // V2 Matches migration: add only new stores/indexes and preserve all V1 data.
+      const matches = db.createObjectStore('matches', { keyPath: 'id' })
+      matches.createIndex('by-date', 'date')
+      matches.createIndex('by-status', 'status')
+      matches.createIndex('by-type', 'matchType')
+
+      const matchPlayerEvaluations = db.createObjectStore('matchPlayerEvaluations', { keyPath: 'id' })
+      matchPlayerEvaluations.createIndex('by-match', 'matchId')
+      matchPlayerEvaluations.createIndex('by-player', 'playerId')
+      matchPlayerEvaluations.createIndex('by-match-player', ['matchId', 'playerId'])
+
+      if (db.objectStoreNames.contains('voiceNotes')) {
+        const voiceNotes = transaction.objectStore('voiceNotes')
+        if (!voiceNotes.indexNames.contains('by-match')) {
+          voiceNotes.createIndex('by-match', 'matchId')
+        }
+      }
     }
   },
 })

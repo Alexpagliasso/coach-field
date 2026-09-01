@@ -81,6 +81,10 @@ export function PlayersPage() {
       <button type="button" className="primary-action add-player-trigger" onClick={() => setAddOpen(true)}>
         <Plus size={22} />Giocatore
       </button>
+      <Link to="/goalkeepers" className="subtle-link goalkeeper-entry">
+        <Shield size={19} />
+        Area portieri
+      </Link>
       <label className="search-field">
         <Search size={21} />
         <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cerca nome o ruolo" />

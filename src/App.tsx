@@ -4,6 +4,8 @@ import { Layout } from './components/Layout'
 import { LoadingScreen } from './components/LoadingScreen'
 import { initializeDatabase } from './db/db'
 import { GoalkeepersPage } from './pages/GoalkeepersPage'
+import { MatchDetailPage } from './pages/MatchDetailPage'
+import { MatchesPage } from './pages/MatchesPage'
 import { NotesPage } from './pages/NotesPage'
 import { PlayerDetailPage } from './pages/PlayerDetailPage'
 import { PlayersPage } from './pages/PlayersPage'
@@ -37,6 +39,8 @@ function App() {
           <Route path="/" element={<TodayPage />} />
           <Route path="/players" element={<PlayersPage />} />
           <Route path="/players/:id" element={<PlayerDetailPage />} />
+          <Route path="/matches" element={<MatchesPage />} />
+          <Route path="/matches/:id" element={<MatchDetailPage />} />
           <Route path="/goalkeepers" element={<GoalkeepersPage />} />
           <Route path="/notes" element={<NotesPage />} />
         </Route>

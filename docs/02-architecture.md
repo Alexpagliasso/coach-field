@@ -13,6 +13,8 @@ flowchart TD
     Pages --> Repositories[Repository Layer]
     Components --> Repositories
     Repositories --> IDB[IndexedDB]
+    Pages --> Matches[Matches V2]
+    Matches --> Repositories
     React --> Theme[ThemeProvider]
     Theme --> LocalStorage[localStorage]
     Vite[Vite + vite-plugin-pwa] --> ServiceWorker[Generated Service Worker]
@@ -32,6 +34,8 @@ Le route sono definite in `src/App.tsx`:
 - `/`: TodayPage
 - `/players`: PlayersPage
 - `/players/:id`: PlayerDetailPage
+- `/matches`: MatchesPage
+- `/matches/:id`: MatchDetailPage
 - `/goalkeepers`: GoalkeepersPage
 - `/notes`: NotesPage
 
@@ -41,7 +45,9 @@ Tutte le route usano `Layout`, che include outlet centrale, bottone tema e Botto
 
 - `TodayPage`: seduta corrente, timer, fasi, presenze, adattamenti, esercizi e note vocali.
 - `PlayersPage`: rosa, ricerca, filtri, ordinamento, rating sintetico e aggiunta giocatore.
-- `PlayerDetailPage`: profilo giocatore, rating, ruoli ideali, osservazioni, note e promozione ospite.
+- `PlayerDetailPage`: profilo giocatore, rating generale, ruoli ideali, storico partite, osservazioni, note e promozione ospite.
+- `MatchesPage`: elenco partite prossime/passate, filtri per tipo e creazione partita.
+- `MatchDetailPage`: dettaglio partita, risultato, valutazione squadra, partecipanti, valutazioni individuali e completamento.
 - `GoalkeepersPage`: gestione candidati portiere e osservazioni specifiche.
 - `NotesPage`: archivio note vocali/testuali, filtri, export e restore.
 
@@ -53,6 +59,8 @@ Tutte le route usano `Layout`, che include outlet centrale, bottone tema e Botto
 - `AddPlayerModal`: aggiunta rapida ospite.
 - `AdaptationSheet`: dettaglio adattamento ai presenti.
 - `ThemeSelectorSheet`: selettore temi.
+- `CreateMatchModal`: creazione rapida partita.
+- `MatchPlayerEvaluationSheet`: valutazione individuale dentro una partita.
 - `VoiceRecorder`: registrazione audio via MediaRecorder.
 - `AudioNote`: playback e cancellazione nota vocale.
 - `PlayerStarRating`: rating visuale a mezze stelle.
@@ -68,6 +76,8 @@ La UI non usa direttamente IndexedDB. Ogni store ha un repository:
 - `voiceNotesRepository.ts`
 - `sessionsRepository.ts`
 - `appStateRepository.ts`
+- `matchesRepository.ts`
+- `matchPlayerEvaluationsRepository.ts`
 - `backupRepository.ts`
 
 `db.ts` definisce schema, upgrade IndexedDB, seed iniziale e migrazioni.

@@ -4,7 +4,7 @@
 
 Database: `coach-field-db`
 
-Versione IndexedDB attuale: `2`
+Versione IndexedDB attuale: `3`
 
 Store:
 
@@ -14,12 +14,17 @@ Store:
 - `voiceNotes`
 - `appState`
 - `attendance`
+- `matches`
+- `matchPlayerEvaluations`
 
 ```mermaid
 erDiagram
     PLAYER ||--o{ OBSERVATION : has
     PLAYER ||--o{ VOICE_NOTE : may_have
     PLAYER ||--o{ ATTENDANCE : has
+    PLAYER ||--o{ MATCH_PLAYER_EVALUATION : has
+    MATCH ||--o{ MATCH_PLAYER_EVALUATION : contains
+    MATCH ||--o{ VOICE_NOTE : may_have
     TRAINING_SESSION ||--o{ OBSERVATION : contains
     TRAINING_SESSION ||--o{ VOICE_NOTE : contains
     TRAINING_SESSION ||--o{ ATTENDANCE : has
@@ -101,6 +106,7 @@ type VoiceNote = {
   sessionId: string
   phaseId?: string
   exerciseId?: string
+  matchId?: string
   createdAt: string
   durationSeconds: number
   mimeType: string
@@ -108,7 +114,59 @@ type VoiceNote = {
 }
 ```
 
-Le note vocali salvano il blob audio direttamente in IndexedDB. Il nuovo export dati serializza il blob come Data URL base64 mantenendo mime type, durata e collegamenti a giocatore/seduta/fase/esercizio.
+Le note vocali salvano il blob audio direttamente in IndexedDB. Il nuovo export dati serializza il blob come Data URL base64 mantenendo mime type, durata e collegamenti a giocatore/seduta/fase/esercizio/partita.
+
+## Match
+
+```ts
+type Match = {
+  id: string
+  date: string
+  opponent: string
+  competition?: string
+  matchType: 'league' | 'tournament' | 'friendly' | 'other'
+  homeAway: 'home' | 'away' | 'neutral'
+  location?: string
+  goalsFor?: number
+  goalsAgainst?: number
+  teamRating?: PlayerRating
+  teamNotes?: string
+  trainingTakeaways?: string
+  status: 'planned' | 'completed'
+  createdAt: string
+  updatedAt: string
+}
+```
+
+`matches` contiene le partite pianificate o completate. Gli indici principali sono `by-date`, `by-status` e `by-type`.
+
+## MatchPlayerEvaluation
+
+```ts
+type MatchPlayerEvaluation = {
+  id: string
+  matchId: string
+  playerId: string
+  selected: boolean
+  present: boolean
+  starter?: boolean
+  rolesPlayed: PlayerRole[]
+  rating: PlayerRating
+  note?: string
+  positiveTags?: string[]
+  attentionTags?: string[]
+  createdAt: string
+  updatedAt: string
+}
+```
+
+Le valutazioni partita sono separate dal profilo giocatore. La media partita nel profilo usa questi record, mentre `Player.rating` resta una valutazione generale manuale.
+
+Indici:
+
+- `by-match`
+- `by-player`
+- `by-match-player`
 
 ## TrainingSession
 
@@ -183,6 +241,6 @@ L'id e composto come `sessionId:playerId`.
 
 ## Seed Versioning
 
-La costante `PLAYER_SEED_VERSION` vive in `src/data/playersSeed.ts`.
+La costante `PLAYER_SEED_VERSION` vive in `src/data/playersSeed.ts`. La migrazione V2 partite vive invece nello schema IndexedDB versione `3`.
 
 All'avvio `initializeDatabase()` legge `appState.playerSeedVersion`; se manca o e inferiore alla versione corrente, esegue la migrazione dei giocatori. La migrazione rimuove vecchi placeholder, preserva sessioni, voice notes e dati non correlati, e aggiorna la versione solo al termine delle scritture.

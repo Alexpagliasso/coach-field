@@ -75,12 +75,35 @@ Il profilo consente di:
 - vedere dati base e fase corrente
 - modificare valutazione a stelle
 - impostare ruoli ideali
+- consultare storico partite, rating partita, ruoli giocati e media partita
 - promuovere un ospite a rosa
 - salvare osservazioni rapide
 - salvare note testuali positive o di attenzione
 - segnare "Interessante in porta"
 - registrare note vocali
 - consultare cronologia osservazioni e vocali del giocatore
+
+## Partite
+
+La pagina Partite consente di:
+
+- vedere partite prossime e passate
+- filtrare per Tutte, Campionato, Torneo e Amichevoli
+- creare una nuova partita con data, avversario, tipo, casa/trasferta/neutro, competizione e luogo
+- aprire il dettaglio partita
+
+Nel dettaglio partita sono implementati:
+
+- risultato modificabile
+- valutazione squadra a mezze stelle
+- note staff
+- note vocali associate alla partita
+- appunti "Da portare in allenamento"
+- selezione partecipanti con azioni Tutti/Nessuno
+- scheda valutazione per singolo giocatore con rating, ruoli giocati, titolare, tag e nota
+- completamento partita con conferma riepilogativa
+- modifica anche dopo completamento
+- eliminazione partita con cancellazione delle valutazioni associate
 
 ## Portieri
 

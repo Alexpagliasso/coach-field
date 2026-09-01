@@ -14,6 +14,9 @@ export type PlayerRating =
 export type PlayerRole = 'POR' | 'DIF' | 'CEN' | 'ATT' | 'JOLLY'
 export type PlayerYear = 2016 | 2017 | 'other'
 export type PlayerStatus = 'roster' | 'guest'
+export type MatchType = 'league' | 'tournament' | 'friendly' | 'other'
+export type HomeAway = 'home' | 'away' | 'neutral'
+export type MatchStatus = 'planned' | 'completed'
 
 export type Player = {
   id: string
@@ -51,10 +54,45 @@ export type VoiceNote = {
   sessionId: string
   phaseId?: string
   exerciseId?: string
+  matchId?: string
   createdAt: string
   durationSeconds: number
   mimeType: string
   audio: Blob
+}
+
+export type Match = {
+  id: string
+  date: string
+  opponent: string
+  competition?: string
+  matchType: MatchType
+  homeAway: HomeAway
+  location?: string
+  goalsFor?: number
+  goalsAgainst?: number
+  teamRating?: PlayerRating
+  teamNotes?: string
+  trainingTakeaways?: string
+  status: MatchStatus
+  createdAt: string
+  updatedAt: string
+}
+
+export type MatchPlayerEvaluation = {
+  id: string
+  matchId: string
+  playerId: string
+  selected: boolean
+  present: boolean
+  starter?: boolean
+  rolesPlayed: PlayerRole[]
+  rating: PlayerRating
+  note?: string
+  positiveTags?: string[]
+  attentionTags?: string[]
+  createdAt: string
+  updatedAt: string
 }
 
 export type FieldExercise = {

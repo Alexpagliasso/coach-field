@@ -1,15 +1,18 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { Goal, HeartHandshake, MessageCircle, Plus, Shield, Sparkles, TriangleAlert } from 'lucide-react'
 import { getAppState } from '../db/appStateRepository'
+import { getMatchPlayerEvaluationsByPlayer } from '../db/matchPlayerEvaluationsRepository'
+import { getMatchById } from '../db/matchesRepository'
 import { addObservation, getObservationsByPlayer } from '../db/observationsRepository'
 import { getPlayer, promotePlayerToRoster, toggleGoalkeeperCandidate, updatePlayerIdealRoles, updatePlayerRating } from '../db/playersRepository'
 import { getCurrentSession } from '../db/sessionsRepository'
 import { getVoiceNotesByPlayer } from '../db/voiceNotesRepository'
-import type { AppState, Observation, ObservationCategory, Player, PlayerRating, PlayerRole, TrainingSession, VoiceNote } from '../types/domain'
+import type { AppState, Match, MatchPlayerEvaluation, Observation, ObservationCategory, Player, PlayerRating, PlayerRole, TrainingSession, VoiceNote } from '../types/domain'
 import { VoiceRecorder } from '../components/VoiceRecorder'
 import { formatDateTime } from '../utils/format'
-import { PlayerStarRating } from '../components/PlayerStarRating'
+import { CompactStarRating, PlayerStarRating } from '../components/PlayerStarRating'
+import { formatMatchDate, formatMatchMeta } from '../utils/match'
 import { formatPlayerYear, roleOptions } from '../utils/player'
 
 const actions: Array<{ label: string; category: ObservationCategory; icon: typeof Sparkles }> = [
@@ -29,6 +32,11 @@ const categoryLabels: Record<ObservationCategory, string> = {
 }
 
 const goalkeeperTags = ['Non ha paura', 'Buone mani', 'Riflessi', 'Posizione', 'Uscite', 'Da rivedere', 'Disponibile sabato']
+type PlayerMatchHistoryItem = {
+  evaluation: MatchPlayerEvaluation
+  match: Match
+}
+
 export function PlayerDetailPage() {
   const { id } = useParams()
   const [player, setPlayer] = useState<Player>()
@@ -36,6 +44,7 @@ export function PlayerDetailPage() {
   const [voiceNotes, setVoiceNotes] = useState<VoiceNote[]>([])
   const [session, setSession] = useState<TrainingSession>()
   const [appState, setAppState] = useState<AppState>()
+  const [matchHistory, setMatchHistory] = useState<PlayerMatchHistoryItem[]>([])
   const [note, setNote] = useState('')
   const [savedFlash, setSavedFlash] = useState('')
 
@@ -44,35 +53,56 @@ export function PlayerDetailPage() {
 
   const refresh = async () => {
     if (!id) return
-    const [loadedPlayer, loadedObservations, loadedNotes, loadedSession, loadedState] = await Promise.all([
+    const [loadedPlayer, loadedObservations, loadedNotes, loadedSession, loadedState, loadedEvaluations] = await Promise.all([
       getPlayer(id),
       getObservationsByPlayer(id),
       getVoiceNotesByPlayer(id),
       getCurrentSession(),
       getAppState(),
+      getMatchPlayerEvaluationsByPlayer(id),
     ])
+    const loadedMatches = await Promise.all(loadedEvaluations.map((evaluation) => getMatchById(evaluation.matchId)))
     setPlayer(loadedPlayer)
     setObservations(loadedObservations)
     setVoiceNotes(loadedNotes)
     setSession(loadedSession)
     setAppState(loadedState)
+    setMatchHistory(loadedEvaluations
+      .map((evaluation, index) => {
+        const match = loadedMatches[index]
+        return match ? { evaluation, match } : undefined
+      })
+      .filter((item): item is PlayerMatchHistoryItem => Boolean(item)))
   }
 
   useEffect(() => {
     if (!id) return
+    let cancelled = false
     Promise.all([
       getPlayer(id),
       getObservationsByPlayer(id),
       getVoiceNotesByPlayer(id),
       getCurrentSession(),
       getAppState(),
-    ]).then(([loadedPlayer, loadedObservations, loadedNotes, loadedSession, loadedState]) => {
+      getMatchPlayerEvaluationsByPlayer(id),
+    ]).then(async ([loadedPlayer, loadedObservations, loadedNotes, loadedSession, loadedState, loadedEvaluations]) => {
+      const loadedMatches = await Promise.all(loadedEvaluations.map((evaluation) => getMatchById(evaluation.matchId)))
+      if (cancelled) return
       setPlayer(loadedPlayer)
       setObservations(loadedObservations)
       setVoiceNotes(loadedNotes)
       setSession(loadedSession)
       setAppState(loadedState)
+      setMatchHistory(loadedEvaluations
+        .map((evaluation, index) => {
+          const match = loadedMatches[index]
+          return match ? { evaluation, match } : undefined
+        })
+        .filter((item): item is PlayerMatchHistoryItem => Boolean(item)))
     })
+    return () => {
+      cancelled = true
+    }
   }, [id])
 
   if (!player || !session) return null
@@ -126,6 +156,13 @@ export function PlayerDetailPage() {
     window.setTimeout(() => setSavedFlash(''), 1300)
   }
 
+  const ratedMatchEvaluations = matchHistory
+    .map((item) => item.evaluation)
+    .filter((evaluation) => evaluation.rating !== null)
+  const matchAverage = ratedMatchEvaluations.length > 0
+    ? ratedMatchEvaluations.reduce((sum, evaluation) => sum + (evaluation.rating ?? 0), 0) / ratedMatchEvaluations.length
+    : undefined
+
   return (
     <section className="page">
       <header className="page-header compact">
@@ -170,6 +207,31 @@ export function PlayerDetailPage() {
       </section>
 
       {savedFlash && <p className="save-flash">{savedFlash}</p>}
+
+      <section className="content-section player-profile-section">
+        <div className="section-header-row">
+          <h2>Partite</h2>
+          <span>{matchHistory.length} presenze</span>
+        </div>
+        <div className="data-count-grid">
+          <span><strong>{matchAverage === undefined ? '—' : matchAverage.toFixed(1).replace('.', ',')}</strong> media partite</span>
+          <span><strong>{ratedMatchEvaluations.length}</strong> valutazioni</span>
+        </div>
+        <div className="list-stack">
+          {matchHistory.slice(0, 5).map(({ evaluation, match }) => (
+            <Link key={evaluation.id} to={`/matches/${match.id}`} className="list-card match-history-card">
+              <div>
+                <strong>{match.opponent}</strong>
+                <span>{formatMatchDate(match.date)} · {formatMatchMeta(match)}</span>
+                <small>{evaluation.rolesPlayed.length > 0 ? evaluation.rolesPlayed.join(' · ') : 'Ruoli partita da completare'}</small>
+                {evaluation.note && <small>{evaluation.note}</small>}
+              </div>
+              <CompactStarRating value={evaluation.rating} />
+            </Link>
+          ))}
+          {matchHistory.length === 0 && <p className="empty-state">Ancora nessuna partita collegata a questo giocatore.</p>}
+        </div>
+      </section>
 
       <section className="content-section player-profile-section">
         <h2>Osservazioni rapide</h2>

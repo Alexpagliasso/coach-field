@@ -6,6 +6,7 @@ type SaveVoiceNoteInput = {
   sessionId: string
   phaseId?: string
   exerciseId?: string
+  matchId?: string
   durationSeconds: number
   mimeType: string
   audio: Blob

@@ -1,6 +1,6 @@
 # Coach Field
 
-Coach Field e una PWA mobile-first per supportare un allenatore di calcio giovanile durante una seduta sul campo. L'app concentra in pochi tap le informazioni operative dell'allenamento, la gestione presenze, l'osservazione dei giocatori, le note vocali e una prima valutazione tecnica individuale.
+Coach Field e una PWA mobile-first per supportare un allenatore di calcio giovanile durante sedute e partite. L'app concentra in pochi tap le informazioni operative dell'allenamento, la gestione presenze, l'osservazione dei giocatori, le note vocali, le valutazioni individuali e lo storico partita.
 
 Il progetto nasce per risolvere un problema concreto: durante un allenamento non c'e tempo per navigare menu complessi, prendere appunti lunghi o ricordare a memoria tutte le consegne. Coach Field porta sul telefono una traccia pratica della seduta e uno spazio locale per salvare osservazioni rapide, anche offline.
 
@@ -16,6 +16,9 @@ L'utente principale e un allenatore di calcio giovanile che usa iPhone, smartpho
 - Aggiunta rapida di giocatori ospiti da rosa o da presenze.
 - Promozione di un ospite a giocatore di rosa dal profilo.
 - Profilo giocatore con osservazioni rapide, note testuali, valutazione a stelle e ruoli ideali.
+- Gestione partite con creazione match, filtri, convocati/partecipanti, risultato, note staff e completamento.
+- Valutazioni individuali per partita con rating a mezze stelle, ruoli giocati, titolare, tag positivi/attenzione, note e note vocali.
+- Storico partite nel profilo giocatore con media partita separata dalla valutazione generale manuale.
 - Area portieri per segnare candidati, aggiungere tag specifici e consultare note.
 - Registrazione di note vocali tramite MediaRecorder, associate a seduta, fase, esercizio o giocatore.
 - Archivio note con filtri per giocatore e fase.
@@ -51,6 +54,8 @@ Coach Field salva i dati applicativi in IndexedDB nel browser:
 - note vocali
 - stato app
 - presenze
+- partite
+- valutazioni partita
 
 La PWA usa un service worker generato da `vite-plugin-pwa` per mettere in cache gli asset statici della build. Questo rende l'app installabile e consultabile offline dopo il primo caricamento riuscito.
 
@@ -105,7 +110,7 @@ La build produce la cartella `dist/`.
 
 ## Current Status
 
-Coach Field e un MVP funzionante per uso locale/mobile-first. Le funzionalita centrali per una seduta singola sono implementate: timer, presenze, rosa, osservazioni, note vocali, adattamento ai presenti, PWA e temi.
+Coach Field e un MVP funzionante per uso locale/mobile-first. Le funzionalita centrali per una seduta singola sono implementate: timer, presenze, rosa, osservazioni, note vocali, adattamento ai presenti, gestione partite, PWA, temi e backup completo.
 
 Non sono presenti backend, autenticazione, sincronizzazione cloud o test automatici. Il progetto usa una seduta seed principale, non un editor completo di allenamenti.
 
