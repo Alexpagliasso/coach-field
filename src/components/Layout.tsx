@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
-import { CalendarDays, Mic2, Shield, Users } from 'lucide-react'
+import { CalendarDays, Mic2, Palette, Shield, Users } from 'lucide-react'
+import { ThemeSelectorSheet } from './ThemeSelectorSheet'
 
 const navItems = [
   { to: '/', label: 'Oggi', icon: CalendarDays },
@@ -9,8 +11,14 @@ const navItems = [
 ]
 
 export function Layout() {
+  const [themeOpen, setThemeOpen] = useState(false)
+
   return (
     <div className="app-shell">
+      <button type="button" className="theme-trigger" onClick={() => setThemeOpen(true)} aria-label="Tema">
+        <Palette size={21} aria-hidden="true" />
+        <span>Tema</span>
+      </button>
       <main className="app-main">
         <Outlet />
       </main>
@@ -22,6 +30,7 @@ export function Layout() {
           </NavLink>
         ))}
       </nav>
+      {themeOpen && <ThemeSelectorSheet onClose={() => setThemeOpen(false)} />}
     </div>
   )
 }
