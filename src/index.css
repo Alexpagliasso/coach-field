@@ -1019,6 +1019,38 @@ h3 {
   gap: 0.35rem;
 }
 
+.backup-panel {
+  gap: 0.85rem;
+}
+
+.backup-panel p {
+  color: var(--text-secondary);
+}
+
+.data-count-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.data-count-grid span,
+.privacy-note {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-raised);
+  padding: 0.7rem;
+}
+
+.data-count-grid strong {
+  color: var(--primary);
+  font-size: 1.25rem;
+}
+
+.privacy-note {
+  color: var(--warning) !important;
+  font-weight: 800;
+}
+
 .row-select {
   display: grid;
   flex: 1;

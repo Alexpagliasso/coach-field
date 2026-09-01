@@ -4,7 +4,7 @@ import { Download, RotateCcw } from 'lucide-react'
 import { AudioNote } from '../components/AudioNote'
 import { VoiceRecorder } from '../components/VoiceRecorder'
 import { getAppState } from '../db/appStateRepository'
-import { createBackup, restoreBackup, type BackupPayload } from '../db/backupRepository'
+import { exportCoachFieldData, getLocalDataCounts, restoreBackup, type BackupPayload } from '../db/backupRepository'
 import { getObservations } from '../db/observationsRepository'
 import { getPlayers } from '../db/playersRepository'
 import { getCurrentSession } from '../db/sessionsRepository'
@@ -20,6 +20,8 @@ export function NotesPage() {
   const [voiceNotes, setVoiceNotes] = useState<VoiceNote[]>([])
   const [playerFilter, setPlayerFilter] = useState('')
   const [phaseFilter, setPhaseFilter] = useState('')
+  const [dataCounts, setDataCounts] = useState<Record<string, number>>({})
+  const [backupStatus, setBackupStatus] = useState('')
   const restoreInputRef = useRef<HTMLInputElement | null>(null)
 
   const refresh = async () => {
@@ -35,6 +37,7 @@ export function NotesPage() {
     setAppState(loadedState)
     setObservations(loadedObservations)
     setVoiceNotes(loadedVoiceNotes)
+    setDataCounts(await getLocalDataCounts())
   }
 
   useEffect(() => {
@@ -50,6 +53,7 @@ export function NotesPage() {
       setAppState(loadedState)
       setObservations(loadedObservations)
       setVoiceNotes(loadedVoiceNotes)
+      getLocalDataCounts().then(setDataCounts)
     })
   }, [])
 
@@ -73,20 +77,37 @@ export function NotesPage() {
   )), [phaseFilter, playerFilter, voiceNotes])
 
   const exportBackup = async () => {
-    const backup = await createBackup()
-    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const anchor = document.createElement('a')
-    anchor.href = url
-    anchor.download = `coach-field-backup-${new Date().toISOString().slice(0, 10)}.json`
-    anchor.click()
-    URL.revokeObjectURL(url)
+    setBackupStatus('Preparazione backup...')
+    try {
+      const backup = await exportCoachFieldData()
+      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const anchor = document.createElement('a')
+      const exportedAt = new Date(backup.exportedAt)
+      const stamp = [
+        exportedAt.getFullYear(),
+        String(exportedAt.getMonth() + 1).padStart(2, '0'),
+        String(exportedAt.getDate()).padStart(2, '0'),
+      ].join('-')
+      const time = `${String(exportedAt.getHours()).padStart(2, '0')}${String(exportedAt.getMinutes()).padStart(2, '0')}`
+      anchor.href = url
+      anchor.download = `coach-field-backup-${stamp}-${time}.json`
+      anchor.click()
+      URL.revokeObjectURL(url)
+      setDataCounts(backup.counts)
+      setBackupStatus('Backup creato')
+    } catch (error) {
+      console.error('[CoachField] Backup export failed', error)
+      setBackupStatus('Impossibile creare il backup')
+    } finally {
+      window.setTimeout(() => setBackupStatus(''), 1800)
+    }
   }
 
   const restore = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
-    const confirmed = window.confirm('Ripristinare il backup? Giocatori e osservazioni correnti verranno sostituiti.')
+    const confirmed = window.confirm('Ripristinare il backup? I dati locali correnti verranno sostituiti dagli elementi del file.')
     if (!confirmed) return
     const payload = JSON.parse(await file.text()) as BackupPayload
     await restoreBackup(payload)
@@ -121,8 +142,27 @@ export function NotesPage() {
         onSaved={refresh}
       />
 
+      <section className="content-section backup-panel">
+        <div>
+          <span className="eyebrow">Impostazioni · Dati</span>
+          <h2>Backup dati</h2>
+          <p>Esporta una copia dei dati salvati su questo dispositivo.</p>
+        </div>
+        <div className="data-count-grid" aria-label="Dati su questo dispositivo">
+          <span><strong>{dataCounts.players ?? 0}</strong> giocatori</span>
+          <span><strong>{dataCounts.sessions ?? 0}</strong> allenamenti</span>
+          <span><strong>{dataCounts.attendance ?? 0}</strong> presenze</span>
+          <span><strong>{dataCounts.observations ?? 0}</strong> osservazioni</span>
+          <span><strong>{dataCounts.voiceNotes ?? 0}</strong> note vocali</span>
+          <span><strong>{dataCounts.appState ?? 0}</strong> impostazioni</span>
+        </div>
+        <button type="button" className="primary-action" onClick={exportBackup}><Download size={22} />Esporta backup</button>
+        <p className="muted-copy">I dati non verranno modificati.</p>
+        <p className="privacy-note">Il backup puo contenere dati dei giocatori e note dello staff. Conservalo in un luogo sicuro.</p>
+        {backupStatus && <p className="save-flash compact-flash">{backupStatus}</p>}
+      </section>
+
       <div className="action-row">
-        <button type="button" onClick={exportBackup}><Download size={20} />Esporta backup</button>
         <button type="button" onClick={() => restoreInputRef.current?.click()}><RotateCcw size={20} />Ripristina</button>
         <input ref={restoreInputRef} hidden type="file" accept="application/json" onChange={restore} />
       </div>

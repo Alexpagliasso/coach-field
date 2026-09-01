@@ -1,75 +1,129 @@
-# React + TypeScript + Vite
+# Coach Field
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Coach Field e una PWA mobile-first per supportare un allenatore di calcio giovanile durante una seduta sul campo. L'app concentra in pochi tap le informazioni operative dell'allenamento, la gestione presenze, l'osservazione dei giocatori, le note vocali e una prima valutazione tecnica individuale.
 
-Currently, two official plugins are available:
+Il progetto nasce per risolvere un problema concreto: durante un allenamento non c'e tempo per navigare menu complessi, prendere appunti lunghi o ricordare a memoria tutte le consegne. Coach Field porta sul telefono una traccia pratica della seduta e uno spazio locale per salvare osservazioni rapide, anche offline.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+L'utente principale e un allenatore di calcio giovanile che usa iPhone, smartphone o tablet direttamente a bordo campo.
 
-## React Compiler
+## Core Features
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- Seduta corrente divisa in fasi, con timer, reset, pausa, chiusura fase e navigazione rapida.
+- Dettaglio esercizi in bottom sheet, con obiettivi, setup, istruzioni, regole, varianti, domande e segnali da osservare.
+- Adattamento degli esercizi al numero di presenti per Fase 2, Fase 3 e partita finale.
+- Gestione presenze locale con selezione singola, tutti presenti e azzera.
+- Rosa reale seedata con 21 giocatori e migrazione versionata del seed.
+- Aggiunta rapida di giocatori ospiti da rosa o da presenze.
+- Promozione di un ospite a giocatore di rosa dal profilo.
+- Profilo giocatore con osservazioni rapide, note testuali, valutazione a stelle e ruoli ideali.
+- Area portieri per segnare candidati, aggiungere tag specifici e consultare note.
+- Registrazione di note vocali tramite MediaRecorder, associate a seduta, fase, esercizio o giocatore.
+- Archivio note con filtri per giocatore e fase.
+- Esportazione backup JSON completo con audio base64 e ripristino dati.
+- Sistema multi-tema dark con Pitch, Electric Blue, Purple Data e Ice Cyan.
+- PWA installabile con service worker e precache degli asset di build.
 
-## Expanding the ESLint configuration
+## Tech Stack
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- React 19
+- TypeScript
+- Vite
+- React Router
+- IndexedDB tramite `idb`
+- Vite PWA / Workbox tramite `vite-plugin-pwa`
+- Lucide React per le icone
+- CSS custom properties per il design system e i temi
+- ESLint con preset TypeScript, React Hooks e React Refresh
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Architecture
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+L'app e una single-page application React. Il routing e definito in `src/App.tsx`; il layout principale vive in `src/components/Layout.tsx`; le pagine sono in `src/pages`; la persistenza locale e incapsulata in repository sotto `src/db`.
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+La UI non accede direttamente a IndexedDB: passa da funzioni repository come `getPlayers`, `savePlayer`, `addObservation`, `getVoiceNotes`, `ensureAttendanceForSession`.
 
+## Offline-First
+
+Coach Field salva i dati applicativi in IndexedDB nel browser:
+
+- giocatori
+- sedute
+- osservazioni
+- note vocali
+- stato app
+- presenze
+
+La PWA usa un service worker generato da `vite-plugin-pwa` per mettere in cache gli asset statici della build. Questo rende l'app installabile e consultabile offline dopo il primo caricamento riuscito.
+
+Il tema selezionato e salvato in `localStorage` per applicarlo subito prima del rendering React ed evitare il flash del tema sbagliato.
+
+## Project Structure
+
+```text
+coach-field/
+  public/                 Asset pubblici PWA
+  src/
+    components/           Componenti riusabili e bottom sheet
+    data/                 Seed della rosa e della seduta
+    db/                   IndexedDB e repository layer
+    pages/                Route principali
+    styles/               Token dei temi
+    types/                Tipi dominio TypeScript
+    utils/                Utility di formato, giocatori e adattamento
+    App.tsx               Routing e inizializzazione DB
+    main.tsx              Bootstrap React e ThemeProvider
+  docs/                   Documentazione estesa
+  index.html              Shell HTML e script tema iniziale
+  vite.config.ts          Config React + PWA
 ```
 
-You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
+## Running Locally
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```bash
+npm install
+npm run dev
+npm run build
 ```
+
+Altri comandi disponibili:
+
+```bash
+npm run lint
+npm run preview
+```
+
+## Deployment
+
+Il repository contiene una configurazione Vite standard e una configurazione PWA in `vite.config.ts`. Non e presente una configurazione Vercel dedicata (`vercel.json`) nel repository.
+
+Il progetto puo essere distribuito come applicazione statica generata da:
+
+```bash
+npm run build
+```
+
+La build produce la cartella `dist/`.
+
+## Current Status
+
+Coach Field e un MVP funzionante per uso locale/mobile-first. Le funzionalita centrali per una seduta singola sono implementate: timer, presenze, rosa, osservazioni, note vocali, adattamento ai presenti, PWA e temi.
+
+Non sono presenti backend, autenticazione, sincronizzazione cloud o test automatici. Il progetto usa una seduta seed principale, non un editor completo di allenamenti.
+
+## Roadmap
+
+Vedi [docs/09-roadmap.md](docs/09-roadmap.md).
+
+## Technical Documentation
+
+- [Product Overview](docs/01-product-overview.md)
+- [Architecture](docs/02-architecture.md)
+- [Data Model](docs/03-data-model.md)
+- [Features](docs/04-features.md)
+- [User Flows](docs/05-user-flows.md)
+- [Design System](docs/06-design-system.md)
+- [PWA and Offline](docs/07-pwa-offline.md)
+- [Development Guide](docs/08-development-guide.md)
+- [Roadmap](docs/09-roadmap.md)
+- [Interview Notes](docs/10-interview-notes.md)
+- [Decisions](docs/11-decisions.md)
+- [Known Issues](docs/12-known-issues.md)
