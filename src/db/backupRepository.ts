@@ -1,4 +1,4 @@
-import type { Match, MatchPlayerEvaluation, Observation, Player, TrainingSession, VoiceNote } from '../types/domain'
+import type { Match, MatchPlayerEvaluation, Observation, Player, PlayerDevelopmentReview, PlayerObjective, PlayerObjectiveEvidence, TrainingPlayerEvaluation, TrainingSession, TrainingTemplate, VoiceNote } from '../types/domain'
 import type { Attendance } from '../types/domain'
 import { dbPromise } from './db'
 import { THEME_STORAGE_KEY } from '../theme'
@@ -188,8 +188,13 @@ export async function restoreBackup(payload: BackupPayload | CoachFieldExport) {
     const attendance = (payload.data.attendance ?? []) as Attendance[]
     const matches = (payload.data.matches ?? []) as Match[]
     const matchPlayerEvaluations = (payload.data.matchPlayerEvaluations ?? []) as MatchPlayerEvaluation[]
+    const trainingTemplates = (payload.data.trainingTemplates ?? []) as TrainingTemplate[]
+    const trainingPlayerEvaluations = (payload.data.trainingPlayerEvaluations ?? []) as TrainingPlayerEvaluation[]
+    const playerObjectives = (payload.data.playerObjectives ?? []) as PlayerObjective[]
+    const playerObjectiveEvidence = (payload.data.playerObjectiveEvidence ?? []) as PlayerObjectiveEvidence[]
+    const playerDevelopmentReviews = (payload.data.playerDevelopmentReviews ?? []) as PlayerDevelopmentReview[]
     const voiceNotes = await Promise.all(((payload.data.voiceNotes ?? []) as SerializedValue[]).map(deserializeVoiceNote))
-    const tx = db.transaction(['players', 'observations', 'sessions', 'attendance', 'voiceNotes', 'matches', 'matchPlayerEvaluations'], 'readwrite')
+    const tx = db.transaction(['players', 'observations', 'sessions', 'attendance', 'voiceNotes', 'matches', 'matchPlayerEvaluations', 'trainingTemplates', 'trainingPlayerEvaluations', 'playerObjectives', 'playerObjectiveEvidence', 'playerDevelopmentReviews'], 'readwrite')
     await tx.objectStore('players').clear()
     await tx.objectStore('observations').clear()
     await tx.objectStore('sessions').clear()
@@ -197,12 +202,22 @@ export async function restoreBackup(payload: BackupPayload | CoachFieldExport) {
     await tx.objectStore('voiceNotes').clear()
     await tx.objectStore('matches').clear()
     await tx.objectStore('matchPlayerEvaluations').clear()
+    await tx.objectStore('trainingTemplates').clear()
+    await tx.objectStore('trainingPlayerEvaluations').clear()
+    await tx.objectStore('playerObjectives').clear()
+    await tx.objectStore('playerObjectiveEvidence').clear()
+    await tx.objectStore('playerDevelopmentReviews').clear()
     await Promise.all(players.map((player) => tx.objectStore('players').put(player)))
     await Promise.all(observations.map((observation) => tx.objectStore('observations').put(observation)))
     await Promise.all(sessions.map((session) => tx.objectStore('sessions').put(session)))
     await Promise.all(attendance.map((item) => tx.objectStore('attendance').put(item)))
     await Promise.all(matches.map((match) => tx.objectStore('matches').put(match)))
     await Promise.all(matchPlayerEvaluations.map((evaluation) => tx.objectStore('matchPlayerEvaluations').put(evaluation)))
+    await Promise.all(trainingTemplates.map((template) => tx.objectStore('trainingTemplates').put(template)))
+    await Promise.all(trainingPlayerEvaluations.map((evaluation) => tx.objectStore('trainingPlayerEvaluations').put(evaluation)))
+    await Promise.all(playerObjectives.map((objective) => tx.objectStore('playerObjectives').put(objective)))
+    await Promise.all(playerObjectiveEvidence.map((item) => tx.objectStore('playerObjectiveEvidence').put(item)))
+    await Promise.all(playerDevelopmentReviews.map((review) => tx.objectStore('playerDevelopmentReviews').put(review)))
     await Promise.all(voiceNotes.filter((note): note is VoiceNote => Boolean(note)).map((note) => tx.objectStore('voiceNotes').put(note)))
     await tx.done
     return

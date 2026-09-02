@@ -89,6 +89,22 @@ Store principali:
 - `voiceNotes`
 - `appState`
 - `attendance`
+- `matches`
+- `matchPlayerEvaluations`
+- `trainingTemplates`
+- `trainingPlayerEvaluations`
+- `playerObjectives`
+- `playerObjectiveEvidence`
+- `playerDevelopmentReviews`
+
+La versione IndexedDB attuale e `5`. Le sessioni V3 continuano a usare lo store `sessions`; i nuovi campi sono opzionali per compatibilita con record V1. Gli store V4 sono additivi e i backup vecchi senza questi dati restano ripristinabili.
+
+## Player Development
+
+- Usare `playerDevelopmentRepository.ts` per obiettivi, evidenze e review.
+- Non salvare timeline derivate in IndexedDB.
+- Non aggiornare automaticamente `Player.rating` da evidenze, partite o allenamenti.
+- Quando una feature collega sviluppo a partita/allenamento, salvare solo `matchId` o `trainingSessionId` opzionale sull'evidenza o sull'obiettivo.
 
 In sviluppo `initializeDatabase()` stampa:
 

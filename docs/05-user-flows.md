@@ -49,6 +49,15 @@
 3. Il valore viene salvato subito.
 4. Puo rimuovere la valutazione.
 
+## Gestire Sviluppo Giocatore
+
+1. Da `Giocatori`, l'utente apre un profilo.
+2. Usa i tab `Panoramica`, `Timeline`, `Obiettivi` e `Storico`.
+3. Crea un obiettivo individuale con titolo, descrizione, categoria e priorita.
+4. Segna evidenze rapide positive, miste o attenzione sull'obiettivo.
+5. Crea una review periodica con punti di forza, aree da sviluppare e ruoli suggeriti.
+6. La timeline si aggiorna dai dati gia salvati, senza store dedicato.
+
 ## Impostare Ruolo Ideale
 
 1. Da profilo, l'utente tocca uno o piu chip ruolo.
@@ -64,14 +73,44 @@
 5. Seleziona i partecipanti dalla rosa.
 6. Apre la scheda di un giocatore per valutarlo.
 7. Inserisce rating, ruoli giocati, titolare, tag, note o nota vocale.
-8. Inserisce risultato, valutazione squadra e note staff.
-9. Tocca `Completa partita` e conferma il riepilogo.
+8. Se ci sono obiettivi attivi, puo segnare una evidenza rapida o creare un nuovo obiettivo dal contesto partita.
+9. Inserisce risultato, valutazione squadra e note staff.
+10. Tocca `Completa partita` e conferma il riepilogo.
 
 ## Consultare Storico Partita Giocatore
 
 1. L'utente apre un profilo da `Giocatori`.
 2. La sezione `Partite` mostra presenze, valutazioni e media partita.
 3. Tocca una partita recente per tornare al dettaglio match.
+
+## Creare Un Template Allenamento
+
+1. L'utente apre `Oggi`.
+2. Tocca `Allenamenti, template e storico`.
+3. Tocca `Nuovo template`.
+4. Inserisce titolo, durata, range giocatori, tag e fasi.
+5. Salva.
+6. Il template resta disponibile offline nella libreria.
+
+## Creare Una Sessione Da Template
+
+1. L'utente apre `Training`.
+2. Tocca `Usa template`.
+3. Sceglie data e orario opzionale.
+4. Salva.
+5. L'app crea una sessione con snapshot delle fasi del template.
+6. Modifiche future al template non cambiano la sessione creata.
+
+## Gestire Una Sessione Allenamento
+
+1. L'utente apre il dettaglio sessione.
+2. Gestisce presenze con la bottom sheet esistente.
+3. Tocca una fase per indicare fatto, modificato o saltato.
+4. Assegna rating fase, durata reale, note e variante.
+5. Tocca un giocatore presente e salva rating allenamento, ruoli provati, tag e note.
+6. Se ci sono obiettivi attivi, segna una evidenza rapida o crea un obiettivo dal contesto allenamento.
+7. Compila note staff e `Da riprendere`.
+8. Completa la sessione confermando il riepilogo.
 
 ## Salvare Osservazioni
 
@@ -100,7 +139,7 @@
 ## Backup E Restore
 
 1. Da `Note`, l'utente puo esportare un backup JSON.
-2. Il backup contiene giocatori, osservazioni, sedute, presenze, partite, valutazioni partita, impostazioni, tema e note vocali con audio base64.
+2. Il backup contiene giocatori, osservazioni, sedute, template, valutazioni allenamento, obiettivi, evidenze, review sviluppo, presenze, partite, valutazioni partita, impostazioni, tema e note vocali con audio base64.
 3. Il restore chiede conferma con `window.confirm`.
 4. Il restore sostituisce gli store applicativi inclusi nel backup completo.
 

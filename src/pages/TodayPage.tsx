@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { ChevronRight, CircleStop, Pause, Play, TimerReset } from 'lucide-react'
 import { AttendanceSheet } from '../components/AttendanceSheet'
 import { getAppState, saveAppState } from '../db/appStateRepository'
@@ -11,6 +12,7 @@ import { VoiceRecorder } from '../components/VoiceRecorder'
 import { ExerciseDetailModal } from '../components/ExerciseDetailModal'
 import { AdaptationSheet } from '../components/AdaptationSheet'
 import { getPhaseAdaptation, type PhaseAdaptation } from '../utils/adaptation'
+import { legacySessionToPlannedPhases } from '../utils/training'
 
 function elapsedFromState(state?: AppState) {
   if (!state) return 0
@@ -124,14 +126,27 @@ export function TodayPage() {
     return () => window.clearInterval(id)
   }, [state])
 
+  const v3Phases = useMemo(() => session ? legacySessionToPlannedPhases(session) : [], [session])
+  const displayPhases = useMemo<SessionPhase[]>(() => {
+    if (!session) return []
+    if (session.phases.length > 0) return session.phases
+    return v3Phases.map((item, index) => ({
+      id: item.id,
+      title: item.title,
+      startMinute: v3Phases.slice(0, index).reduce((sum, phaseItem) => sum + (phaseItem.plannedDurationMinutes ?? 0), 0),
+      endMinute: v3Phases.slice(0, index + 1).reduce((sum, phaseItem) => sum + (phaseItem.plannedDurationMinutes ?? 0), 0),
+      description: item.coachNotes ? [item.coachNotes] : undefined,
+      objective: item.exerciseSnapshot?.focus,
+    }))
+  }, [session, v3Phases])
   const phase = useMemo(
-    () => session?.phases.find((item) => item.id === state?.currentPhaseId) ?? session?.phases[0],
-    [session, state?.currentPhaseId],
+    () => displayPhases.find((item) => item.id === state?.currentPhaseId) ?? displayPhases[0],
+    [displayPhases, state?.currentPhaseId],
   )
 
   if (!session || !state || !phase) return null
 
-  const phaseIndex = session.phases.findIndex((item) => item.id === phase.id)
+  const phaseIndex = displayPhases.findIndex((item) => item.id === phase.id)
   const plannedSeconds = (phase.endMinute - phase.startMinute) * 60
   const remaining = Math.max(0, plannedSeconds - elapsed)
   const presentCount = attendance.filter((item) => item.present).length
@@ -167,7 +182,7 @@ export function TodayPage() {
   })
 
   const nextPhase = () => {
-    const next = session.phases[Math.min(phaseIndex + 1, session.phases.length - 1)]
+    const next = displayPhases[Math.min(phaseIndex + 1, displayPhases.length - 1)]
     persist({
       ...state,
       currentPhaseId: next.id,
@@ -190,6 +205,7 @@ export function TodayPage() {
         <h1>{session.title}</h1>
         <p>{session.durationMinutes} minuti</p>
       </header>
+      <Link to="/training" className="subtle-link training-entry">Allenamenti, template e storico</Link>
 
       <article className="current-phase">
         <div className="phase-topline">
@@ -230,7 +246,7 @@ export function TodayPage() {
       <VoiceRecorder sessionId={session.id} phaseId={phase.id} />
 
       <div className="phase-strip" aria-label="Vai alla fase">
-        {session.phases.map((item, index) => (
+        {displayPhases.map((item, index) => (
           <button
             key={item.id}
             type="button"

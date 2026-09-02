@@ -2,18 +2,25 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Goal, HeartHandshake, MessageCircle, Plus, Shield, Sparkles, TriangleAlert } from 'lucide-react'
 import { getAppState } from '../db/appStateRepository'
+import { getAttendanceByPlayer } from '../db/attendanceRepository'
 import { getMatchPlayerEvaluationsByPlayer } from '../db/matchPlayerEvaluationsRepository'
 import { getMatchById } from '../db/matchesRepository'
 import { addObservation, getObservationsByPlayer } from '../db/observationsRepository'
+import { addPlayerObjectiveEvidence, getEvidenceByObjective, getPlayerDevelopmentReviews, getPlayerObjectiveEvidence, getPlayerObjectives, setPlayerObjectiveStatus } from '../db/playerDevelopmentRepository'
 import { getPlayer, promotePlayerToRoster, toggleGoalkeeperCandidate, updatePlayerIdealRoles, updatePlayerRating } from '../db/playersRepository'
-import { getCurrentSession } from '../db/sessionsRepository'
+import { getCurrentSession, getTrainingSessionById } from '../db/sessionsRepository'
+import { getTrainingPlayerEvaluationsByPlayer } from '../db/trainingPlayerEvaluationsRepository'
 import { getVoiceNotesByPlayer } from '../db/voiceNotesRepository'
-import type { AppState, Match, MatchPlayerEvaluation, Observation, ObservationCategory, Player, PlayerRating, PlayerRole, TrainingSession, VoiceNote } from '../types/domain'
+import type { AppState, Attendance, Match, MatchPlayerEvaluation, Observation, ObservationCategory, Player, PlayerDevelopmentReview, PlayerObjective, PlayerObjectiveEvidence, PlayerObjectiveEvidenceOutcome, PlayerRating, PlayerRole, TrainingPlayerEvaluation, TrainingSession, VoiceNote } from '../types/domain'
 import { VoiceRecorder } from '../components/VoiceRecorder'
 import { formatDateTime } from '../utils/format'
 import { CompactStarRating, PlayerStarRating } from '../components/PlayerStarRating'
 import { formatMatchDate, formatMatchMeta } from '../utils/match'
 import { formatPlayerYear, roleOptions } from '../utils/player'
+import { sessionDateLabel } from '../utils/training'
+import { PlayerObjectiveSheet } from '../components/PlayerObjectiveSheet'
+import { PlayerReviewSheet } from '../components/PlayerReviewSheet'
+import { buildDevelopmentStats, buildDevelopmentTimeline, buildRoleHistory } from '../utils/playerDevelopment'
 
 const actions: Array<{ label: string; category: ObservationCategory; icon: typeof Sparkles }> = [
   { label: 'Tecnica', category: 'technique', icon: Sparkles },
@@ -37,6 +44,13 @@ type PlayerMatchHistoryItem = {
   match: Match
 }
 
+type PlayerTrainingHistoryItem = {
+  evaluation: TrainingPlayerEvaluation
+  session: TrainingSession
+}
+
+type ProfileTab = 'overview' | 'timeline' | 'objectives' | 'history'
+
 export function PlayerDetailPage() {
   const { id } = useParams()
   const [player, setPlayer] = useState<Player>()
@@ -45,6 +59,16 @@ export function PlayerDetailPage() {
   const [session, setSession] = useState<TrainingSession>()
   const [appState, setAppState] = useState<AppState>()
   const [matchHistory, setMatchHistory] = useState<PlayerMatchHistoryItem[]>([])
+  const [trainingHistory, setTrainingHistory] = useState<PlayerTrainingHistoryItem[]>([])
+  const [playerAttendance, setPlayerAttendance] = useState<Attendance[]>([])
+  const [objectives, setObjectives] = useState<PlayerObjective[]>([])
+  const [evidence, setEvidence] = useState<PlayerObjectiveEvidence[]>([])
+  const [reviews, setReviews] = useState<PlayerDevelopmentReview[]>([])
+  const [objectiveEvidence, setObjectiveEvidence] = useState<Record<string, PlayerObjectiveEvidence[]>>({})
+  const [tab, setTab] = useState<ProfileTab>('overview')
+  const [objectiveOpen, setObjectiveOpen] = useState(false)
+  const [reviewOpen, setReviewOpen] = useState(false)
+  const [timelineFilter, setTimelineFilter] = useState<'all' | 'match' | 'training' | 'objective' | 'review'>('all')
   const [note, setNote] = useState('')
   const [savedFlash, setSavedFlash] = useState('')
 
@@ -53,15 +77,21 @@ export function PlayerDetailPage() {
 
   const refresh = async () => {
     if (!id) return
-    const [loadedPlayer, loadedObservations, loadedNotes, loadedSession, loadedState, loadedEvaluations] = await Promise.all([
+    const [loadedPlayer, loadedObservations, loadedNotes, loadedSession, loadedState, loadedEvaluations, trainingEvaluations, attendanceRows, loadedObjectives, loadedEvidence, loadedReviews] = await Promise.all([
       getPlayer(id),
       getObservationsByPlayer(id),
       getVoiceNotesByPlayer(id),
       getCurrentSession(),
       getAppState(),
       getMatchPlayerEvaluationsByPlayer(id),
+      getTrainingPlayerEvaluationsByPlayer(id),
+      getAttendanceByPlayer(id),
+      getPlayerObjectives(id),
+      getPlayerObjectiveEvidence(id),
+      getPlayerDevelopmentReviews(id),
     ])
     const loadedMatches = await Promise.all(loadedEvaluations.map((evaluation) => getMatchById(evaluation.matchId)))
+    const loadedTrainingSessions = await Promise.all(trainingEvaluations.map((evaluation) => getTrainingSessionById(evaluation.sessionId)))
     setPlayer(loadedPlayer)
     setObservations(loadedObservations)
     setVoiceNotes(loadedNotes)
@@ -73,6 +103,18 @@ export function PlayerDetailPage() {
         return match ? { evaluation, match } : undefined
       })
       .filter((item): item is PlayerMatchHistoryItem => Boolean(item)))
+    setTrainingHistory(trainingEvaluations
+      .map((evaluation, index) => {
+        const trainingSession = loadedTrainingSessions[index]
+        return trainingSession ? { evaluation, session: trainingSession } : undefined
+      })
+      .filter((item): item is PlayerTrainingHistoryItem => Boolean(item)))
+    setPlayerAttendance(attendanceRows)
+    setObjectives(loadedObjectives)
+    setEvidence(loadedEvidence)
+    setReviews(loadedReviews)
+    const pairs = await Promise.all(loadedObjectives.map(async (objective) => [objective.id, await getEvidenceByObjective(objective.id)] as const))
+    setObjectiveEvidence(Object.fromEntries(pairs))
   }
 
   useEffect(() => {
@@ -85,8 +127,15 @@ export function PlayerDetailPage() {
       getCurrentSession(),
       getAppState(),
       getMatchPlayerEvaluationsByPlayer(id),
-    ]).then(async ([loadedPlayer, loadedObservations, loadedNotes, loadedSession, loadedState, loadedEvaluations]) => {
+      getTrainingPlayerEvaluationsByPlayer(id),
+      getAttendanceByPlayer(id),
+      getPlayerObjectives(id),
+      getPlayerObjectiveEvidence(id),
+      getPlayerDevelopmentReviews(id),
+    ]).then(async ([loadedPlayer, loadedObservations, loadedNotes, loadedSession, loadedState, loadedEvaluations, trainingEvaluations, attendanceRows, loadedObjectives, loadedEvidence, loadedReviews]) => {
       const loadedMatches = await Promise.all(loadedEvaluations.map((evaluation) => getMatchById(evaluation.matchId)))
+      const loadedTrainingSessions = await Promise.all(trainingEvaluations.map((evaluation) => getTrainingSessionById(evaluation.sessionId)))
+      const pairs = await Promise.all(loadedObjectives.map(async (objective) => [objective.id, await getEvidenceByObjective(objective.id)] as const))
       if (cancelled) return
       setPlayer(loadedPlayer)
       setObservations(loadedObservations)
@@ -99,6 +148,17 @@ export function PlayerDetailPage() {
           return match ? { evaluation, match } : undefined
         })
         .filter((item): item is PlayerMatchHistoryItem => Boolean(item)))
+      setTrainingHistory(trainingEvaluations
+        .map((evaluation, index) => {
+          const trainingSession = loadedTrainingSessions[index]
+          return trainingSession ? { evaluation, session: trainingSession } : undefined
+        })
+        .filter((item): item is PlayerTrainingHistoryItem => Boolean(item)))
+      setPlayerAttendance(attendanceRows)
+      setObjectives(loadedObjectives)
+      setEvidence(loadedEvidence)
+      setReviews(loadedReviews)
+      setObjectiveEvidence(Object.fromEntries(pairs))
     })
     return () => {
       cancelled = true
@@ -162,6 +222,41 @@ export function PlayerDetailPage() {
   const matchAverage = ratedMatchEvaluations.length > 0
     ? ratedMatchEvaluations.reduce((sum, evaluation) => sum + (evaluation.rating ?? 0), 0) / ratedMatchEvaluations.length
     : undefined
+  const ratedTrainingEvaluations = trainingHistory
+    .map((item) => item.evaluation)
+    .filter((evaluation) => evaluation.rating !== null)
+  const trainingAverage = ratedTrainingEvaluations.length > 0
+    ? ratedTrainingEvaluations.reduce((sum, evaluation) => sum + (evaluation.rating ?? 0), 0) / ratedTrainingEvaluations.length
+    : undefined
+  const presentAttendance = playerAttendance.filter((item) => item.present).length
+  const attendancePercent = playerAttendance.length > 0 ? Math.round((presentAttendance / playerAttendance.length) * 100) : undefined
+  const stats = buildDevelopmentStats({
+    matchEvaluations: matchHistory.map((item) => item.evaluation),
+    trainingEvaluations: trainingHistory.map((item) => item.evaluation),
+    attendance: playerAttendance,
+    objectives,
+    reviews,
+  })
+  const roleHistory = buildRoleHistory(matchHistory.map((item) => item.evaluation), trainingHistory.map((item) => item.evaluation), reviews)
+  const timeline = buildDevelopmentTimeline({
+    matches: matchHistory,
+    trainings: trainingHistory,
+    observations,
+    objectives,
+    evidence,
+    reviews,
+    voiceNotes,
+  })
+  const filteredTimeline = timeline.filter((item) => timelineFilter === 'all' || item.kind === timelineFilter)
+  const latestReview = reviews[0]
+  const activeObjectives = objectives.filter((objective) => objective.status === 'active')
+  const achievedObjectives = objectives.filter((objective) => objective.status === 'achieved')
+  const archivedObjectives = objectives.filter((objective) => objective.status === 'archived' || objective.status === 'paused')
+
+  const quickEvidence = async (objective: PlayerObjective, outcome: PlayerObjectiveEvidenceOutcome) => {
+    await addPlayerObjectiveEvidence({ objectiveId: objective.id, playerId: player.id, outcome })
+    refresh()
+  }
 
   return (
     <section className="page">
@@ -208,7 +303,63 @@ export function PlayerDetailPage() {
 
       {savedFlash && <p className="save-flash">{savedFlash}</p>}
 
-      <section className="content-section player-profile-section">
+      <div className="filter-pills profile-tabs" aria-label="Sezioni profilo">
+        {[
+          { id: 'overview', label: 'Panoramica' },
+          { id: 'timeline', label: 'Timeline' },
+          { id: 'objectives', label: 'Obiettivi' },
+          { id: 'history', label: 'Storico' },
+        ].map((item) => (
+          <button key={item.id} type="button" className={tab === item.id ? 'active' : ''} onClick={() => setTab(item.id as ProfileTab)}>
+            {item.label}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'overview' && (
+        <>
+          <section className="content-section player-profile-section">
+            <div className="section-header-row">
+              <h2>Progressione</h2>
+              <button type="button" onClick={() => setReviewOpen(true)}>Crea review</button>
+            </div>
+            <div className="data-count-grid">
+              <span><strong>{stats.lastFiveMatchAverage === undefined ? '—' : stats.lastFiveMatchAverage.toFixed(1).replace('.', ',')}</strong> ultime 5 partite</span>
+              <span><strong>{stats.lastFiveTrainingAverage === undefined ? '—' : stats.lastFiveTrainingAverage.toFixed(1).replace('.', ',')}</strong> ultimi 5 allenamenti</span>
+              <span><strong>{stats.present} / {stats.attendanceTotal}</strong> presenze</span>
+              <span><strong>{stats.activeObjectives}</strong> obiettivi attivi</span>
+              <span><strong>{stats.achievedObjectives}</strong> raggiunti</span>
+              <span><strong>{stats.latestReview ? sessionDateLabel(stats.latestReview.date) : '—'}</strong> ultima review</span>
+            </div>
+          </section>
+
+          <section className="content-section player-profile-section">
+            <div className="section-header-row">
+              <h2>Stato attuale</h2>
+              <span>{latestReview ? `Review ${sessionDateLabel(latestReview.date)}` : 'Nessuna review'}</span>
+            </div>
+            {latestReview ? (
+              <div className="development-current">
+                <div><strong>Punti di forza</strong>{latestReview.strengths.map((item) => <span key={item}>{item}</span>)}</div>
+                <div><strong>Da sviluppare</strong>{latestReview.developmentAreas.map((item) => <span key={item}>{item}</span>)}</div>
+              </div>
+            ) : (
+              <p className="empty-state">Nessuna review ancora.</p>
+            )}
+          </section>
+
+          <section className="content-section player-profile-section">
+            <div className="section-header-row">
+              <h2>Obiettivi attivi</h2>
+              <button type="button" onClick={() => setObjectiveOpen(true)}>+ Nuovo obiettivo</button>
+            </div>
+            <ObjectiveList objectives={activeObjectives.slice(0, 3)} evidenceByObjective={objectiveEvidence} onEvidence={quickEvidence} onStatus={async (objective, status) => { await setPlayerObjectiveStatus(objective.id, status); refresh() }} />
+            {activeObjectives.length === 0 && <p className="empty-state">Nessun obiettivo attivo. Definisci un comportamento concreto su cui lavorare.</p>}
+          </section>
+        </>
+      )}
+
+      {tab === 'history' && <section className="content-section player-profile-section">
         <div className="section-header-row">
           <h2>Partite</h2>
           <span>{matchHistory.length} presenze</span>
@@ -231,13 +382,111 @@ export function PlayerDetailPage() {
           ))}
           {matchHistory.length === 0 && <p className="empty-state">Ancora nessuna partita collegata a questo giocatore.</p>}
         </div>
-      </section>
+      </section>}
 
-      <section className="content-section player-profile-section">
+      {tab === 'history' && <section className="content-section player-profile-section">
+        <div className="section-header-row">
+          <h2>Allenamenti</h2>
+          <span>{trainingHistory.length} valutazioni</span>
+        </div>
+        <div className="data-count-grid">
+          <span><strong>{trainingAverage === undefined ? '—' : trainingAverage.toFixed(1).replace('.', ',')}</strong> media allenamenti</span>
+          <span><strong>{presentAttendance} / {playerAttendance.length}</strong> presenze</span>
+          <span><strong>{attendancePercent === undefined ? '—' : `${attendancePercent}%`}</strong> presenza</span>
+          <span><strong>{ratedTrainingEvaluations.length}</strong> rating</span>
+        </div>
+        <div className="list-stack">
+          {trainingHistory.slice(0, 5).map(({ evaluation, session: trainingSession }) => (
+            <Link key={evaluation.id} to={`/training/${trainingSession.id}`} className="list-card match-history-card">
+              <div>
+                <strong>{trainingSession.title}</strong>
+                <span>{sessionDateLabel(trainingSession.date)} · {trainingSession.durationMinutes} min</span>
+                <small>{evaluation.rolesTried.length > 0 ? evaluation.rolesTried.join(' · ') : 'Ruoli da completare'}</small>
+                {evaluation.note && <small>{evaluation.note}</small>}
+              </div>
+              <CompactStarRating value={evaluation.rating} />
+            </Link>
+          ))}
+          {trainingHistory.length === 0 && <p className="empty-state">Nessuna valutazione allenamento.</p>}
+        </div>
+      </section>}
+
+      {tab === 'history' && (
+        <section className="content-section player-profile-section">
+          <h2>Ruoli nel tempo</h2>
+          <div className="data-count-grid">
+            <span><strong>{roleHistory[0]?.role ?? '—'}</strong> piu utilizzato</span>
+            <span><strong>{roleHistory[1]?.role ?? '—'}</strong> in esplorazione</span>
+          </div>
+          <div className="list-stack">
+            {roleHistory.map((item) => (
+              <article key={item.role} className="list-card">
+                <div>
+                  <strong>{item.role}</strong>
+                  <span>{item.matches} partite · {item.trainings} allenamenti · {item.reviews} review</span>
+                </div>
+              </article>
+            ))}
+            {roleHistory.length === 0 && <p className="empty-state">Nessun ruolo storico ancora.</p>}
+          </div>
+        </section>
+      )}
+
+      {tab === 'objectives' && (
+        <section className="content-section player-profile-section">
+          <div className="section-header-row">
+            <h2>Obiettivi</h2>
+            <button type="button" onClick={() => setObjectiveOpen(true)}>+ Nuovo obiettivo</button>
+          </div>
+          <h3>Attivi</h3>
+          <ObjectiveList objectives={activeObjectives} evidenceByObjective={objectiveEvidence} onEvidence={quickEvidence} onStatus={async (objective, status) => { await setPlayerObjectiveStatus(objective.id, status); refresh() }} />
+          {activeObjectives.length === 0 && <p className="empty-state">Nessun obiettivo attivo. Definisci un comportamento concreto su cui lavorare.</p>}
+          <h3>Raggiunti</h3>
+          <ObjectiveList objectives={achievedObjectives} evidenceByObjective={objectiveEvidence} onEvidence={quickEvidence} onStatus={async (objective, status) => { await setPlayerObjectiveStatus(objective.id, status); refresh() }} />
+          <h3>Archiviati / pausa</h3>
+          <ObjectiveList objectives={archivedObjectives} evidenceByObjective={objectiveEvidence} onEvidence={quickEvidence} onStatus={async (objective, status) => { await setPlayerObjectiveStatus(objective.id, status); refresh() }} />
+        </section>
+      )}
+
+      {tab === 'timeline' && (
+        <section className="content-section player-profile-section">
+          <h2>Timeline</h2>
+          <div className="filter-pills" aria-label="Filtra timeline">
+            {[
+              { id: 'all', label: 'Tutto' },
+              { id: 'match', label: 'Partite' },
+              { id: 'training', label: 'Allenamenti' },
+              { id: 'objective', label: 'Obiettivi' },
+              { id: 'review', label: 'Review' },
+            ].map((item) => (
+              <button key={item.id} type="button" className={timelineFilter === item.id ? 'active' : ''} onClick={() => setTimelineFilter(item.id as typeof timelineFilter)}>
+                {item.label}
+              </button>
+            ))}
+          </div>
+          <div className="list-stack development-timeline">
+            {filteredTimeline.map((item) => (
+              <article key={item.id} className="list-card">
+                <time>{sessionDateLabel(item.date)}</time>
+                <div>
+                  <strong>{item.title}</strong>
+                  {item.subtitle && <span>{item.subtitle}</span>}
+                  {item.ratingLabel && <small>{item.ratingLabel}</small>}
+                  {item.roles?.length ? <small>{item.roles.join(' · ')}</small> : null}
+                  {item.note && <small>{item.note}</small>}
+                </div>
+              </article>
+            ))}
+            {filteredTimeline.length === 0 && <p className="empty-state">Nessuna attività registrata.</p>}
+          </div>
+        </section>
+      )}
+
+      {tab === 'overview' && <section className="content-section player-profile-section">
         <h2>Osservazioni rapide</h2>
-      </section>
+      </section>}
 
-      <div className="quick-grid">
+      {tab === 'overview' && <div className="quick-grid">
         {actions.map(({ label, category, icon: Icon }) => (
           <button key={category} type="button" className="quick-action" onClick={() => quickAdd(category)}>
             <Icon size={24} />
@@ -245,9 +494,9 @@ export function PlayerDetailPage() {
             <small>+ positivo</small>
           </button>
         ))}
-      </div>
+      </div>}
 
-      <section className="content-section">
+      {tab === 'overview' && <section className="content-section">
         <button type="button" className="primary-action keeper-action" onClick={markInterestingGoalkeeper}>
           <Shield size={24} />
           Interessante in porta
@@ -263,9 +512,9 @@ export function PlayerDetailPage() {
             </button>
           ))}
         </div>
-      </section>
+      </section>}
 
-      <div className="note-panel">
+      {tab === 'overview' && <div className="note-panel">
         <textarea value={note} onChange={(event) => setNote(event.target.value)} placeholder="Nota testuale rapida" rows={3} />
         <div className="action-row">
           <button type="button" onClick={() => note.trim() && quickAdd('attitude', 'positive', note.trim())}>
@@ -275,11 +524,11 @@ export function PlayerDetailPage() {
             <MessageCircle size={20} />Attenzione
           </button>
         </div>
-      </div>
+      </div>}
 
-      <VoiceRecorder sessionId={session.id} phaseId={phaseId} playerId={player.id} onSaved={refresh} />
+      {tab === 'overview' && <VoiceRecorder sessionId={session.id} phaseId={phaseId} playerId={player.id} onSaved={refresh} />}
 
-      <section className="content-section">
+      {tab === 'history' && <section className="content-section">
         <h2>Cronologia</h2>
         <div className="list-stack">
           {observations.map((item) => (
@@ -302,7 +551,47 @@ export function PlayerDetailPage() {
           ))}
           {observations.length === 0 && voiceNotes.length === 0 && <p className="empty-state">Ancora nessuna nota per questo giocatore.</p>}
         </div>
-      </section>
+      </section>}
+      {objectiveOpen && <PlayerObjectiveSheet playerId={player.id} onSaved={refresh} onClose={() => setObjectiveOpen(false)} />}
+      {reviewOpen && <PlayerReviewSheet player={player} onSaved={refresh} onClose={() => setReviewOpen(false)} />}
     </section>
+  )
+}
+
+function ObjectiveList({
+  objectives,
+  evidenceByObjective,
+  onEvidence,
+  onStatus,
+}: {
+  objectives: PlayerObjective[]
+  evidenceByObjective: Record<string, PlayerObjectiveEvidence[]>
+  onEvidence: (objective: PlayerObjective, outcome: PlayerObjectiveEvidenceOutcome) => void
+  onStatus: (objective: PlayerObjective, status: PlayerObjective['status']) => void
+}) {
+  if (objectives.length === 0) return null
+  return (
+    <div className="list-stack">
+      {objectives.map((objective) => (
+        <article key={objective.id} className="list-card objective-card">
+          <div>
+            <strong>{objective.title}</strong>
+            <span>{objective.category} · priorita {objective.priority}</span>
+            {objective.description && <small>{objective.description}</small>}
+            {(evidenceByObjective[objective.id] ?? []).slice(0, 3).map((item) => (
+              <small key={item.id}>{sessionDateLabel(item.date)} · {item.outcome}{item.note ? ` · ${item.note}` : ''}</small>
+            ))}
+          </div>
+          <div className="vertical-actions">
+            <button type="button" onClick={() => onEvidence(objective, 'positive')}>✓</button>
+            <button type="button" onClick={() => onEvidence(objective, 'mixed')}>~</button>
+            <button type="button" onClick={() => onEvidence(objective, 'attention')}>!</button>
+            {objective.status === 'active' && <button type="button" onClick={() => onStatus(objective, 'achieved')}>Raggiunto</button>}
+            {objective.status === 'active' && <button type="button" onClick={() => onStatus(objective, 'paused')}>Pausa</button>}
+            {objective.status !== 'archived' && <button type="button" onClick={() => onStatus(objective, 'archived')}>Archivia</button>}
+          </div>
+        </article>
+      ))}
+    </div>
   )
 }

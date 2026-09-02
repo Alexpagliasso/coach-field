@@ -155,6 +155,11 @@ export function NotesPage() {
           <span><strong>{dataCounts.observations ?? 0}</strong> osservazioni</span>
           <span><strong>{dataCounts.matches ?? 0}</strong> partite</span>
           <span><strong>{dataCounts.matchPlayerEvaluations ?? 0}</strong> valutazioni partita</span>
+          <span><strong>{dataCounts.trainingTemplates ?? 0}</strong> template</span>
+          <span><strong>{dataCounts.trainingPlayerEvaluations ?? 0}</strong> valutazioni allenamento</span>
+          <span><strong>{dataCounts.playerObjectives ?? 0}</strong> obiettivi</span>
+          <span><strong>{dataCounts.playerObjectiveEvidence ?? 0}</strong> evidenze</span>
+          <span><strong>{dataCounts.playerDevelopmentReviews ?? 0}</strong> review sviluppo</span>
           <span><strong>{dataCounts.voiceNotes ?? 0}</strong> note vocali</span>
           <span><strong>{dataCounts.appState ?? 0}</strong> impostazioni</span>
         </div>

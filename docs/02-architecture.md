@@ -15,6 +15,10 @@ flowchart TD
     Repositories --> IDB[IndexedDB]
     Pages --> Matches[Matches V2]
     Matches --> Repositories
+    Pages --> Training[Training V3]
+    Training --> Repositories
+    Pages --> Development[Player Development V4]
+    Development --> Repositories
     React --> Theme[ThemeProvider]
     Theme --> LocalStorage[localStorage]
     Vite[Vite + vite-plugin-pwa] --> ServiceWorker[Generated Service Worker]
@@ -38,6 +42,8 @@ Le route sono definite in `src/App.tsx`:
 - `/matches/:id`: MatchDetailPage
 - `/goalkeepers`: GoalkeepersPage
 - `/notes`: NotesPage
+- `/training`: TrainingPage
+- `/training/:id`: TrainingSessionDetailPage
 
 Tutte le route usano `Layout`, che include outlet centrale, bottone tema e BottomNav.
 
@@ -45,9 +51,11 @@ Tutte le route usano `Layout`, che include outlet centrale, bottone tema e Botto
 
 - `TodayPage`: seduta corrente, timer, fasi, presenze, adattamenti, esercizi e note vocali.
 - `PlayersPage`: rosa, ricerca, filtri, ordinamento, rating sintetico e aggiunta giocatore.
-- `PlayerDetailPage`: profilo giocatore, rating generale, ruoli ideali, storico partite, osservazioni, note e promozione ospite.
+- `PlayerDetailPage`: profilo giocatore con Panoramica, Timeline, Obiettivi e Storico; rating generale manuale, ruoli ideali, storico partite/allenamenti, osservazioni, note e promozione ospite.
 - `MatchesPage`: elenco partite prossime/passate, filtri per tipo e creazione partita.
 - `MatchDetailPage`: dettaglio partita, risultato, valutazione squadra, partecipanti, valutazioni individuali e completamento.
+- `TrainingPage`: sessioni prossime/passate, template allenamento, creazione da zero e da template.
+- `TrainingSessionDetailPage`: presenze, programma sessione, valutazione fasi, valutazioni giocatori, note e takeaways.
 - `GoalkeepersPage`: gestione candidati portiere e osservazioni specifiche.
 - `NotesPage`: archivio note vocali/testuali, filtri, export e restore.
 
@@ -61,6 +69,11 @@ Tutte le route usano `Layout`, che include outlet centrale, bottone tema e Botto
 - `ThemeSelectorSheet`: selettore temi.
 - `CreateMatchModal`: creazione rapida partita.
 - `MatchPlayerEvaluationSheet`: valutazione individuale dentro una partita.
+- `TrainingPhaseSheet`: dettaglio e valutazione reale di una fase sessione.
+- `TrainingPlayerEvaluationSheet`: valutazione individuale dentro un allenamento.
+- `PlayerObjectiveSheet`: creazione obiettivo di sviluppo individuale, anche da contesto partita/allenamento.
+- `PlayerObjectivesQuickCheck`: check rapido di obiettivi attivi con evidenza positiva, mista o attenzione.
+- `PlayerReviewSheet`: review periodica come snapshot qualitativo.
 - `VoiceRecorder`: registrazione audio via MediaRecorder.
 - `AudioNote`: playback e cancellazione nota vocale.
 - `PlayerStarRating`: rating visuale a mezze stelle.
@@ -78,6 +91,9 @@ La UI non usa direttamente IndexedDB. Ogni store ha un repository:
 - `appStateRepository.ts`
 - `matchesRepository.ts`
 - `matchPlayerEvaluationsRepository.ts`
+- `trainingTemplatesRepository.ts`
+- `trainingPlayerEvaluationsRepository.ts`
+- `playerDevelopmentRepository.ts`
 - `backupRepository.ts`
 
 `db.ts` definisce schema, upgrade IndexedDB, seed iniziale e migrazioni.

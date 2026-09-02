@@ -10,6 +10,8 @@ import { NotesPage } from './pages/NotesPage'
 import { PlayerDetailPage } from './pages/PlayerDetailPage'
 import { PlayersPage } from './pages/PlayersPage'
 import { TodayPage } from './pages/TodayPage'
+import { TrainingPage } from './pages/TrainingPage'
+import { TrainingSessionDetailPage } from './pages/TrainingSessionDetailPage'
 
 function App() {
   const [ready, setReady] = useState(false)
@@ -43,6 +45,8 @@ function App() {
           <Route path="/matches/:id" element={<MatchDetailPage />} />
           <Route path="/goalkeepers" element={<GoalkeepersPage />} />
           <Route path="/notes" element={<NotesPage />} />
+          <Route path="/training" element={<TrainingPage />} />
+          <Route path="/training/:id" element={<TrainingSessionDetailPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

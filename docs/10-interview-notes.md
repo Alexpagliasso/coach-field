@@ -2,7 +2,7 @@
 
 ## Pitch Tecnico
 
-Coach Field e una PWA React/TypeScript offline-first pensata per un caso d'uso reale: supportare un allenatore di calcio giovanile durante una seduta sul campo. La priorita progettuale e ridurre il carico cognitivo durante l'allenamento: pochi tap, bottom sheet, dati locali e UI mobile-first.
+Coach Field e una PWA React/TypeScript offline-first pensata per un caso d'uso reale: supportare un allenatore di calcio giovanile durante allenamenti e partite. La priorita progettuale e ridurre il carico cognitivo sul campo: pochi tap, bottom sheet, dati locali e UI mobile-first.
 
 ## Problema Di Prodotto
 
@@ -14,6 +14,8 @@ L'allenatore deve:
 - salvare note rapide;
 - adattare i formati quando il numero di presenti cambia.
 - valutare i giocatori anche in partita senza confondere dati gara e valutazione generale.
+- riutilizzare template senza perdere lo storico reale delle sessioni svolte.
+- seguire obiettivi qualitativi individuali senza trasformare bambini in classifiche.
 
 Coach Field unifica questi bisogni in un'app installabile, senza backend.
 
@@ -33,6 +35,8 @@ Coach Field unifica questi bisogni in un'app installabile, senza backend.
 - Una seduta seedata: ottima per validare il flusso, non ancora un planner completo.
 - Backup JSON completo: utile per mettere al sicuro dati locali e audio prima di evoluzioni importanti.
 - Gestione partite separata dalle sedute: le valutazioni gara hanno store dedicato e non sovrascrivono il profilo tecnico manuale.
+- Template e sessione snapshot: duplicazione intenzionale dei dati del programma per preservare lo storico.
+- Player development qualitativo: obiettivi, evidenze e review aiutano la memoria dell'allenatore senza produrre ranking o voti automatici.
 
 ## Cosa Mostrare In Demo
 
@@ -46,8 +50,12 @@ Coach Field unifica questi bisogni in un'app installabile, senza backend.
 8. Salvare una nota rapida.
 9. Creare una partita, selezionare partecipanti e valutare un giocatore.
 10. Tornare al profilo giocatore e mostrare storico/media partita.
-11. Cambiare tema e fare refresh.
-12. Mostrare archivio note e backup.
+11. Aprire Training, creare una sessione da template e valutare una fase.
+12. Valutare un giocatore in allenamento e mostrare la media allenamenti nel profilo.
+13. Aprire tab Obiettivi, creare un obiettivo e segnare una evidenza rapida.
+14. Aprire Timeline e mostrare che deriva da partite, allenamenti, note, obiettivi e review.
+15. Cambiare tema e fare refresh.
+16. Mostrare archivio note e backup.
 
 ## Possibili Domande
 
@@ -63,10 +71,18 @@ Come hai modellato le partite?
 
 Risposta: `Match` e `MatchPlayerEvaluation` sono store separati. La partita contiene metadati, risultato e note squadra; la valutazione giocatore contiene partecipazione, titolare, ruoli giocati, rating, tag e nota individuale.
 
+Perche template e sessione non condividono sempre le stesse fasi?
+
+Risposta: la sessione deve essere una fotografia dell'allenamento pianificato per quel giorno. Se cambio il template dopo un mese, non voglio alterare lo storico di cio che avevo programmato o svolto.
+
 Perche localStorage per il tema?
 
 Risposta: serve applicare il tema prima del render React per ridurre il flash visivo. I dati applicativi restano in IndexedDB.
 
 Come miglioreresti il progetto?
 
-Risposta: test automatici, gestione multi-seduta, statistiche partita piu ricche, compressione backup audio, sync opzionale e report esportabili.
+Risposta: test automatici, gestione multi-seduta, statistiche partita piu ricche, trend visuali sugli obiettivi, compressione backup audio, sync opzionale e report esportabili.
+
+Perche niente punteggio globale sviluppo?
+
+Risposta: il dominio e calcio giovanile. Il sistema deve aiutare l'allenatore a osservare progressi e contesti, non creare classifiche implicite tra bambini. Per questo obiettivi ed evidenze restano qualitativi.

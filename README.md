@@ -1,6 +1,6 @@
 # Coach Field
 
-Coach Field e una PWA mobile-first per supportare un allenatore di calcio giovanile durante sedute e partite. L'app concentra in pochi tap le informazioni operative dell'allenamento, la gestione presenze, l'osservazione dei giocatori, le note vocali, le valutazioni individuali e lo storico partita.
+Coach Field e una PWA mobile-first per supportare un allenatore di calcio giovanile durante allenamenti e partite. L'app concentra in pochi tap template, sessioni reali, presenze, osservazioni, note vocali, valutazioni individuali e storico giocatore.
 
 Il progetto nasce per risolvere un problema concreto: durante un allenamento non c'e tempo per navigare menu complessi, prendere appunti lunghi o ricordare a memoria tutte le consegne. Coach Field porta sul telefono una traccia pratica della seduta e uno spazio locale per salvare osservazioni rapide, anche offline.
 
@@ -9,6 +9,10 @@ L'utente principale e un allenatore di calcio giovanile che usa iPhone, smartpho
 ## Core Features
 
 - Seduta corrente divisa in fasi, con timer, reset, pausa, chiusura fase e navigazione rapida.
+- Gestione allenamenti V3 con template riutilizzabili, sessioni da template o da zero e snapshot storico.
+- Dettaglio sessione allenamento con presenze, programma, valutazione fasi, note staff, takeaways e completamento.
+- Valutazioni individuali di allenamento con rating a mezze stelle, ruoli provati, tag, note e nota vocale.
+- Storico allenamenti nel profilo giocatore con media dinamica e statistica presenze.
 - Dettaglio esercizi in bottom sheet, con obiettivi, setup, istruzioni, regole, varianti, domande e segnali da osservare.
 - Adattamento degli esercizi al numero di presenti per Fase 2, Fase 3 e partita finale.
 - Gestione presenze locale con selezione singola, tutti presenti e azzera.
@@ -16,6 +20,8 @@ L'utente principale e un allenatore di calcio giovanile che usa iPhone, smartpho
 - Aggiunta rapida di giocatori ospiti da rosa o da presenze.
 - Promozione di un ospite a giocatore di rosa dal profilo.
 - Profilo giocatore con osservazioni rapide, note testuali, valutazione a stelle e ruoli ideali.
+- Player development qualitativo con tab Panoramica, Timeline, Obiettivi e Storico nel profilo giocatore.
+- Obiettivi individuali attivi/pausa/raggiunti/archiviati, evidenze rapide da partita o allenamento e review periodiche.
 - Gestione partite con creazione match, filtri, convocati/partecipanti, risultato, note staff e completamento.
 - Valutazioni individuali per partita con rating a mezze stelle, ruoli giocati, titolare, tag positivi/attenzione, note e note vocali.
 - Storico partite nel profilo giocatore con media partita separata dalla valutazione generale manuale.
@@ -56,6 +62,11 @@ Coach Field salva i dati applicativi in IndexedDB nel browser:
 - presenze
 - partite
 - valutazioni partita
+- template allenamento
+- valutazioni allenamento
+- obiettivi giocatore
+- evidenze obiettivo
+- review sviluppo giocatore
 
 La PWA usa un service worker generato da `vite-plugin-pwa` per mettere in cache gli asset statici della build. Questo rende l'app installabile e consultabile offline dopo il primo caricamento riuscito.
 
@@ -110,9 +121,9 @@ La build produce la cartella `dist/`.
 
 ## Current Status
 
-Coach Field e un MVP funzionante per uso locale/mobile-first. Le funzionalita centrali per una seduta singola sono implementate: timer, presenze, rosa, osservazioni, note vocali, adattamento ai presenti, gestione partite, PWA, temi e backup completo.
+Coach Field e un MVP funzionante per uso locale/mobile-first. Le funzionalita centrali sono implementate: timer, presenze, rosa, osservazioni, note vocali, adattamento ai presenti, gestione partite, template/sessioni allenamento, player development qualitativo, PWA, temi e backup completo.
 
-Non sono presenti backend, autenticazione, sincronizzazione cloud o test automatici. Il progetto usa una seduta seed principale, non un editor completo di allenamenti.
+Non sono presenti backend, autenticazione, sincronizzazione cloud o test automatici. L'editor template/sessioni e volutamente essenziale e mobile-first.
 
 ## Roadmap
 

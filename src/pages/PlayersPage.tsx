@@ -3,27 +3,38 @@ import { Link } from 'react-router-dom'
 import { Plus, Search, Shield } from 'lucide-react'
 import { AddPlayerModal } from '../components/AddPlayerModal'
 import { CompactStarRating } from '../components/PlayerStarRating'
+import { getAllActiveObjectives } from '../db/playerDevelopmentRepository'
 import { getPlayers } from '../db/playersRepository'
-import type { Player } from '../types/domain'
+import type { Player, PlayerObjective } from '../types/domain'
 import { formatPlayerAge, formatPlayerYear, sortYearValue } from '../utils/player'
 
 type SortMode = 'name' | 'rating-desc' | 'rating-asc' | 'year'
 
 export function PlayersPage() {
   const [players, setPlayers] = useState<Player[]>([])
+  const [activeObjectives, setActiveObjectives] = useState<PlayerObjective[]>([])
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState('all')
   const [sortMode, setSortMode] = useState<SortMode>('name')
   const [addOpen, setAddOpen] = useState(false)
 
   useEffect(() => {
-    getPlayers().then(setPlayers)
+    Promise.all([getPlayers(), getAllActiveObjectives()]).then(([loadedPlayers, loadedObjectives]) => {
+      setPlayers(loadedPlayers)
+      setActiveObjectives(loadedObjectives)
+    })
   }, [])
 
-  const refreshPlayers = () => getPlayers().then(setPlayers)
+  const refreshPlayers = () => Promise.all([getPlayers(), getAllActiveObjectives()]).then(([loadedPlayers, loadedObjectives]) => {
+    setPlayers(loadedPlayers)
+    setActiveObjectives(loadedObjectives)
+  })
+  const activeObjectiveCounts = new Map<string, number>()
+  activeObjectives.forEach((objective) => activeObjectiveCounts.set(objective.playerId, (activeObjectiveCounts.get(objective.playerId) ?? 0) + 1))
 
   const matchesFilter = (player: Player) => {
     if (filter === 'all') return true
+    if (filter === 'objectives') return (activeObjectiveCounts.get(player.id) ?? 0) > 0
     if (filter === '2016') return player.year === 2016
     if (filter === '2017') return player.year === 2017
     return player.previousRoles.some((role) => {
@@ -69,6 +80,7 @@ export function PlayersPage() {
     { id: 'cen', label: 'CEN' },
     { id: 'att', label: 'ATT' },
     { id: 'jolly', label: 'JOLLY' },
+    { id: 'objectives', label: 'Obiettivi attivi' },
   ]
 
   return (
@@ -115,6 +127,7 @@ export function PlayersPage() {
               <span className="player-card-meta">
                 <CompactStarRating value={player.rating} />
                 {(player.idealRoles?.length ?? 0) > 0 && <b>{player.idealRoles.join(' · ')}</b>}
+                {(activeObjectiveCounts.get(player.id) ?? 0) > 0 && <b>🎯 {activeObjectiveCounts.get(player.id)}</b>}
                 {player.status === 'guest' && <b className="status-badge">OSPITE</b>}
               </span>
             </div>

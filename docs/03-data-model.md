@@ -4,7 +4,7 @@
 
 Database: `coach-field-db`
 
-Versione IndexedDB attuale: `3`
+Versione IndexedDB attuale: `5`
 
 Store:
 
@@ -16,6 +16,11 @@ Store:
 - `attendance`
 - `matches`
 - `matchPlayerEvaluations`
+- `trainingTemplates`
+- `trainingPlayerEvaluations`
+- `playerObjectives`
+- `playerObjectiveEvidence`
+- `playerDevelopmentReviews`
 
 ```mermaid
 erDiagram
@@ -23,8 +28,15 @@ erDiagram
     PLAYER ||--o{ VOICE_NOTE : may_have
     PLAYER ||--o{ ATTENDANCE : has
     PLAYER ||--o{ MATCH_PLAYER_EVALUATION : has
+    PLAYER ||--o{ TRAINING_PLAYER_EVALUATION : has
+    PLAYER ||--o{ PLAYER_OBJECTIVE : has
+    PLAYER ||--o{ PLAYER_OBJECTIVE_EVIDENCE : has
+    PLAYER ||--o{ PLAYER_DEVELOPMENT_REVIEW : has
+    PLAYER_OBJECTIVE ||--o{ PLAYER_OBJECTIVE_EVIDENCE : receives
     MATCH ||--o{ MATCH_PLAYER_EVALUATION : contains
     MATCH ||--o{ VOICE_NOTE : may_have
+    TRAINING_TEMPLATE ||--o{ TRAINING_SESSION : creates_snapshot
+    TRAINING_SESSION ||--o{ TRAINING_PLAYER_EVALUATION : contains
     TRAINING_SESSION ||--o{ OBSERVATION : contains
     TRAINING_SESSION ||--o{ VOICE_NOTE : contains
     TRAINING_SESSION ||--o{ ATTENDANCE : has
@@ -181,6 +193,144 @@ type TrainingSession = {
 
 La seduta corrente e seedata in `src/data/sessionSeed.ts`.
 
+In V3 `TrainingSession` e anche lo storico di allenamenti reali. Mantiene compatibilita con il vecchio campo `phases`, ma puo contenere anche:
+
+```ts
+type TrainingSessionStatus = 'planned' | 'in_progress' | 'completed'
+
+type TrainingSession = {
+  id: string
+  date?: string
+  startTime?: string
+  title: string
+  templateId?: string
+  durationMinutes: number
+  status?: TrainingSessionStatus
+  phases: SessionPhase[]
+  plannedPhases?: TrainingSessionPhase[]
+  generalNotes?: string
+  takeaways?: string
+  createdAt?: string
+  updatedAt?: string
+}
+```
+
+`plannedPhases` e una snapshot. Se un template viene modificato dopo la creazione della sessione, la sessione storica non cambia.
+
+## TrainingTemplate
+
+```ts
+type TrainingTemplate = {
+  id: string
+  title: string
+  description?: string
+  ageGroup?: string
+  expectedDurationMinutes: number
+  minPlayers?: number
+  maxPlayers?: number
+  tags: string[]
+  phases: TrainingTemplatePhase[]
+  createdAt: string
+  updatedAt: string
+}
+```
+
+## TrainingSessionPhase
+
+```ts
+type TrainingSessionPhase = {
+  id: string
+  title: string
+  order: number
+  plannedDurationMinutes?: number
+  actualDurationMinutes?: number
+  exerciseId?: string
+  exerciseSnapshot?: TrainingExerciseSnapshot
+  status: 'planned' | 'completed' | 'skipped' | 'modified'
+  coachRating?: PlayerRating
+  coachNotes?: string
+  variationUsed?: string
+}
+```
+
+## TrainingPlayerEvaluation
+
+```ts
+type TrainingPlayerEvaluation = {
+  id: string
+  sessionId: string
+  playerId: string
+  rating: PlayerRating
+  rolesTried: PlayerRole[]
+  note?: string
+  positiveTags?: string[]
+  attentionTags?: string[]
+  createdAt: string
+  updatedAt: string
+}
+```
+
+La media allenamenti nel profilo e calcolata dinamicamente da questo store e non viene salvata dentro `Player`.
+
+## PlayerObjective
+
+```ts
+type PlayerObjective = {
+  id: string
+  playerId: string
+  title: string
+  description?: string
+  category: 'technical' | 'tactical' | 'physical' | 'mental' | 'relational' | 'goalkeeper' | 'other'
+  priority: 'low' | 'medium' | 'high'
+  status: 'active' | 'achieved' | 'paused' | 'archived'
+  createdAt: string
+  updatedAt: string
+  achievedAt?: string
+  sourceMatchId?: string
+  sourceTrainingSessionId?: string
+  notes?: string
+}
+```
+
+Gli obiettivi sono qualitativi e osservabili. Non generano classifiche, ranking o punteggi globali.
+
+## PlayerObjectiveEvidence
+
+```ts
+type PlayerObjectiveEvidence = {
+  id: string
+  objectiveId: string
+  playerId: string
+  date: string
+  outcome: 'positive' | 'mixed' | 'attention'
+  note?: string
+  matchId?: string
+  trainingSessionId?: string
+  createdAt: string
+}
+```
+
+Le evidenze possono nascere dal profilo, dalla scheda valutazione partita o dalla scheda valutazione allenamento. Servono a tracciare segnali puntuali su un obiettivo, non a calcolare un voto automatico.
+
+## PlayerDevelopmentReview
+
+```ts
+type PlayerDevelopmentReview = {
+  id: string
+  playerId: string
+  date: string
+  overallRatingSnapshot?: PlayerRating
+  strengths: string[]
+  developmentAreas: string[]
+  suggestedRoles: PlayerRole[]
+  summary?: string
+  createdAt: string
+  updatedAt: string
+}
+```
+
+La review e uno snapshot periodico. Conserva lo stato valutativo e i ruoli suggeriti in quel momento, anche se il profilo viene modificato in futuro.
+
 ## SessionPhase
 
 Ogni fase contiene orari, testo operativo e opzionalmente campi/esercizi:
@@ -241,6 +391,6 @@ L'id e composto come `sessionId:playerId`.
 
 ## Seed Versioning
 
-La costante `PLAYER_SEED_VERSION` vive in `src/data/playersSeed.ts`. La migrazione V2 partite vive invece nello schema IndexedDB versione `3`.
+La costante `PLAYER_SEED_VERSION` vive in `src/data/playersSeed.ts`. La migrazione V2 partite vive nello schema IndexedDB versione `3`; la V3 allenamenti/template vive nella versione `4`; la V4 player development aggiunge store additivi nello schema versione `5`.
 
 All'avvio `initializeDatabase()` legge `appState.playerSeedVersion`; se manca o e inferiore alla versione corrente, esegue la migrazione dei giocatori. La migrazione rimuove vecchi placeholder, preserva sessioni, voice notes e dati non correlati, e aggiorna la versione solo al termine delle scritture.

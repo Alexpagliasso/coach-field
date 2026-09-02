@@ -49,6 +49,7 @@ La pagina Giocatori mostra:
 - conteggio giocatori
 - ricerca per nome/ruolo
 - filtri: Tutti, 2016, 2017, POR, DIF, CEN, ATT, JOLLY
+- filtro Obiettivi attivi
 - ordinamento per nome, valutazione e anno
 - rating sintetico
 - ruoli ideali
@@ -76,6 +77,11 @@ Il profilo consente di:
 - modificare valutazione a stelle
 - impostare ruoli ideali
 - consultare storico partite, rating partita, ruoli giocati e media partita
+- consultare storico allenamenti, media allenamenti e presenze allenamento
+- consultare Panoramica, Timeline, Obiettivi e Storico
+- creare obiettivi individuali di sviluppo
+- segnare evidenze rapide sugli obiettivi attivi
+- creare review periodiche con punti di forza, aree da sviluppare e ruoli suggeriti
 - promuovere un ospite a rosa
 - salvare osservazioni rapide
 - salvare note testuali positive o di attenzione
@@ -101,9 +107,40 @@ Nel dettaglio partita sono implementati:
 - appunti "Da portare in allenamento"
 - selezione partecipanti con azioni Tutti/Nessuno
 - scheda valutazione per singolo giocatore con rating, ruoli giocati, titolare, tag e nota
+- check rapido degli obiettivi attivi del giocatore
+- creazione obiettivo dal contesto partita
 - completamento partita con conferma riepilogativa
 - modifica anche dopo completamento
 - eliminazione partita con cancellazione delle valutazioni associate
+
+## Allenamenti V3
+
+La pagina `Training` consente di:
+
+- vedere sessioni prossime/oggi
+- consultare storico sessioni completate
+- cercare template per titolo o tag
+- creare sessioni da zero
+- creare sessioni da template
+- creare, modificare, duplicare ed eliminare template
+
+Nel dettaglio sessione sono implementati:
+
+- presenze con lo stesso sistema `Attendance` esistente
+- programma a timeline con stato fase
+- dettaglio fase in bottom sheet
+- rating fase a mezze stelle
+- stato fase: fatto, modificato, saltato
+- durata reale, nota staff e variante usata
+- lista giocatori presenti
+- valutazione allenamento per giocatore con rating, ruoli provati, tag e nota
+- check rapido degli obiettivi attivi del giocatore
+- creazione obiettivo dal contesto allenamento
+- note vocali collegate alla sessione o al giocatore
+- note allenamento e campo "Da riprendere"
+- collegamento informativo ai takeaways dell'ultima partita
+- completamento allenamento con riepilogo e warning non bloccante
+- eliminazione sessione con rimozione di presenze, valutazioni e note collegate
 
 ## Portieri
 
@@ -125,6 +162,19 @@ La pagina Note mostra:
 - note testuali recenti
 - export backup JSON completo con audio base64
 - restore backup JSON
+
+## Player Development V4
+
+La V4 aggiunge uno spazio qualitativo nel profilo giocatore:
+
+- obiettivi individuali con categoria, priorita e stato
+- evidenze positive, miste o di attenzione
+- collegamento opzionale a partita o sessione allenamento
+- review periodiche come snapshot
+- timeline derivata da partite, allenamenti, osservazioni, note vocali, obiettivi, evidenze e review
+- storico ruoli derivato da ruoli giocati, ruoli provati e review
+
+Non sono implementati ranking tra giocatori, punteggi globali automatici o aggiornamenti automatici di `Player.rating`.
 
 ## Temi
 

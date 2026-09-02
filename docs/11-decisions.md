@@ -77,3 +77,39 @@ Conseguenze:
 
 - La disponibilita dipende dal browser e dai permessi microfono.
 - Serve gestire fallback quando non disponibile.
+
+## ADR 008 - TrainingTemplate vs TrainingSession Snapshot
+
+Decisione: separare i template riutilizzabili dalle sessioni realmente svolte. Quando una sessione nasce da un template, le fasi vengono copiate come snapshot dentro `TrainingSession.plannedPhases`.
+
+Motivazione: lo storico non deve cambiare quando un template viene modificato in futuro.
+
+Conseguenze:
+
+- Le sessioni sono piu consistenti e consultabili offline.
+- Esiste una duplicazione intenzionale tra template e sessione.
+- Le modifiche a un template non aggiornano sessioni gia create.
+
+## ADR 009 - Player Development Qualitativo
+
+Decisione: modellare sviluppo giocatore con obiettivi, evidenze e review qualitative, senza ranking globale e senza aggiornare automaticamente `Player.rating`.
+
+Motivazione: nel calcio giovanile il valore principale e ricordare comportamenti osservabili e progressi contestuali. Un punteggio automatico rischierebbe di sembrare piu oggettivo di quanto sia.
+
+Conseguenze:
+
+- Le evidenze usano outcome semplici: positivo, misto, attenzione.
+- Le medie partita/allenamento restano letture storiche separate.
+- Il giudizio generale del profilo resta manuale.
+
+## ADR 010 - Review Come Snapshot
+
+Decisione: salvare `PlayerDevelopmentReview` come fotografia periodica di rating generale, punti di forza, aree da sviluppare e ruoli suggeriti.
+
+Motivazione: una review deve rappresentare cio che lo staff pensava in una data precisa. Se domani cambiano rating o ruoli ideali, la review storica non deve mutare.
+
+Conseguenze:
+
+- Le review possono alimentare timeline e storico ruoli.
+- Non sostituiscono gli obiettivi attivi.
+- La modifica futura di una review richiederebbe UI dedicata, non ancora implementata.

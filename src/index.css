@@ -504,6 +504,10 @@ h3 {
 .add-player-sheet,
 .match-form-sheet,
 .match-evaluation-sheet,
+.training-form-sheet,
+.training-phase-sheet,
+.training-evaluation-sheet,
+.development-sheet,
 .theme-sheet {
   display: grid;
   grid-template-rows: auto auto auto minmax(0, 1fr) auto;
@@ -522,6 +526,10 @@ h3 {
 .add-player-sheet,
 .match-form-sheet,
 .match-evaluation-sheet,
+.training-form-sheet,
+.training-phase-sheet,
+.training-evaluation-sheet,
+.development-sheet,
 .theme-sheet {
   grid-template-rows: auto auto minmax(0, 1fr) auto;
 }
@@ -544,6 +552,91 @@ h3 {
   min-height: 0;
   overflow-y: auto;
   padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+}
+
+.profile-tabs {
+  position: sticky;
+  top: 0.65rem;
+  z-index: 5;
+  padding: 0.35rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  backdrop-filter: blur(12px);
+}
+
+.development-current {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.development-current > div {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-raised);
+}
+
+.development-current strong {
+  color: var(--text-primary);
+}
+
+.development-current span {
+  color: var(--text-secondary);
+  font-size: 0.92rem;
+}
+
+.quick-objectives {
+  gap: 0.75rem;
+  padding: 0.85rem;
+}
+
+.quick-objective-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-raised);
+}
+
+.quick-objective-row > span {
+  min-width: 0;
+  color: var(--text-primary);
+  font-size: 0.92rem;
+  font-weight: 850;
+}
+
+.quick-objective-row > div {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.quick-objective-row button,
+.objective-card .vertical-actions button {
+  min-width: 2.55rem;
+  min-height: 2.55rem;
+  padding: 0.45rem 0.6rem;
+}
+
+.objective-card {
+  align-items: start;
+}
+
+.objective-card .vertical-actions {
+  min-width: 5.4rem;
+}
+
+.development-timeline time {
+  align-self: start;
+  min-width: 5.6rem;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 850;
 }
 
 .theme-option {
@@ -1027,6 +1120,10 @@ h3 {
   justify-content: center;
 }
 
+.training-entry {
+  justify-content: center;
+}
+
 .backup-panel {
   gap: 0.85rem;
 }
@@ -1215,6 +1312,91 @@ h3 {
 
 .match-history-card .compact-rating {
   flex: 0 0 auto;
+}
+
+.training-today {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.training-today > div,
+.template-card > div,
+.training-session-card > div {
+  display: grid;
+  gap: 0.24rem;
+}
+
+.training-session-card time {
+  align-self: center;
+  color: var(--text-secondary);
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.template-card {
+  align-items: stretch;
+}
+
+.template-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.25rem;
+}
+
+.template-tags b {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-raised);
+  color: var(--primary);
+  padding: 0.18rem 0.48rem;
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.training-phase-editor,
+.training-phase-row {
+  align-items: start;
+}
+
+.training-phase-editor > div:first-child {
+  flex: 1;
+}
+
+.vertical-actions {
+  display: grid;
+  align-content: start;
+  gap: 0.4rem;
+}
+
+.vertical-actions button,
+.section-header-row button {
+  min-height: 2.45rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-raised);
+  color: var(--text-primary);
+  padding: 0.35rem 0.55rem;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.phase-marker {
+  display: grid;
+  flex: 0 0 auto;
+  width: 2.3rem;
+  height: 2.3rem;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-raised);
+  color: var(--primary);
+  font-weight: 950;
+}
+
+.status-badge.complete {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  color: var(--primary);
 }
 
 .quick-grid,
@@ -1591,13 +1773,22 @@ textarea {
   }
 
   .match-form-sheet,
-  .match-evaluation-sheet {
+  .match-evaluation-sheet,
+  .training-form-sheet,
+  .training-phase-sheet,
+  .training-evaluation-sheet,
+  .development-sheet {
     height: 84svh;
     max-height: 48rem;
   }
 
   .match-summary {
     grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+  }
+
+  .training-today {
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
   }
 }

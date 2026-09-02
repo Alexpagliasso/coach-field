@@ -1,38 +1,39 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { X } from 'lucide-react'
 import { getActivePlayerObjectives } from '../db/playerDevelopmentRepository'
-import { updateMatchPlayerEvaluation } from '../db/matchPlayerEvaluationsRepository'
-import type { MatchPlayerEvaluation, Player, PlayerObjective, PlayerRole, PlayerRating } from '../types/domain'
+import { updateTrainingPlayerEvaluation } from '../db/trainingPlayerEvaluationsRepository'
+import type { Player, PlayerObjective, PlayerRating, PlayerRole, TrainingPlayerEvaluation } from '../types/domain'
 import { formatPlayerYear, roleOptions } from '../utils/player'
 import { CompactStarRating, PlayerStarRating } from './PlayerStarRating'
 import { PlayerObjectiveSheet } from './PlayerObjectiveSheet'
 import { PlayerObjectivesQuickCheck } from './PlayerObjectivesQuickCheck'
 import { VoiceRecorder } from './VoiceRecorder'
 
-type MatchPlayerEvaluationSheetProps = {
-  matchId: string
+type Props = {
+  sessionId: string
   player: Player
-  evaluation: MatchPlayerEvaluation
+  evaluation: TrainingPlayerEvaluation
   onChanged: () => void
   onClose: () => void
 }
 
-const positiveTags = ['Coraggio', 'Collaborazione', 'Intensita', 'Scelta', 'Tecnica', 'Posizionamento', 'Reazione', 'Comunicazione']
-const attentionTags = ['Scelta', 'Posizione', 'Intensita', 'Reazione', 'Tecnica', 'Concentrazione']
+const positiveTags = ['Intensita', 'Collaborazione', 'Tecnica', 'Scelta', 'Posizionamento', 'Comunicazione', 'Coraggio', 'Concentrazione', 'Reazione', 'Apprendimento']
+const attentionTags = ['Intensita', 'Scelta', 'Tecnica', 'Posizione', 'Reazione', 'Concentrazione', 'Comunicazione']
 
-function toggleItem(items: string[], item: string) {
+function toggleItem<T>(items: T[], item: T) {
   return items.includes(item) ? items.filter((value) => value !== item) : [...items, item]
 }
 
-function toggleRole(items: PlayerRole[], item: PlayerRole) {
-  return items.includes(item) ? items.filter((value) => value !== item) : [...items, item]
-}
-
-export function MatchPlayerEvaluationSheet({ matchId, player, evaluation, onChanged, onClose }: MatchPlayerEvaluationSheetProps) {
+export function TrainingPlayerEvaluationSheet({ sessionId, player, evaluation, onChanged, onClose }: Props) {
   const [draft, setDraft] = useState(evaluation)
   const [flash, setFlash] = useState('')
   const [activeObjectives, setActiveObjectives] = useState<PlayerObjective[]>([])
   const [objectiveOpen, setObjectiveOpen] = useState(false)
+  const evaluationKey = useMemo(() => JSON.stringify(evaluation), [evaluation])
+
+  useEffect(() => {
+    window.setTimeout(() => setDraft(evaluation), 0)
+  }, [evaluation, evaluationKey])
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -46,48 +47,43 @@ export function MatchPlayerEvaluationSheet({ matchId, player, evaluation, onChan
     getActivePlayerObjectives(player.id).then(setActiveObjectives)
   }, [player.id])
 
-  const persist = async (patch: Partial<MatchPlayerEvaluation>) => {
+  const persist = async (patch: Partial<TrainingPlayerEvaluation>) => {
     const next = { ...draft, ...patch }
     setDraft(next)
     setFlash('Salvato ✓')
     window.setTimeout(() => setFlash(''), 900)
-    await updateMatchPlayerEvaluation(evaluation.id, patch)
+    await updateTrainingPlayerEvaluation(evaluation.id, patch)
     onChanged()
   }
 
   return (
     <div className="sheet-backdrop" role="presentation" onClick={onClose}>
-      <section className="match-evaluation-sheet" role="dialog" aria-modal="true" aria-labelledby="match-evaluation-title" onClick={(event) => event.stopPropagation()}>
+      <section className="training-evaluation-sheet" role="dialog" aria-modal="true" aria-labelledby="training-evaluation-title" onClick={(event) => event.stopPropagation()}>
         <div className="sheet-handle" />
         <header className="exercise-sheet-header">
           <div>
-            <span className="eyebrow">{formatPlayerYear(player.year)} · {player.idealRoles?.join(' · ') || 'Ruolo ideale da definire'}</span>
-            <h1 id="match-evaluation-title">{player.firstName} {player.lastName}</h1>
-            <p>Valutazione generale corrente: <CompactStarRating value={player.rating} /></p>
+            <span className="eyebrow">{formatPlayerYear(player.year)} · {player.idealRoles?.join(' · ') || player.previousRoles.join(' · ')}</span>
+            <h1 id="training-evaluation-title">{player.firstName} {player.lastName}</h1>
+            <p>Rating generale: <CompactStarRating value={player.rating} /></p>
           </div>
-          <button type="button" className="icon-button" onClick={onClose} aria-label="Chiudi valutazione partita">
+          <button type="button" className="icon-button" onClick={onClose} aria-label="Chiudi valutazione allenamento">
             <X size={26} />
           </button>
         </header>
 
         <div className="add-player-scroll">
           <section className="content-section player-profile-section">
-            <h2>Valutazione partita</h2>
+            <h2>Valutazione allenamento</h2>
             <PlayerStarRating value={draft.rating} onChange={(rating: PlayerRating) => persist({ rating })} />
           </section>
 
-          <label className="present-toggle">
-            <input type="checkbox" checked={Boolean(draft.starter)} onChange={(event) => persist({ starter: event.target.checked })} />
-            <span>Titolarita</span>
-          </label>
-
           <section className="form-field">
-            <span>Ruoli giocati</span>
+            <span>Ruoli provati</span>
             <div className="role-chip-grid">
               {roleOptions.map((role) => {
-                const selected = draft.rolesPlayed.includes(role.id)
+                const selected = draft.rolesTried.includes(role.id)
                 return (
-                  <button key={role.id} type="button" className={selected ? 'selected' : ''} aria-pressed={selected} onClick={() => persist({ rolesPlayed: toggleRole(draft.rolesPlayed, role.id) })}>
+                  <button key={role.id} type="button" className={selected ? 'selected' : ''} aria-pressed={selected} onClick={() => persist({ rolesTried: toggleItem<PlayerRole>(draft.rolesTried, role.id) })}>
                     {role.id}
                   </button>
                 )
@@ -96,7 +92,7 @@ export function MatchPlayerEvaluationSheet({ matchId, player, evaluation, onChan
           </section>
 
           <section className="form-field">
-            <span>Positivi</span>
+            <span>Tag positivi</span>
             <div className="tag-grid compact-tags">
               {positiveTags.map((tag) => {
                 const selected = (draft.positiveTags ?? []).includes(tag)
@@ -116,14 +112,14 @@ export function MatchPlayerEvaluationSheet({ matchId, player, evaluation, onChan
           </section>
 
           <label className="form-field">
-            <span>Note partita</span>
-            <textarea value={draft.note ?? ''} onChange={(event) => persist({ note: event.target.value })} placeholder="Come si e comportato? Cosa ha fatto bene? Cosa rivedere?" rows={4} />
+            <span>Nota</span>
+            <textarea value={draft.note ?? ''} onChange={(event) => persist({ note: event.target.value })} placeholder="Osservazione veloce sull allenamento" rows={4} />
           </label>
 
           <PlayerObjectivesQuickCheck
             playerId={player.id}
             objectives={activeObjectives}
-            matchId={matchId}
+            trainingSessionId={sessionId}
             onChanged={() => {
               getActivePlayerObjectives(player.id).then(setActiveObjectives)
               onChanged()
@@ -132,7 +128,7 @@ export function MatchPlayerEvaluationSheet({ matchId, player, evaluation, onChan
 
           <button type="button" onClick={() => setObjectiveOpen(true)}>Crea obiettivo</button>
 
-          <VoiceRecorder sessionId="match" matchId={matchId} playerId={player.id} onSaved={onChanged} />
+          <VoiceRecorder sessionId={sessionId} playerId={player.id} onSaved={onChanged} />
           {flash && <p className="save-flash compact-flash">{flash}</p>}
         </div>
 
@@ -142,8 +138,8 @@ export function MatchPlayerEvaluationSheet({ matchId, player, evaluation, onChan
         {objectiveOpen && (
           <PlayerObjectiveSheet
             playerId={player.id}
-            sourceMatchId={matchId}
-            initialTitle={draft.note?.toLowerCase().includes('perde palla') ? 'Reazione dopo perdita' : ''}
+            sourceTrainingSessionId={sessionId}
+            initialTitle={draft.note?.toLowerCase().includes('perdita') ? 'Reazione dopo perdita' : ''}
             initialDescription={draft.note}
             onSaved={() => getActivePlayerObjectives(player.id).then(setActiveObjectives)}
             onClose={() => setObjectiveOpen(false)}

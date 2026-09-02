@@ -8,6 +8,10 @@ export async function getAttendanceBySession(sessionId: string) {
   return rows.sort((a, b) => a.playerId.localeCompare(b.playerId))
 }
 
+export async function getAttendanceByPlayer(playerId: string) {
+  return (await dbPromise).getAllFromIndex('attendance', 'by-player', playerId)
+}
+
 export async function ensureAttendanceForSession(sessionId: string, players: Player[]) {
   const db = await dbPromise
   const existing = await db.getAllFromIndex('attendance', 'by-session', sessionId)

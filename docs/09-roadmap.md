@@ -2,7 +2,7 @@
 
 ## Stato Attuale
 
-Coach Field e un MVP locale/mobile-first. Funziona bene per una singola seduta seedata, per raccogliere dati individuali durante l'allenamento e per tracciare partite con valutazioni giocatore.
+Coach Field e un MVP locale/mobile-first. Funziona per gestire template e sessioni allenamento, raccogliere dati individuali durante l'allenamento, tracciare partite con valutazioni giocatore e seguire lo sviluppo qualitativo dei singoli.
 
 ## Priorita Alta
 
@@ -17,15 +17,19 @@ Coach Field e un MVP locale/mobile-first. Funziona bene per una singola seduta s
   - minuti giocati;
   - formazioni;
   - statistiche sintetiche per squadra e giocatore.
-- Aggiungere gestione multi-seduta:
-  - elenco sedute;
-  - creazione seduta;
-  - duplicazione seduta;
-  - archivio sedute passate.
+- Raffinare la gestione allenamenti:
+  - editor esercizi piu ricco;
+  - duplicazione sessione come nuovo allenamento;
+  - filtri avanzati storico;
+  - report sessione.
 - Aggiungere export leggibile per colloqui/genitori/staff:
   - report giocatore;
   - report seduta;
   - riepilogo portieri.
+- Raffinare il player development:
+  - trend visuali per obiettivi;
+  - reminder sugli obiettivi aperti;
+  - report sviluppo giocatore.
 
 ## Priorita Media
 
@@ -40,7 +44,7 @@ Coach Field e un MVP locale/mobile-first. Funziona bene per una singola seduta s
 - Sincronizzazione cloud.
 - Account e ruoli utente.
 - Import/export CSV.
-- Template sedute multipli.
+- Libreria esercizi indipendente dai template.
 - Statistiche aggregate e grafici.
 
 ## Non Obiettivi Attuali

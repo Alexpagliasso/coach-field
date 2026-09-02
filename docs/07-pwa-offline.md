@@ -29,6 +29,9 @@ I dati sono salvati localmente in IndexedDB. Questo significa che le funzioni co
 - osservazioni
 - note vocali
 - seduta seed
+- template allenamento
+- sessioni allenamento
+- valutazioni allenamento
 - stato corrente
 
 ## Theme Persistence

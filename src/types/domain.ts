@@ -17,6 +17,12 @@ export type PlayerStatus = 'roster' | 'guest'
 export type MatchType = 'league' | 'tournament' | 'friendly' | 'other'
 export type HomeAway = 'home' | 'away' | 'neutral'
 export type MatchStatus = 'planned' | 'completed'
+export type TrainingSessionStatus = 'planned' | 'in_progress' | 'completed'
+export type TrainingPhaseStatus = 'planned' | 'completed' | 'skipped' | 'modified'
+export type PlayerObjectiveStatus = 'active' | 'achieved' | 'paused' | 'archived'
+export type PlayerObjectiveCategory = 'technical' | 'tactical' | 'physical' | 'mental' | 'relational' | 'goalkeeper' | 'other'
+export type PlayerObjectivePriority = 'low' | 'medium' | 'high'
+export type PlayerObjectiveEvidenceOutcome = 'positive' | 'mixed' | 'attention'
 
 export type Player = {
   id: string
@@ -128,6 +134,17 @@ export type FieldExercise = {
   attentionSignals: string[]
 }
 
+export type TrainingExerciseSnapshot = {
+  title: string
+  focus?: string
+  format?: string
+  dimensions?: string
+  setup?: string[]
+  instructions?: string[]
+  rules?: string[]
+  coachQuestions?: string[]
+}
+
 export type SessionPhase = {
   id: string
   title: string
@@ -144,9 +161,110 @@ export type SessionPhase = {
 
 export type TrainingSession = {
   id: string
+  date?: string
+  startTime?: string
+  title: string
+  templateId?: string
+  durationMinutes: number
+  status?: TrainingSessionStatus
+  phases: SessionPhase[]
+  plannedPhases?: TrainingSessionPhase[]
+  generalNotes?: string
+  takeaways?: string
+  createdAt?: string
+  updatedAt?: string
+}
+
+export type TrainingTemplatePhase = {
+  id: string
   title: string
   durationMinutes: number
-  phases: SessionPhase[]
+  exerciseId?: string
+  exerciseSnapshot?: TrainingExerciseSnapshot
+  notes?: string
+  order: number
+}
+
+export type TrainingTemplate = {
+  id: string
+  title: string
+  description?: string
+  ageGroup?: string
+  expectedDurationMinutes: number
+  minPlayers?: number
+  maxPlayers?: number
+  tags: string[]
+  phases: TrainingTemplatePhase[]
+  createdAt: string
+  updatedAt: string
+}
+
+export type TrainingSessionPhase = {
+  id: string
+  title: string
+  order: number
+  plannedDurationMinutes?: number
+  actualDurationMinutes?: number
+  exerciseId?: string
+  exerciseSnapshot?: TrainingExerciseSnapshot
+  status: TrainingPhaseStatus
+  coachRating?: PlayerRating
+  coachNotes?: string
+  variationUsed?: string
+}
+
+export type TrainingPlayerEvaluation = {
+  id: string
+  sessionId: string
+  playerId: string
+  rating: PlayerRating
+  rolesTried: PlayerRole[]
+  note?: string
+  positiveTags?: string[]
+  attentionTags?: string[]
+  createdAt: string
+  updatedAt: string
+}
+
+export type PlayerObjective = {
+  id: string
+  playerId: string
+  title: string
+  description?: string
+  category: PlayerObjectiveCategory
+  priority: PlayerObjectivePriority
+  status: PlayerObjectiveStatus
+  createdAt: string
+  updatedAt: string
+  achievedAt?: string
+  sourceMatchId?: string
+  sourceTrainingSessionId?: string
+  notes?: string
+}
+
+export type PlayerObjectiveEvidence = {
+  id: string
+  objectiveId: string
+  playerId: string
+  date: string
+  outcome: PlayerObjectiveEvidenceOutcome
+  note?: string
+  matchId?: string
+  trainingSessionId?: string
+  createdAt: string
+}
+
+export type PlayerDevelopmentReview = {
+  id: string
+  playerId: string
+  date: string
+  overallRatingSnapshot?: PlayerRating
+  strengths: string[]
+  developmentAreas: string[]
+  suggestedRoles: PlayerRole[]
+  summary?: string
+  createdAt: string
+  updatedAt: string
 }
 
 export type TimerState = {

@@ -24,11 +24,29 @@ La gestione partite salva metadati, partecipanti, valutazioni, ruoli, titolare, 
 
 Impatto: non sono ancora presenti marcatori, assist, minuti giocati, formazioni o statistiche gara avanzate.
 
+## Player Development Senza Grafici Trend
+
+La V4 salva obiettivi, evidenze e review, e costruisce una timeline testuale derivata.
+
+Impatto: non sono ancora presenti grafici, reminder o indicatori visuali di trend sugli obiettivi.
+
+## Review Non Modificabili Da UI
+
+Le review di sviluppo possono essere create e consultate nella timeline/stato attuale, ma non esiste ancora una schermata di modifica dedicata.
+
+Impatto: eventuali correzioni richiedono un'evoluzione UI futura o intervento sui dati locali.
+
 ## Una Sola Seduta Seedata
 
-Il progetto contiene una seduta principale in `src/data/sessionSeed.ts`.
+Il progetto contiene ancora una seduta principale in `src/data/sessionSeed.ts`, ma V3 permette di creare nuove sessioni e template.
 
-Impatto: non e ancora possibile creare o gestire un calendario di allenamenti dall'interfaccia.
+Impatto: la seduta seedata resta importante per onboarding e fallback; non esiste ancora un calendario stagionale completo.
+
+## Editor Template Essenziale
+
+La creazione template gestisce titolo, durata, range giocatori, tag e fasi testuali con note.
+
+Impatto: non esiste ancora una libreria esercizi master selezionabile, ne drag and drop delle fasi.
 
 ## Nessun Backend O Sync
 
