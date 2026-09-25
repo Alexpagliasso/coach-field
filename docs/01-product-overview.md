@@ -1,5 +1,15 @@
 # Product Overview
 
+## Stato V5A recuperato
+
+Il prodotto ora distingue home pubblica e area tecnica staff. La gerarchia ? Organization ? Group ? GroupMembership ? dati sportivi. Un utente pu? essere coach in un gruppo e collaborator in un altro; admin ? un incarico per societ?. La stessa installazione supporta pi? societ? senza ID fissi.
+
+V1?V4 restano operative sul dataset IndexedDB associato al gruppo. Supabase gestisce soltanto identit?, societ?, gruppi, membership e permessi. Migrazione sportiva/sync sono V5B; parent portal ? V6, non implementato. Le installazioni nuove non caricano la rosa reale del vecchio seed.
+
+## Riferimento storico V1?V4
+
+Le sezioni seguenti descrivono il checkpoint recuperato. Dove differiscono su routing, Auth, backend, seed o test, prevale lo stato V5A sopra.
+
 ## Problema
 
 Coach Field risolve un problema operativo: durante un allenamento di calcio giovanile l'allenatore deve gestire tempo, consegne, presenze e osservazioni senza perdere attenzione sul campo.

@@ -1,3 +1,4 @@
+import { PermissionAction } from '../components/PermissionAction'
 import { useEffect, useState } from 'react'
 import { X } from 'lucide-react'
 import { getActivePlayerObjectives } from '../db/playerDevelopmentRepository'
@@ -73,11 +74,11 @@ export function MatchPlayerEvaluationSheet({ matchId, player, evaluation, onChan
         <div className="add-player-scroll">
           <section className="content-section player-profile-section">
             <h2>Valutazione partita</h2>
-            <PlayerStarRating value={draft.rating} onChange={(rating: PlayerRating) => persist({ rating })} />
+            <PermissionAction permission="matches.evaluate"><PlayerStarRating value={draft.rating} onChange={(rating: PlayerRating) => persist({ rating })} /></PermissionAction>
           </section>
 
           <label className="present-toggle">
-            <input type="checkbox" checked={Boolean(draft.starter)} onChange={(event) => persist({ starter: event.target.checked })} />
+            <PermissionAction permission="matches.evaluate"><input type="checkbox" checked={Boolean(draft.starter)} onChange={(event) => persist({ starter: event.target.checked })} /></PermissionAction>
             <span>Titolarita</span>
           </label>
 
@@ -87,9 +88,9 @@ export function MatchPlayerEvaluationSheet({ matchId, player, evaluation, onChan
               {roleOptions.map((role) => {
                 const selected = draft.rolesPlayed.includes(role.id)
                 return (
-                  <button key={role.id} type="button" className={selected ? 'selected' : ''} aria-pressed={selected} onClick={() => persist({ rolesPlayed: toggleRole(draft.rolesPlayed, role.id) })}>
+                  <PermissionAction permission="matches.evaluate" key={role.id}><button key={role.id} type="button" className={selected ? 'selected' : ''} aria-pressed={selected} onClick={() => persist({ rolesPlayed: toggleRole(draft.rolesPlayed, role.id) })}>
                     {role.id}
-                  </button>
+                  </button></PermissionAction>
                 )
               })}
             </div>
@@ -100,7 +101,7 @@ export function MatchPlayerEvaluationSheet({ matchId, player, evaluation, onChan
             <div className="tag-grid compact-tags">
               {positiveTags.map((tag) => {
                 const selected = (draft.positiveTags ?? []).includes(tag)
-                return <button key={tag} type="button" className={selected ? 'selected' : ''} aria-pressed={selected} onClick={() => persist({ positiveTags: toggleItem(draft.positiveTags ?? [], tag) })}>{tag}</button>
+                return <PermissionAction permission="matches.evaluate" key={tag}><button key={tag} type="button" className={selected ? 'selected' : ''} aria-pressed={selected} onClick={() => persist({ positiveTags: toggleItem(draft.positiveTags ?? [], tag) })}>{tag}</button></PermissionAction>
               })}
             </div>
           </section>
@@ -110,17 +111,17 @@ export function MatchPlayerEvaluationSheet({ matchId, player, evaluation, onChan
             <div className="tag-grid compact-tags">
               {attentionTags.map((tag) => {
                 const selected = (draft.attentionTags ?? []).includes(tag)
-                return <button key={tag} type="button" className={selected ? 'selected attention' : 'attention'} aria-pressed={selected} onClick={() => persist({ attentionTags: toggleItem(draft.attentionTags ?? [], tag) })}>{tag}</button>
+                return <PermissionAction permission="matches.evaluate" key={tag}><button key={tag} type="button" className={selected ? 'selected attention' : 'attention'} aria-pressed={selected} onClick={() => persist({ attentionTags: toggleItem(draft.attentionTags ?? [], tag) })}>{tag}</button></PermissionAction>
               })}
             </div>
           </section>
 
           <label className="form-field">
             <span>Note partita</span>
-            <textarea value={draft.note ?? ''} onChange={(event) => persist({ note: event.target.value })} placeholder="Come si e comportato? Cosa ha fatto bene? Cosa rivedere?" rows={4} />
+            <PermissionAction permission="matches.evaluate"><textarea value={draft.note ?? ''} onChange={(event) => persist({ note: event.target.value })} placeholder="Come si e comportato? Cosa ha fatto bene? Cosa rivedere?" rows={4} /></PermissionAction>
           </label>
 
-          <PlayerObjectivesQuickCheck
+          <PermissionAction permission="development.view"><PlayerObjectivesQuickCheck
             playerId={player.id}
             objectives={activeObjectives}
             matchId={matchId}
@@ -128,11 +129,11 @@ export function MatchPlayerEvaluationSheet({ matchId, player, evaluation, onChan
               getActivePlayerObjectives(player.id).then(setActiveObjectives)
               onChanged()
             }}
-          />
+          /></PermissionAction>
 
-          <button type="button" onClick={() => setObjectiveOpen(true)}>Crea obiettivo</button>
+          <PermissionAction permission="development.edit"><button type="button" onClick={() => setObjectiveOpen(true)}>Crea obiettivo</button></PermissionAction>
 
-          <VoiceRecorder sessionId="match" matchId={matchId} playerId={player.id} onSaved={onChanged} />
+          <PermissionAction permission="notes.create"><VoiceRecorder sessionId="match" matchId={matchId} playerId={player.id} onSaved={onChanged} /></PermissionAction>
           {flash && <p className="save-flash compact-flash">{flash}</p>}
         </div>
 
@@ -140,14 +141,14 @@ export function MatchPlayerEvaluationSheet({ matchId, player, evaluation, onChan
           <button type="button" className="primary-action" onClick={onClose}>Chiudi valutazione</button>
         </footer>
         {objectiveOpen && (
-          <PlayerObjectiveSheet
+          <PermissionAction permission="development.edit"><PlayerObjectiveSheet
             playerId={player.id}
             sourceMatchId={matchId}
             initialTitle={draft.note?.toLowerCase().includes('perde palla') ? 'Reazione dopo perdita' : ''}
             initialDescription={draft.note}
             onSaved={() => getActivePlayerObjectives(player.id).then(setActiveObjectives)}
             onClose={() => setObjectiveOpen(false)}
-          />
+          /></PermissionAction>
         )}
       </section>
     </div>

@@ -1,4 +1,7 @@
-import type { Match, MatchPlayerEvaluation, Observation, Player, PlayerDevelopmentReview, PlayerObjective, PlayerObjectiveEvidence, TrainingPlayerEvaluation, TrainingSession, TrainingTemplate, VoiceNote } from '../types/domain'
+import type { IDBPDatabase } from 'idb'
+import { captureLocalAccess, requireLocalPermission, assertCurrentAccess, belongsToGroup } from './localAccess'
+import { getLocalGroupBinding, type LocalGroupBinding } from './localGroupBinding'
+import type { Observation, Player, TrainingSession, VoiceNote } from '../types/domain'
 import type { Attendance } from '../types/domain'
 import { dbPromise } from './db'
 import { THEME_STORAGE_KEY } from '../theme'
@@ -33,6 +36,7 @@ export type CoachFieldExport = {
 }
 
 export type BackupPayload = {
+  localGroupBinding?: LocalGroupBinding
   exportedAt: string
   players: Player[]
   observations: Observation[]
@@ -97,6 +101,7 @@ async function deserializeVoiceNote(value: SerializedValue): Promise<VoiceNote |
 
   return {
     id: String(record.id ?? ''),
+    groupId: typeof record.groupId === 'string' ? record.groupId : undefined,
     playerId: typeof record.playerId === 'string' ? record.playerId : undefined,
     sessionId: String(record.sessionId ?? ''),
     phaseId: typeof record.phaseId === 'string' ? record.phaseId : undefined,
@@ -110,14 +115,18 @@ async function deserializeVoiceNote(value: SerializedValue): Promise<VoiceNote |
 }
 
 export async function getLocalDataCounts() {
+  if (!captureLocalAccess().permissions['data.manage']) return {}
+  const access = await assertBackupAccess()
   const db = await dbPromise
   const genericDb = db as unknown as GenericDatabase
   const storeNames = Array.from(genericDb.objectStoreNames)
-  const pairs = await Promise.all(storeNames.map(async (storeName) => [storeName, (await genericDb.getAll(storeName)).length] as const))
+  const pairs = await Promise.all(storeNames.map(async (storeName) => [storeName, (await genericDb.getAll(storeName)).filter(row => belongsToGroup(row as { groupId?: string }, access.groupId, access.groupId)).length] as const))
+  assertCurrentAccess(access)
   return Object.fromEntries(pairs)
 }
 
 export async function exportCoachFieldData(): Promise<CoachFieldExport> {
+  const access = await assertBackupAccess()
   const db = await dbPromise
   const genericDb = db as unknown as GenericDatabase
   const storeNames = Array.from(genericDb.objectStoreNames)
@@ -125,7 +134,7 @@ export async function exportCoachFieldData(): Promise<CoachFieldExport> {
   const counts: CoachFieldExport['counts'] = {}
 
   for (const storeName of storeNames) {
-    const rows = await genericDb.getAll(storeName)
+    const rows = (await genericDb.getAll(storeName)).filter(row => belongsToGroup(row as { groupId?: string }, access.groupId, access.groupId))
     counts[storeName] = rows.length
     data[storeName] = await Promise.all(rows.map((row) => serializeForJson(row)))
   }
@@ -140,6 +149,7 @@ export async function exportCoachFieldData(): Promise<CoachFieldExport> {
     counts.theme = 0
   }
 
+  assertCurrentAccess(access)
   return {
     app: 'Coach Field',
     backupVersion: BACKUP_VERSION,
@@ -152,6 +162,7 @@ export async function exportCoachFieldData(): Promise<CoachFieldExport> {
 }
 
 export async function createBackup(): Promise<BackupPayload> {
+  const access = await assertBackupAccess()
   const db = await dbPromise
   const [players, observations, sessions, voiceNotes, attendance] = await Promise.all([
     db.getAll('players'),
@@ -160,12 +171,16 @@ export async function createBackup(): Promise<BackupPayload> {
     db.getAll('voiceNotes'),
     db.getAll('attendance'),
   ])
+  const visible = <T extends { groupId?: string }>(rows: T[]) => rows.filter(row => belongsToGroup(row, access.groupId, access.groupId))
+  const binding = await getLocalGroupBinding()
+  assertCurrentAccess(access)
   return {
+    localGroupBinding: binding,
     exportedAt: new Date().toISOString(),
-    players,
-    observations,
-    session: sessions[0],
-    voiceNotes: voiceNotes.map((note) => ({
+    players: visible(players),
+    observations: visible(observations),
+    session: visible(sessions)[0],
+    voiceNotes: visible(voiceNotes).map((note) => ({
       id: note.id,
       playerId: note.playerId,
       sessionId: note.sessionId,
@@ -175,62 +190,63 @@ export async function createBackup(): Promise<BackupPayload> {
       durationSeconds: note.durationSeconds,
       mimeType: note.mimeType,
     })),
-    attendance,
+    attendance: visible(attendance),
   }
 }
 
-export async function restoreBackup(payload: BackupPayload | CoachFieldExport) {
-  const db = await dbPromise
-  if (isCoachFieldExport(payload)) {
-    const players = (payload.data.players ?? []) as Player[]
-    const observations = (payload.data.observations ?? []) as Observation[]
-    const sessions = (payload.data.sessions ?? []) as TrainingSession[]
-    const attendance = (payload.data.attendance ?? []) as Attendance[]
-    const matches = (payload.data.matches ?? []) as Match[]
-    const matchPlayerEvaluations = (payload.data.matchPlayerEvaluations ?? []) as MatchPlayerEvaluation[]
-    const trainingTemplates = (payload.data.trainingTemplates ?? []) as TrainingTemplate[]
-    const trainingPlayerEvaluations = (payload.data.trainingPlayerEvaluations ?? []) as TrainingPlayerEvaluation[]
-    const playerObjectives = (payload.data.playerObjectives ?? []) as PlayerObjective[]
-    const playerObjectiveEvidence = (payload.data.playerObjectiveEvidence ?? []) as PlayerObjectiveEvidence[]
-    const playerDevelopmentReviews = (payload.data.playerDevelopmentReviews ?? []) as PlayerDevelopmentReview[]
-    const voiceNotes = await Promise.all(((payload.data.voiceNotes ?? []) as SerializedValue[]).map(deserializeVoiceNote))
-    const tx = db.transaction(['players', 'observations', 'sessions', 'attendance', 'voiceNotes', 'matches', 'matchPlayerEvaluations', 'trainingTemplates', 'trainingPlayerEvaluations', 'playerObjectives', 'playerObjectiveEvidence', 'playerDevelopmentReviews'], 'readwrite')
-    await tx.objectStore('players').clear()
-    await tx.objectStore('observations').clear()
-    await tx.objectStore('sessions').clear()
-    await tx.objectStore('attendance').clear()
-    await tx.objectStore('voiceNotes').clear()
-    await tx.objectStore('matches').clear()
-    await tx.objectStore('matchPlayerEvaluations').clear()
-    await tx.objectStore('trainingTemplates').clear()
-    await tx.objectStore('trainingPlayerEvaluations').clear()
-    await tx.objectStore('playerObjectives').clear()
-    await tx.objectStore('playerObjectiveEvidence').clear()
-    await tx.objectStore('playerDevelopmentReviews').clear()
-    await Promise.all(players.map((player) => tx.objectStore('players').put(player)))
-    await Promise.all(observations.map((observation) => tx.objectStore('observations').put(observation)))
-    await Promise.all(sessions.map((session) => tx.objectStore('sessions').put(session)))
-    await Promise.all(attendance.map((item) => tx.objectStore('attendance').put(item)))
-    await Promise.all(matches.map((match) => tx.objectStore('matches').put(match)))
-    await Promise.all(matchPlayerEvaluations.map((evaluation) => tx.objectStore('matchPlayerEvaluations').put(evaluation)))
-    await Promise.all(trainingTemplates.map((template) => tx.objectStore('trainingTemplates').put(template)))
-    await Promise.all(trainingPlayerEvaluations.map((evaluation) => tx.objectStore('trainingPlayerEvaluations').put(evaluation)))
-    await Promise.all(playerObjectives.map((objective) => tx.objectStore('playerObjectives').put(objective)))
-    await Promise.all(playerObjectiveEvidence.map((item) => tx.objectStore('playerObjectiveEvidence').put(item)))
-    await Promise.all(playerDevelopmentReviews.map((review) => tx.objectStore('playerDevelopmentReviews').put(review)))
-    await Promise.all(voiceNotes.filter((note): note is VoiceNote => Boolean(note)).map((note) => tx.objectStore('voiceNotes').put(note)))
-    await tx.done
-    return
-  }
+async function assertBackupAccess() {
+  const access = requireLocalPermission('data.manage')
+  const binding = await getLocalGroupBinding()
+  assertCurrentAccess(access)
+  if (binding?.groupId !== access.groupId) throw new Error('Backup non disponibile per questo gruppo.')
+  return access
+}
 
-  const tx = db.transaction(['players', 'observations', 'sessions', 'attendance'], 'readwrite')
-  await tx.objectStore('players').clear()
-  await tx.objectStore('observations').clear()
-  await tx.objectStore('sessions').clear()
-  await tx.objectStore('attendance').clear()
-  await Promise.all(payload.players.map((player) => tx.objectStore('players').put(player)))
-  await Promise.all(payload.observations.map((observation) => tx.objectStore('observations').put(observation)))
-  await Promise.all((payload.attendance ?? []).map((item) => tx.objectStore('attendance').put(item)))
-  if (payload.session) await tx.objectStore('sessions').put(payload.session)
+export async function restoreBackup(payload: BackupPayload | CoachFieldExport) {
+  const access = await assertBackupAccess()
+  if (!payload || typeof payload !== 'object') throw new Error('Backup non valido.')
+  const db = await dbPromise as unknown as IDBPDatabase
+  const stores = Array.from(db.objectStoreNames)
+  const rows: Record<string, unknown[]> = {}
+  if (isCoachFieldExport(payload)) {
+    if (payload.app !== 'Coach Field' || payload.backupVersion !== 1 || !payload.data) throw new Error('Formato backup non supportato.')
+    for (const name of stores) {
+      const values = payload.data[name]
+      if (values === undefined) continue
+      if (!Array.isArray(values) || values.some(row => !row || typeof row !== 'object' || !('id' in row) || typeof row.id !== 'string')) throw new Error('Store backup non valido: ' + name)
+      rows[name] = name === 'voiceNotes' ? await Promise.all(values.map(async value => {
+        const note = await deserializeVoiceNote(value)
+        if (!note) throw new Error('Audio backup non valido.')
+        return note
+      })) : values
+    }
+  } else {
+    if (!Array.isArray(payload.players) || !Array.isArray(payload.observations)) throw new Error('Backup legacy non valido.')
+    Object.assign(rows, { players: payload.players, observations: payload.observations, sessions: payload.session ? [payload.session] : [], attendance: payload.attendance ?? [] })
+    if (payload.localGroupBinding) rows.appState = [payload.localGroupBinding]
+  }
+  const state = (rows.appState ?? []) as Array<{ id: string; groupId?: string }>
+  const binding = state.find(row => row.id === 'localGroupBinding')
+  if (binding && (!binding.groupId || binding.groupId !== access.groupId)) throw new Error('Il backup appartiene a un altro gruppo. Ripristino annullato.')
+  for (const values of Object.values(rows)) for (const value of values) {
+    if (!value || typeof value !== 'object' || !('id' in value) || typeof value.id !== 'string') throw new Error('Record non valido.')
+    if ('groupId' in value && value.groupId && value.groupId !== access.groupId) throw new Error('Il backup contiene dati di un altro gruppo.')
+  }
+  // Allowlist metadata; never import arbitrary settings, sessions or credentials.
+  rows.appState = state.filter(row => ['current', 'playerSeedVersion', 'localGroupBinding'].includes(row.id))
+  assertCurrentAccess(access)
+  const tx = db.transaction(Object.keys(rows), 'readwrite')
+  for (const [name, values] of Object.entries(rows)) {
+    await tx.objectStore(name).clear()
+    for (const row of values) await tx.objectStore(name).put(row)
+  }
   await tx.done
+  if (isCoachFieldExport(payload) && typeof window !== 'undefined') {
+    const theme = payload.data.theme
+    if (theme && !Array.isArray(theme) && ['pitch', 'electric', 'purple', 'ice'].includes(theme.value)) {
+      try { window.localStorage.setItem(THEME_STORAGE_KEY, theme.value) } catch { /* Storage may be unavailable. */ }
+    }
+  }
+  // Backups without a binding require an explicit new association before displaying data.
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event('local-data-restored'))
 }

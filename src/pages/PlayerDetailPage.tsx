@@ -1,5 +1,7 @@
+import { PermissionAction } from '../components/PermissionAction'
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
+import { Link } from '../groups/navigation'
 import { Goal, HeartHandshake, MessageCircle, Plus, Shield, Sparkles, TriangleAlert } from 'lucide-react'
 import { getAppState } from '../db/appStateRepository'
 import { getAttendanceByPlayer } from '../db/attendanceRepository'
@@ -165,12 +167,12 @@ export function PlayerDetailPage() {
     }
   }, [id])
 
-  if (!player || !session) return null
+  if (!player) return <p className="page">Giocatore non disponibile.</p>
 
   const quickAdd = async (category: ObservationCategory, value: 'positive' | 'attention' = 'positive', text?: string) => {
     await addObservation({
       playerId: player.id,
-      sessionId: session.id,
+      sessionId: session?.id ?? 'general',
       phaseId,
       category,
       value,
@@ -272,17 +274,17 @@ export function PlayerDetailPage() {
             <span className="status-badge">OSPITE</span>
             <strong>Giocatore aggiunto al volo</strong>
           </div>
-          <button type="button" className="primary-action" onClick={addToRoster}>Aggiungi alla rosa</button>
+          <PermissionAction permission="players.edit"><button type="button" className="primary-action" onClick={addToRoster}>Aggiungi alla rosa</button></PermissionAction>
         </section>
       )}
 
       <section className="content-section player-profile-section">
         <h2>Valutazione generale</h2>
-        <PlayerStarRating value={player.rating} onChange={saveRating} />
+        <PermissionAction permission="players.edit"><PlayerStarRating value={player.rating} onChange={saveRating} /></PermissionAction>
         {player.rating !== null && (
-          <button type="button" className="subtle-button" onClick={() => saveRating(null)}>
+          <PermissionAction permission="players.edit"><button type="button" className="subtle-button" onClick={() => saveRating(null)}>
             Rimuovi valutazione
-          </button>
+          </button></PermissionAction>
         )}
       </section>
 
@@ -292,9 +294,9 @@ export function PlayerDetailPage() {
           {roleOptions.map((role) => {
             const selected = (player.idealRoles ?? []).includes(role.id)
             return (
-              <button key={role.id} type="button" aria-pressed={selected} className={selected ? 'selected' : ''} onClick={() => toggleIdealRole(role.id)}>
+              <PermissionAction permission="players.edit" key={role.id}><button key={role.id} type="button" aria-pressed={selected} className={selected ? 'selected' : ''} onClick={() => toggleIdealRole(role.id)}>
                 {role.id}
-              </button>
+              </button></PermissionAction>
             )
           })}
         </div>
@@ -321,7 +323,7 @@ export function PlayerDetailPage() {
           <section className="content-section player-profile-section">
             <div className="section-header-row">
               <h2>Progressione</h2>
-              <button type="button" onClick={() => setReviewOpen(true)}>Crea review</button>
+              <PermissionAction permission="development.edit"><button type="button" onClick={() => setReviewOpen(true)}>Crea review</button></PermissionAction>
             </div>
             <div className="data-count-grid">
               <span><strong>{stats.lastFiveMatchAverage === undefined ? '—' : stats.lastFiveMatchAverage.toFixed(1).replace('.', ',')}</strong> ultime 5 partite</span>
@@ -351,9 +353,9 @@ export function PlayerDetailPage() {
           <section className="content-section player-profile-section">
             <div className="section-header-row">
               <h2>Obiettivi attivi</h2>
-              <button type="button" onClick={() => setObjectiveOpen(true)}>+ Nuovo obiettivo</button>
+              <PermissionAction permission="development.edit"><button type="button" onClick={() => setObjectiveOpen(true)}>+ Nuovo obiettivo</button></PermissionAction>
             </div>
-            <ObjectiveList objectives={activeObjectives.slice(0, 3)} evidenceByObjective={objectiveEvidence} onEvidence={quickEvidence} onStatus={async (objective, status) => { await setPlayerObjectiveStatus(objective.id, status); refresh() }} />
+            <PermissionAction permission="development.edit"><ObjectiveList objectives={activeObjectives.slice(0, 3)} evidenceByObjective={objectiveEvidence} onEvidence={quickEvidence} onStatus={async (objective, status) => { await setPlayerObjectiveStatus(objective.id, status); refresh() }} /></PermissionAction>
             {activeObjectives.length === 0 && <p className="empty-state">Nessun obiettivo attivo. Definisci un comportamento concreto su cui lavorare.</p>}
           </section>
         </>
@@ -436,15 +438,15 @@ export function PlayerDetailPage() {
         <section className="content-section player-profile-section">
           <div className="section-header-row">
             <h2>Obiettivi</h2>
-            <button type="button" onClick={() => setObjectiveOpen(true)}>+ Nuovo obiettivo</button>
+            <PermissionAction permission="development.edit"><button type="button" onClick={() => setObjectiveOpen(true)}>+ Nuovo obiettivo</button></PermissionAction>
           </div>
           <h3>Attivi</h3>
-          <ObjectiveList objectives={activeObjectives} evidenceByObjective={objectiveEvidence} onEvidence={quickEvidence} onStatus={async (objective, status) => { await setPlayerObjectiveStatus(objective.id, status); refresh() }} />
+          <PermissionAction permission="development.edit"><ObjectiveList objectives={activeObjectives} evidenceByObjective={objectiveEvidence} onEvidence={quickEvidence} onStatus={async (objective, status) => { await setPlayerObjectiveStatus(objective.id, status); refresh() }} /></PermissionAction>
           {activeObjectives.length === 0 && <p className="empty-state">Nessun obiettivo attivo. Definisci un comportamento concreto su cui lavorare.</p>}
           <h3>Raggiunti</h3>
-          <ObjectiveList objectives={achievedObjectives} evidenceByObjective={objectiveEvidence} onEvidence={quickEvidence} onStatus={async (objective, status) => { await setPlayerObjectiveStatus(objective.id, status); refresh() }} />
+          <PermissionAction permission="development.edit"><ObjectiveList objectives={achievedObjectives} evidenceByObjective={objectiveEvidence} onEvidence={quickEvidence} onStatus={async (objective, status) => { await setPlayerObjectiveStatus(objective.id, status); refresh() }} /></PermissionAction>
           <h3>Archiviati / pausa</h3>
-          <ObjectiveList objectives={archivedObjectives} evidenceByObjective={objectiveEvidence} onEvidence={quickEvidence} onStatus={async (objective, status) => { await setPlayerObjectiveStatus(objective.id, status); refresh() }} />
+          <PermissionAction permission="development.edit"><ObjectiveList objectives={archivedObjectives} evidenceByObjective={objectiveEvidence} onEvidence={quickEvidence} onStatus={async (objective, status) => { await setPlayerObjectiveStatus(objective.id, status); refresh() }} /></PermissionAction>
         </section>
       )}
 
@@ -488,28 +490,28 @@ export function PlayerDetailPage() {
 
       {tab === 'overview' && <div className="quick-grid">
         {actions.map(({ label, category, icon: Icon }) => (
-          <button key={category} type="button" className="quick-action" onClick={() => quickAdd(category)}>
+          <PermissionAction permission="notes.create" key={category}><button key={category} type="button" className="quick-action" onClick={() => quickAdd(category)}>
             <Icon size={24} />
             {label}
             <small>+ positivo</small>
-          </button>
+          </button></PermissionAction>
         ))}
       </div>}
 
       {tab === 'overview' && <section className="content-section">
-        <button type="button" className="primary-action keeper-action" onClick={markInterestingGoalkeeper}>
+        <PermissionAction permission="players.edit"><button type="button" className="primary-action keeper-action" onClick={markInterestingGoalkeeper}>
           <Shield size={24} />
           Interessante in porta
-        </button>
+        </button></PermissionAction>
         <div className="tag-grid">
           {goalkeeperTags.map((tag) => (
-            <button
+            <PermissionAction permission="notes.create" key={tag}><button
               key={tag}
               type="button"
               onClick={() => quickAdd('goalkeeper', tag === 'Da rivedere' ? 'attention' : 'positive', tag)}
             >
               {tag}
-            </button>
+            </button></PermissionAction>
           ))}
         </div>
       </section>}
@@ -517,16 +519,16 @@ export function PlayerDetailPage() {
       {tab === 'overview' && <div className="note-panel">
         <textarea value={note} onChange={(event) => setNote(event.target.value)} placeholder="Nota testuale rapida" rows={3} />
         <div className="action-row">
-          <button type="button" onClick={() => note.trim() && quickAdd('attitude', 'positive', note.trim())}>
+          <PermissionAction permission="notes.create"><button type="button" onClick={() => note.trim() && quickAdd('attitude', 'positive', note.trim())}>
             <Plus size={20} />Positiva
-          </button>
-          <button type="button" onClick={() => note.trim() && quickAdd('attitude', 'attention', note.trim())}>
+          </button></PermissionAction>
+          <PermissionAction permission="notes.create"><button type="button" onClick={() => note.trim() && quickAdd('attitude', 'attention', note.trim())}>
             <MessageCircle size={20} />Attenzione
-          </button>
+          </button></PermissionAction>
         </div>
       </div>}
 
-      {tab === 'overview' && <VoiceRecorder sessionId={session.id} phaseId={phaseId} playerId={player.id} onSaved={refresh} />}
+      {tab === 'overview' && <PermissionAction permission="notes.create"><VoiceRecorder sessionId={session?.id ?? 'general'} phaseId={phaseId} playerId={player.id} onSaved={refresh} /></PermissionAction>}
 
       {tab === 'history' && <section className="content-section">
         <h2>Cronologia</h2>
@@ -552,8 +554,8 @@ export function PlayerDetailPage() {
           {observations.length === 0 && voiceNotes.length === 0 && <p className="empty-state">Ancora nessuna nota per questo giocatore.</p>}
         </div>
       </section>}
-      {objectiveOpen && <PlayerObjectiveSheet playerId={player.id} onSaved={refresh} onClose={() => setObjectiveOpen(false)} />}
-      {reviewOpen && <PlayerReviewSheet player={player} onSaved={refresh} onClose={() => setReviewOpen(false)} />}
+      {objectiveOpen && <PermissionAction permission="development.edit"><PlayerObjectiveSheet playerId={player.id} onSaved={refresh} onClose={() => setObjectiveOpen(false)} /></PermissionAction>}
+      {reviewOpen && <PermissionAction permission="development.edit"><PlayerReviewSheet player={player} onSaved={refresh} onClose={() => setReviewOpen(false)} /></PermissionAction>}
     </section>
   )
 }
@@ -583,12 +585,12 @@ function ObjectiveList({
             ))}
           </div>
           <div className="vertical-actions">
-            <button type="button" onClick={() => onEvidence(objective, 'positive')}>✓</button>
-            <button type="button" onClick={() => onEvidence(objective, 'mixed')}>~</button>
-            <button type="button" onClick={() => onEvidence(objective, 'attention')}>!</button>
-            {objective.status === 'active' && <button type="button" onClick={() => onStatus(objective, 'achieved')}>Raggiunto</button>}
-            {objective.status === 'active' && <button type="button" onClick={() => onStatus(objective, 'paused')}>Pausa</button>}
-            {objective.status !== 'archived' && <button type="button" onClick={() => onStatus(objective, 'archived')}>Archivia</button>}
+            <PermissionAction permission="development.edit"><button type="button" onClick={() => onEvidence(objective, 'positive')}>✓</button></PermissionAction>
+            <PermissionAction permission="development.edit"><button type="button" onClick={() => onEvidence(objective, 'mixed')}>~</button></PermissionAction>
+            <PermissionAction permission="development.edit"><button type="button" onClick={() => onEvidence(objective, 'attention')}>!</button></PermissionAction>
+            {objective.status === 'active' && <PermissionAction permission="development.edit"><button type="button" onClick={() => onStatus(objective, 'achieved')}>Raggiunto</button></PermissionAction>}
+            {objective.status === 'active' && <PermissionAction permission="development.edit"><button type="button" onClick={() => onStatus(objective, 'paused')}>Pausa</button></PermissionAction>}
+            {objective.status !== 'archived' && <PermissionAction permission="development.edit"><button type="button" onClick={() => onStatus(objective, 'archived')}>Archivia</button></PermissionAction>}
           </div>
         </article>
       ))}

@@ -25,6 +25,7 @@ export type PlayerObjectivePriority = 'low' | 'medium' | 'high'
 export type PlayerObjectiveEvidenceOutcome = 'positive' | 'mixed' | 'attention'
 
 export type Player = {
+  groupId?: string
   id: string
   firstName: string
   lastName: string
@@ -44,6 +45,7 @@ export type ObservationCategory =
   | 'goalkeeper'
 
 export type Observation = {
+  groupId?: string
   id: string
   playerId: string
   sessionId: string
@@ -55,6 +57,7 @@ export type Observation = {
 }
 
 export type VoiceNote = {
+  groupId?: string
   id: string
   playerId?: string
   sessionId: string
@@ -68,6 +71,7 @@ export type VoiceNote = {
 }
 
 export type Match = {
+  groupId?: string
   id: string
   date: string
   opponent: string
@@ -86,6 +90,7 @@ export type Match = {
 }
 
 export type MatchPlayerEvaluation = {
+  groupId?: string
   id: string
   matchId: string
   playerId: string
@@ -160,6 +165,7 @@ export type SessionPhase = {
 }
 
 export type TrainingSession = {
+  groupId?: string
   id: string
   date?: string
   startTime?: string
@@ -186,6 +192,7 @@ export type TrainingTemplatePhase = {
 }
 
 export type TrainingTemplate = {
+  groupId?: string
   id: string
   title: string
   description?: string
@@ -214,6 +221,7 @@ export type TrainingSessionPhase = {
 }
 
 export type TrainingPlayerEvaluation = {
+  groupId?: string
   id: string
   sessionId: string
   playerId: string
@@ -227,6 +235,7 @@ export type TrainingPlayerEvaluation = {
 }
 
 export type PlayerObjective = {
+  groupId?: string
   id: string
   playerId: string
   title: string
@@ -243,6 +252,7 @@ export type PlayerObjective = {
 }
 
 export type PlayerObjectiveEvidence = {
+  groupId?: string
   id: string
   objectiveId: string
   playerId: string
@@ -255,6 +265,7 @@ export type PlayerObjectiveEvidence = {
 }
 
 export type PlayerDevelopmentReview = {
+  groupId?: string
   id: string
   playerId: string
   date: string
@@ -275,6 +286,7 @@ export type TimerState = {
 }
 
 export type AppState = {
+  groupId?: string
   id: 'current'
   sessionId: string
   currentPhaseId: string
@@ -288,6 +300,7 @@ export type AppMetaState = {
 }
 
 export type Attendance = {
+  groupId?: string
   id: string
   sessionId: string
   playerId: string

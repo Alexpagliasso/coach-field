@@ -1,3 +1,4 @@
+import { PermissionAction } from '../components/PermissionAction'
 import { useEffect, useState } from 'react'
 import { Check, Plus, X } from 'lucide-react'
 import { setAllAttendance, setPlayerAttendance } from '../db/attendanceRepository'
@@ -59,9 +60,9 @@ export function AttendanceSheet({ sessionId, players, attendance, onClose, onCha
         </header>
 
         <div className="action-row attendance-actions">
-          <button type="button" onClick={() => setAll(true)}><Check size={20} />Tutti presenti</button>
-          <button type="button" onClick={() => setAll(false)}><X size={20} />Azzera</button>
-          <button type="button" onClick={() => setAddOpen(true)}><Plus size={20} />Giocatore</button>
+          <PermissionAction permission="attendance.edit"><button type="button" onClick={() => setAll(true)}><Check size={20} />Tutti presenti</button></PermissionAction>
+          <PermissionAction permission="attendance.edit"><button type="button" onClick={() => setAll(false)}><X size={20} />Azzera</button></PermissionAction>
+          <PermissionAction permission="players.create"><button type="button" onClick={() => setAddOpen(true)}><Plus size={20} />Giocatore</button></PermissionAction>
         </div>
 
         {flash && <p className="save-flash compact-flash">{flash}</p>}
@@ -75,7 +76,7 @@ export function AttendanceSheet({ sessionId, players, attendance, onClose, onCha
                   <strong>{player.firstName} {player.lastName}</strong>
                   <small>{formatPlayerYear(player.year)} · {player.previousRoles.join(', ') || 'Ruolo da osservare'}</small>
                 </span>
-                <input type="checkbox" checked={present} onChange={(event) => setPlayer(player.id, event.target.checked)} />
+                <PermissionAction permission="attendance.edit"><input type="checkbox" checked={present} onChange={(event) => setPlayer(player.id, event.target.checked)} /></PermissionAction>
               </label>
             )
           })}
@@ -86,13 +87,13 @@ export function AttendanceSheet({ sessionId, players, attendance, onClose, onCha
         </footer>
       </section>
       {addOpen && (
-        <AddPlayerModal
+        <PermissionAction permission="players.create"><AddPlayerModal
           players={players}
           sessionId={sessionId}
           defaultPresent
           onAdded={handlePlayerAdded}
           onClose={() => setAddOpen(false)}
-        />
+        /></PermissionAction>
       )}
     </div>
   )

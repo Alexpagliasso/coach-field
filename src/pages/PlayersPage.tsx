@@ -1,5 +1,6 @@
+import { PermissionAction } from '../components/PermissionAction'
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link } from '../groups/navigation'
 import { Plus, Search, Shield } from 'lucide-react'
 import { AddPlayerModal } from '../components/AddPlayerModal'
 import { CompactStarRating } from '../components/PlayerStarRating'
@@ -90,9 +91,9 @@ export function PlayersPage() {
         <h1>Giocatori</h1>
         <p>{players.length} giocatori</p>
       </header>
-      <button type="button" className="primary-action add-player-trigger" onClick={() => setAddOpen(true)}>
+      <PermissionAction permission="players.create"><button type="button" className="primary-action add-player-trigger" onClick={() => setAddOpen(true)}>
         <Plus size={22} />Giocatore
-      </button>
+      </button></PermissionAction>
       <Link to="/goalkeepers" className="subtle-link goalkeeper-entry">
         <Shield size={19} />
         Area portieri
@@ -137,11 +138,11 @@ export function PlayersPage() {
         {filteredPlayers.length === 0 && <p className="empty-state">Nessun giocatore trovato.</p>}
       </div>
       {addOpen && (
-        <AddPlayerModal
+        <PermissionAction permission="players.create"><AddPlayerModal
           players={players}
           onAdded={refreshPlayers}
           onClose={() => setAddOpen(false)}
-        />
+        /></PermissionAction>
       )}
     </section>
   )

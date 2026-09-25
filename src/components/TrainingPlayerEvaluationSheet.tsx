@@ -1,3 +1,4 @@
+import { PermissionAction } from '../components/PermissionAction'
 import { useEffect, useMemo, useState } from 'react'
 import { X } from 'lucide-react'
 import { getActivePlayerObjectives } from '../db/playerDevelopmentRepository'
@@ -74,7 +75,7 @@ export function TrainingPlayerEvaluationSheet({ sessionId, player, evaluation, o
         <div className="add-player-scroll">
           <section className="content-section player-profile-section">
             <h2>Valutazione allenamento</h2>
-            <PlayerStarRating value={draft.rating} onChange={(rating: PlayerRating) => persist({ rating })} />
+            <PermissionAction permission="training.evaluate"><PlayerStarRating value={draft.rating} onChange={(rating: PlayerRating) => persist({ rating })} /></PermissionAction>
           </section>
 
           <section className="form-field">
@@ -83,9 +84,9 @@ export function TrainingPlayerEvaluationSheet({ sessionId, player, evaluation, o
               {roleOptions.map((role) => {
                 const selected = draft.rolesTried.includes(role.id)
                 return (
-                  <button key={role.id} type="button" className={selected ? 'selected' : ''} aria-pressed={selected} onClick={() => persist({ rolesTried: toggleItem<PlayerRole>(draft.rolesTried, role.id) })}>
+                  <PermissionAction permission="training.evaluate" key={role.id}><button key={role.id} type="button" className={selected ? 'selected' : ''} aria-pressed={selected} onClick={() => persist({ rolesTried: toggleItem<PlayerRole>(draft.rolesTried, role.id) })}>
                     {role.id}
-                  </button>
+                  </button></PermissionAction>
                 )
               })}
             </div>
@@ -96,7 +97,7 @@ export function TrainingPlayerEvaluationSheet({ sessionId, player, evaluation, o
             <div className="tag-grid compact-tags">
               {positiveTags.map((tag) => {
                 const selected = (draft.positiveTags ?? []).includes(tag)
-                return <button key={tag} type="button" className={selected ? 'selected' : ''} aria-pressed={selected} onClick={() => persist({ positiveTags: toggleItem(draft.positiveTags ?? [], tag) })}>{tag}</button>
+                return <PermissionAction permission="training.evaluate" key={tag}><button key={tag} type="button" className={selected ? 'selected' : ''} aria-pressed={selected} onClick={() => persist({ positiveTags: toggleItem(draft.positiveTags ?? [], tag) })}>{tag}</button></PermissionAction>
               })}
             </div>
           </section>
@@ -106,17 +107,17 @@ export function TrainingPlayerEvaluationSheet({ sessionId, player, evaluation, o
             <div className="tag-grid compact-tags">
               {attentionTags.map((tag) => {
                 const selected = (draft.attentionTags ?? []).includes(tag)
-                return <button key={tag} type="button" className={selected ? 'selected attention' : 'attention'} aria-pressed={selected} onClick={() => persist({ attentionTags: toggleItem(draft.attentionTags ?? [], tag) })}>{tag}</button>
+                return <PermissionAction permission="training.evaluate" key={tag}><button key={tag} type="button" className={selected ? 'selected attention' : 'attention'} aria-pressed={selected} onClick={() => persist({ attentionTags: toggleItem(draft.attentionTags ?? [], tag) })}>{tag}</button></PermissionAction>
               })}
             </div>
           </section>
 
           <label className="form-field">
             <span>Nota</span>
-            <textarea value={draft.note ?? ''} onChange={(event) => persist({ note: event.target.value })} placeholder="Osservazione veloce sull allenamento" rows={4} />
+            <PermissionAction permission="training.evaluate"><textarea value={draft.note ?? ''} onChange={(event) => persist({ note: event.target.value })} placeholder="Osservazione veloce sull allenamento" rows={4} /></PermissionAction>
           </label>
 
-          <PlayerObjectivesQuickCheck
+          <PermissionAction permission="development.view"><PlayerObjectivesQuickCheck
             playerId={player.id}
             objectives={activeObjectives}
             trainingSessionId={sessionId}
@@ -124,11 +125,11 @@ export function TrainingPlayerEvaluationSheet({ sessionId, player, evaluation, o
               getActivePlayerObjectives(player.id).then(setActiveObjectives)
               onChanged()
             }}
-          />
+          /></PermissionAction>
 
-          <button type="button" onClick={() => setObjectiveOpen(true)}>Crea obiettivo</button>
+          <PermissionAction permission="development.edit"><button type="button" onClick={() => setObjectiveOpen(true)}>Crea obiettivo</button></PermissionAction>
 
-          <VoiceRecorder sessionId={sessionId} playerId={player.id} onSaved={onChanged} />
+          <PermissionAction permission="notes.create"><VoiceRecorder sessionId={sessionId} playerId={player.id} onSaved={onChanged} /></PermissionAction>
           {flash && <p className="save-flash compact-flash">{flash}</p>}
         </div>
 
@@ -136,14 +137,14 @@ export function TrainingPlayerEvaluationSheet({ sessionId, player, evaluation, o
           <button type="button" className="primary-action" onClick={onClose}>Chiudi valutazione</button>
         </footer>
         {objectiveOpen && (
-          <PlayerObjectiveSheet
+          <PermissionAction permission="development.edit"><PlayerObjectiveSheet
             playerId={player.id}
             sourceTrainingSessionId={sessionId}
             initialTitle={draft.note?.toLowerCase().includes('perdita') ? 'Reazione dopo perdita' : ''}
             initialDescription={draft.note}
             onSaved={() => getActivePlayerObjectives(player.id).then(setActiveObjectives)}
             onClose={() => setObjectiveOpen(false)}
-          />
+          /></PermissionAction>
         )}
       </section>
     </div>

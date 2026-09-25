@@ -1,5 +1,7 @@
+import { requireLocalPermission } from './localAccess'
 import type { VoiceNote } from '../types/domain'
-import { dbPromise, makeId } from './db'
+import { dbPromise } from './scopedDb'
+import { makeId } from './db'
 
 type SaveVoiceNoteInput = {
   playerId?: string
@@ -13,6 +15,7 @@ type SaveVoiceNoteInput = {
 }
 
 export async function saveVoiceNote(input: SaveVoiceNoteInput) {
+  requireLocalPermission('notes.create')
   const note: VoiceNote = {
     id: makeId(),
     createdAt: new Date().toISOString(),
@@ -33,5 +36,6 @@ export async function getVoiceNotesByPlayer(playerId: string) {
 }
 
 export async function deleteVoiceNote(id: string) {
+  requireLocalPermission('notes.delete')
   await (await dbPromise).delete('voiceNotes', id)
 }

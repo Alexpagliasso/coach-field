@@ -1,5 +1,15 @@
 # Features
 
+## Funzioni aggiunte in V5A
+
+Home pubblica minimale, login email/password senza signup, ripristino sessione SDK, selettore gruppi, topbar nome/ruolo/cambio gruppo/logout. Admin: crea, modifica e disattiva gruppi; assegna staff esistente anche come coach. Coach: gestisce collaboratori del proprio gruppo. Collaborator: letture conservative e creazione note, con override delegabili.
+
+Staff mostra allenatori/collaboratori e checkbox permessi. Associazione locale esplicita, empty state per gruppi non associati, backup con mapping e nessuna migrazione sportiva cloud. Le capacit? precedenti sotto descritte sono conservate nel nuovo percorso /app/:groupId.
+
+## Riferimento storico V1?V4
+
+Le sezioni seguenti descrivono il checkpoint recuperato. Dove differiscono su routing, Auth, backend, seed o test, prevale lo stato V5A sopra.
+
 ## Seduta Corrente
 
 La home mostra la seduta seedata "Primo allenamento 2016/2017" con durata totale, fase corrente e timer.

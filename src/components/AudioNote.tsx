@@ -1,3 +1,4 @@
+import { PermissionAction } from '../components/PermissionAction'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Pause, Play, Trash2 } from 'lucide-react'
 import type { VoiceNote } from '../types/domain'
@@ -38,9 +39,9 @@ export function AudioNote({ note, title, subtitle, onDelete }: AudioNoteProps) {
         <span>{subtitle}</span>
         <small>{note.durationSeconds}s</small>
       </div>
-      <button type="button" className="icon-button danger-text" onClick={() => onDelete(note.id)} aria-label="Elimina">
+      <PermissionAction permission="notes.delete"><button type="button" className="icon-button danger-text" onClick={() => onDelete(note.id)} aria-label="Elimina">
         <Trash2 size={21} />
-      </button>
+      </button></PermissionAction>
     </article>
   )
 }

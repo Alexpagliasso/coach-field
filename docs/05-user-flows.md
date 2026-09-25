@@ -1,5 +1,20 @@
 # User Flows
 
+## Flussi V5A
+
+1. / mostra solo informazioni pubblicabili, senza inizializzare il dataset sportivo.
+2. AREA STAFF porta a /login; errori di configurazione, rete e credenziali sono visibili.
+3. Dopo login, /app/groups mostra i gruppi accessibili e il ruolo in ciascuno.
+4. Entrando nel gruppo, il guard verifica membership/stato; admin non richiede membership individuale.
+5. Se il dataset non ? associato, coach/admin possono associarlo esplicitamente con conferma. Non ora torna al selettore. Per gruppi diversi dal binding compare empty state.
+6. Le pagine tecniche mantengono i flussi V1?V4 sotto /app/:groupId. Azioni non autorizzate sono nascoste; i repository verificano comunque i permessi.
+7. Cambio gruppo smonta il contenuto e invalida operazioni locali pendenti. Logout conserva IndexedDB.
+8. Backup senza binding richiede nuova associazione dopo restore; backup di altro gruppo viene rifiutato prima di sostituire dati.
+
+## Riferimento storico V1?V4
+
+Le sezioni seguenti descrivono il checkpoint recuperato. Dove differiscono su routing, Auth, backend, seed o test, prevale lo stato V5A sopra.
+
 ## Avvio App
 
 1. L'utente apre l'app.

@@ -1,5 +1,8 @@
+import { PermissionAction } from '../components/PermissionAction'
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
+import { Link } from '../groups/navigation'
+import { useNavigate } from '../groups/useNavigate'
 import { Check, Trash2 } from 'lucide-react'
 import { MatchPlayerEvaluationSheet } from '../components/MatchPlayerEvaluationSheet'
 import { PlayerStarRating, CompactStarRating } from '../components/PlayerStarRating'
@@ -144,30 +147,30 @@ export function MatchDetailPage() {
         <h2>Risultato</h2>
         <div className="score-grid">
           <label className="form-field">
-            <span>Coach Field Team</span>
-            <input type="number" inputMode="numeric" min="0" value={match.goalsFor ?? ''} onChange={(event) => persistMatch({ goalsFor: parseNumber(event.target.value) })} />
+            <span>La nostra squadra</span>
+            <PermissionAction permission="matches.edit"><input type="number" inputMode="numeric" min="0" value={match.goalsFor ?? ''} onChange={(event) => persistMatch({ goalsFor: parseNumber(event.target.value) })} /></PermissionAction>
           </label>
           <label className="form-field">
             <span>Avversario</span>
-            <input type="number" inputMode="numeric" min="0" value={match.goalsAgainst ?? ''} onChange={(event) => persistMatch({ goalsAgainst: parseNumber(event.target.value) })} />
+            <PermissionAction permission="matches.edit"><input type="number" inputMode="numeric" min="0" value={match.goalsAgainst ?? ''} onChange={(event) => persistMatch({ goalsAgainst: parseNumber(event.target.value) })} /></PermissionAction>
           </label>
         </div>
       </section>
 
       <section className="content-section">
         <h2>Valutazione squadra</h2>
-        <PlayerStarRating value={match.teamRating ?? null} onChange={(rating: PlayerRating) => persistMatch({ teamRating: rating })} />
+        <PermissionAction permission="matches.edit"><PlayerStarRating value={match.teamRating ?? null} onChange={(rating: PlayerRating) => persistMatch({ teamRating: rating })} /></PermissionAction>
       </section>
 
       <section className="content-section">
         <h2>Note staff</h2>
-        <textarea value={match.teamNotes ?? ''} onChange={(event) => persistMatch({ teamNotes: event.target.value })} placeholder="Cosa ha funzionato? Dove abbiamo avuto difficolta?" rows={4} />
-        <VoiceRecorder sessionId="match" matchId={match.id} />
+        <PermissionAction permission="matches.edit"><textarea value={match.teamNotes ?? ''} onChange={(event) => persistMatch({ teamNotes: event.target.value })} placeholder="Cosa ha funzionato? Dove abbiamo avuto difficolta?" rows={4} /></PermissionAction>
+        <PermissionAction permission="notes.create"><VoiceRecorder sessionId="match" matchId={match.id} /></PermissionAction>
       </section>
 
       <section className="content-section takeaway-section">
         <h2>Da portare in allenamento</h2>
-        <textarea value={match.trainingTakeaways ?? ''} onChange={(event) => persistMatch({ trainingTakeaways: event.target.value })} placeholder="Uscita dalla pressione&#10;Reazione dopo perdita&#10;Occupazione ampiezza" rows={4} />
+        <PermissionAction permission="matches.edit"><textarea value={match.trainingTakeaways ?? ''} onChange={(event) => persistMatch({ trainingTakeaways: event.target.value })} placeholder="Uscita dalla pressione&#10;Reazione dopo perdita&#10;Occupazione ampiezza" rows={4} /></PermissionAction>
       </section>
 
       <section id="match-players" className="content-section">
@@ -177,8 +180,8 @@ export function MatchDetailPage() {
         </div>
         {averageRating !== undefined && <p className="muted-copy">Media partita: {averageRating.toFixed(1).replace('.', ',')} ★</p>}
         <div className="action-row attendance-actions">
-          <button type="button" onClick={() => setAll(true)}><Check size={20} />Tutti</button>
-          <button type="button" onClick={() => setAll(false)}>Nessuno</button>
+          <PermissionAction permission="matches.evaluate"><button type="button" onClick={() => setAll(true)}><Check size={20} />Tutti</button></PermissionAction>
+          <PermissionAction permission="matches.evaluate"><button type="button" onClick={() => setAll(false)}>Nessuno</button></PermissionAction>
         </div>
         <div className="list-stack">
           {players.map((player) => {
@@ -186,13 +189,13 @@ export function MatchDetailPage() {
             const participates = Boolean(evaluation?.selected || evaluation?.present)
             return (
               <article key={player.id} className={`list-card player-row ${participates ? 'selected' : ''}`}>
-                <button type="button" className="row-select" onClick={() => openEvaluation(player)}>
+                <PermissionAction permission="matches.evaluate"><button type="button" className="row-select" onClick={() => openEvaluation(player)}>
                   <strong>{player.firstName} {player.lastName}</strong>
                   <span>{evaluation?.rolesPlayed?.join(' · ') || player.idealRoles?.join(' · ') || player.previousRoles.join(' · ') || formatPlayerYear(player.year)}</span>
                   <small>{participates ? (evaluation?.rating ? <CompactStarRating value={evaluation.rating} /> : 'DA VALUTARE') : 'Non convocato'}</small>
-                </button>
+                </button></PermissionAction>
                 <label className="switch">
-                  <input type="checkbox" checked={participates} onChange={(event) => togglePlayer(player, event.target.checked)} />
+                  <PermissionAction permission="matches.evaluate"><input type="checkbox" checked={participates} onChange={(event) => togglePlayer(player, event.target.checked)} /></PermissionAction>
                   <span>Partecipa</span>
                 </label>
               </article>
@@ -213,8 +216,8 @@ export function MatchDetailPage() {
       </section>
 
       <div className="action-row">
-        <button type="button" onClick={handleComplete}>Completa partita</button>
-        <button type="button" className="danger" onClick={handleDelete}><Trash2 size={20} />Elimina</button>
+        <PermissionAction permission="matches.edit"><button type="button" onClick={handleComplete}>Completa partita</button></PermissionAction>
+        <PermissionAction permission="matches.edit"><button type="button" className="danger" onClick={handleDelete}><Trash2 size={20} />Elimina</button></PermissionAction>
       </div>
 
       <Link to="/matches" className="subtle-link">Torna alle partite</Link>

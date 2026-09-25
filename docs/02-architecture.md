@@ -1,5 +1,17 @@
 # Architecture
 
+## Architettura V5A
+
+BrowserRouter ? AuthProvider ? GroupProvider ? ProtectedRoute ? GroupAccessGuard ? Layout. Le pagine sportive passano anche da LocalDataGuard e PermissionGuard. Le azioni usano PermissionAction, i repository verificano i permessi e scopedDb filtra letture per gruppo e invalida handle dopo cambio contesto.
+
+Route pubbliche: / e /login. Route autenticate: /app/groups e /admin. Route tecniche: /app/:groupId/today, players, players/:id, goalkeepers, matches, matches/:id, training, training/:id, notes, staff. Le pagine V1?V4 sono riusate; navigation.tsx/useNavigate.ts mantengono i link nel gruppo. main.tsx conserva ThemeProvider.
+
+Unico client in src/lib/supabase.ts; accesso cloud in src/cloud/staffRepository.ts. SQL e RLS in supabase/migrations. Il binding ? un record nello store appState esistente: nessun nuovo store o upgrade IndexedDB. Vedere [setup e sicurezza](v5a-supabase-setup.md).
+
+## Riferimento storico V1?V4
+
+Le sezioni seguenti descrivono il checkpoint recuperato. Dove differiscono su routing, Auth, backend, seed o test, prevale lo stato V5A sopra.
+
 ## Overview
 
 Coach Field e una SPA React con persistenza locale. La struttura e volutamente semplice: pagine React, componenti riusabili, repository IndexedDB e seed statici.

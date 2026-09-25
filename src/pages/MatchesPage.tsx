@@ -1,5 +1,7 @@
+import { PermissionAction } from '../components/PermissionAction'
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from '../groups/navigation'
+import { useNavigate } from '../groups/useNavigate'
 import { Plus } from 'lucide-react'
 import { CreateMatchModal } from '../components/CreateMatchModal'
 import { getMatches } from '../db/matchesRepository'
@@ -59,9 +61,9 @@ export function MatchesPage() {
         <p>{matches.length} partite</p>
       </header>
 
-      <button type="button" className="primary-action" onClick={() => setCreateOpen(true)}>
+      <PermissionAction permission="matches.create"><button type="button" className="primary-action" onClick={() => setCreateOpen(true)}>
         <Plus size={22} />Nuova partita
-      </button>
+      </button></PermissionAction>
 
       <div className="filter-pills" aria-label="Filtra partite">
         {filters.map((item) => (
@@ -75,9 +77,9 @@ export function MatchesPage() {
         <section className="empty-state match-empty">
           <strong>Nessuna partita</strong>
           <span>Quando giochi una partita, aggiungila qui per tenere traccia delle valutazioni della squadra.</span>
-          <button type="button" className="primary-action" onClick={() => setCreateOpen(true)}>
+          <PermissionAction permission="matches.create"><button type="button" className="primary-action" onClick={() => setCreateOpen(true)}>
             <Plus size={22} />Crea prima partita
-          </button>
+          </button></PermissionAction>
         </section>
       ) : (
         <>
@@ -99,7 +101,7 @@ export function MatchesPage() {
         </>
       )}
 
-      {createOpen && <CreateMatchModal onCreated={handleCreated} onClose={() => setCreateOpen(false)} />}
+      {createOpen && <PermissionAction permission="matches.create"><CreateMatchModal onCreated={handleCreated} onClose={() => setCreateOpen(false)} /></PermissionAction>}
     </section>
   )
 }

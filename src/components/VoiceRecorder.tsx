@@ -1,4 +1,5 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { assertCurrentAccess, captureLocalAccess } from '../db/localAccess'
 import { Mic, Square } from 'lucide-react'
 import { saveVoiceNote } from '../db/voiceNotesRepository'
 
@@ -20,6 +21,12 @@ export function VoiceRecorder({ sessionId, phaseId, exerciseId, playerId, matchI
   const chunksRef = useRef<BlobPart[]>([])
   const startedAtRef = useRef(0)
   const intervalRef = useRef<number | undefined>(undefined)
+  useEffect(() => () => {
+    if (recorderRef.current) recorderRef.current.onstop = null
+    if (recorderRef.current?.state === 'recording') recorderRef.current.stop()
+    streamRef.current?.getTracks().forEach(track => track.stop())
+    window.clearInterval(intervalRef.current)
+  }, [])
 
   const stopTracks = () => {
     streamRef.current?.getTracks().forEach((track) => track.stop())
@@ -34,7 +41,9 @@ export function VoiceRecorder({ sessionId, phaseId, exerciseId, playerId, matchI
     }
 
     try {
+      const access = captureLocalAccess()
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      try { assertCurrentAccess(access) } catch { stream.getTracks().forEach(track => track.stop()); return }
       streamRef.current = stream
       chunksRef.current = []
       startedAtRef.current = Date.now()
@@ -52,8 +61,11 @@ export function VoiceRecorder({ sessionId, phaseId, exerciseId, playerId, matchI
         window.clearInterval(intervalRef.current)
         setRecording(false)
         setElapsed(0)
-        await saveVoiceNote({ sessionId, phaseId, exerciseId, playerId, matchId, durationSeconds, mimeType, audio })
-        onSaved?.()
+        try {
+          assertCurrentAccess(access)
+          await saveVoiceNote({ sessionId, phaseId, exerciseId, playerId, matchId, durationSeconds, mimeType, audio })
+          onSaved?.()
+        } catch { setError('Registrazione non salvata: accesso al gruppo cambiato o storage non disponibile.') }
       }
 
       recorder.start()

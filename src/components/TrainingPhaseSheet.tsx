@@ -1,3 +1,4 @@
+import { PermissionAction } from '../components/PermissionAction'
 import { useEffect, useMemo, useState } from 'react'
 import { X } from 'lucide-react'
 import { updateTrainingSessionPhase } from '../db/sessionsRepository'
@@ -84,33 +85,33 @@ export function TrainingPhaseSheet({ sessionId, phase, onChanged, onClose }: Pro
 
           <section className="content-section player-profile-section">
             <h2>Come e andata?</h2>
-            <PlayerStarRating value={draft.coachRating ?? null} onChange={(rating: PlayerRating) => persist({ coachRating: rating })} />
+            <PermissionAction permission="training.evaluate"><PlayerStarRating value={draft.coachRating ?? null} onChange={(rating: PlayerRating) => persist({ coachRating: rating })} /></PermissionAction>
           </section>
 
           <section className="form-field">
             <span>Stato fase</span>
             <div className="segmented-grid three">
               {statusOptions.map((item) => (
-                <button key={item.id} type="button" className={draft.status === item.id ? 'selected' : ''} aria-pressed={draft.status === item.id} onClick={() => persist({ status: item.id })}>
+                <PermissionAction permission="training.evaluate" key={item.id}><button key={item.id} type="button" className={draft.status === item.id ? 'selected' : ''} aria-pressed={draft.status === item.id} onClick={() => persist({ status: item.id })}>
                   {item.label}
-                </button>
+                </button></PermissionAction>
               ))}
             </div>
           </section>
 
           <label className="form-field">
             <span>Durata reale</span>
-            <input type="number" min="0" inputMode="numeric" value={draft.actualDurationMinutes ?? ''} onChange={(event) => persist({ actualDurationMinutes: event.target.value === '' ? undefined : Number(event.target.value) })} />
+            <PermissionAction permission="training.evaluate"><input type="number" min="0" inputMode="numeric" value={draft.actualDurationMinutes ?? ''} onChange={(event) => persist({ actualDurationMinutes: event.target.value === '' ? undefined : Number(event.target.value) })} /></PermissionAction>
           </label>
 
           <label className="form-field">
             <span>Nota staff</span>
-            <textarea value={draft.coachNotes ?? ''} onChange={(event) => persist({ coachNotes: event.target.value })} rows={4} />
+            <PermissionAction permission="training.evaluate"><textarea value={draft.coachNotes ?? ''} onChange={(event) => persist({ coachNotes: event.target.value })} rows={4} /></PermissionAction>
           </label>
 
           <label className="form-field">
             <span>Variante usata</span>
-            <input value={draft.variationUsed ?? ''} onChange={(event) => persist({ variationUsed: event.target.value })} />
+            <PermissionAction permission="training.evaluate"><input value={draft.variationUsed ?? ''} onChange={(event) => persist({ variationUsed: event.target.value })} /></PermissionAction>
           </label>
           {flash && <p className="save-flash compact-flash">{flash}</p>}
         </div>

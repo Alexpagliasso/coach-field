@@ -1,5 +1,17 @@
 # Roadmap
 
+## Roadmap aggiornata
+
+V5A: foundation multi-staff, Auth, organizzazioni/gruppi, RLS, permessi, binding locale, backup e test. V1?V4 restano la base funzionale.
+
+V5B, non implementata: dati sportivi canonici condivisi su Supabase; migrazione consensuale e verificata del legacy; IndexedDB come cache offline; upload audio privato; code operazioni, conflitti, revoche e recupero; policy sportive per ogni gruppo. Nessun sync improvvisato in V5A.
+
+V6, non implementata: Parent Portal, associazione famiglia/minore, report e comunicazioni. Redesign, AI e report avanzati restano fuori da questo recovery.
+
+## Riferimento storico V1?V4
+
+Le sezioni seguenti descrivono il checkpoint recuperato. Dove differiscono su routing, Auth, backend, seed o test, prevale lo stato V5A sopra.
+
 ## Stato Attuale
 
 Coach Field e un MVP locale/mobile-first. Funziona per gestire template e sessioni allenamento, raccogliere dati individuali durante l'allenamento, tracciare partite con valutazioni giocatore e seguire lo sviluppo qualitativo dei singoli.

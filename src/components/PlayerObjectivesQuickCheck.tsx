@@ -1,3 +1,4 @@
+import { PermissionAction } from '../components/PermissionAction'
 import { addPlayerObjectiveEvidence } from '../db/playerDevelopmentRepository'
 import type { PlayerObjective, PlayerObjectiveEvidenceOutcome } from '../types/domain'
 
@@ -31,9 +32,9 @@ export function PlayerObjectivesQuickCheck({ playerId, objectives, matchId, trai
           <span>{objective.title}</span>
           <div>
             {outcomes.map((outcome) => (
-              <button key={outcome.id} type="button" aria-label={`${objective.title}: ${outcome.id}`} onClick={() => addEvidence(objective.id, outcome.id)}>
+              <PermissionAction permission="development.edit" key={outcome.id}><button key={outcome.id} type="button" aria-label={`${objective.title}: ${outcome.id}`} onClick={() => addEvidence(objective.id, outcome.id)}>
                 {outcome.label}
-              </button>
+              </button></PermissionAction>
             ))}
           </div>
         </article>

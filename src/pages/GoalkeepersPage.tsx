@@ -1,3 +1,4 @@
+import { PermissionAction } from '../components/PermissionAction'
 import { useEffect, useState } from 'react'
 import { ShieldCheck } from 'lucide-react'
 import { getAppState } from '../db/appStateRepository'
@@ -92,7 +93,7 @@ export function GoalkeepersPage() {
                 {player.status === 'guest' && <small className="status-badge">OSPITE</small>}
               </button>
               <label className="switch">
-                <input type="checkbox" checked={player.goalkeeperCandidate} onChange={() => toggle(player)} />
+                <PermissionAction permission="players.edit"><input type="checkbox" checked={player.goalkeeperCandidate} onChange={() => toggle(player)} /></PermissionAction>
                 <span>Candidato portiere</span>
               </label>
             </article>
@@ -104,7 +105,7 @@ export function GoalkeepersPage() {
             <h2><ShieldCheck size={22} /> {selected.firstName}</h2>
             <div className="tag-grid">
               {tags.map((tag) => (
-                <button key={tag} type="button" onClick={() => addTag(tag)}>{tag}</button>
+                <PermissionAction permission="notes.create" key={tag}><button key={tag} type="button" onClick={() => addTag(tag)}>{tag}</button></PermissionAction>
               ))}
             </div>
             <div className="list-stack">

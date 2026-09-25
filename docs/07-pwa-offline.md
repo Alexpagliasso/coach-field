@@ -1,5 +1,15 @@
 # PWA And Offline
 
+## Confine offline V5A
+
+Manifest, standalone, installazione e precache asset restano gestiti da vite-plugin-pwa. start_url ? /, ora home pubblica. Non viene aggiunta cache runtime per API Auth/Supabase o risposte staff. Il service worker non ? un meccanismo di autorizzazione.
+
+I dati sportivi restano IndexedDB. La sessione e il refresh token sono responsabilit? dell'SDK Supabase, mai inclusi nel backup sportivo. Il caricamento di profilo/gruppi/permessi richiede rete; un avvio offline non garantisce l'accesso privato. Nessuna auth offline custom e nessuna sync V5B. I temi continuano a usare localStorage e vengono ripristinati dal backup.
+
+## Riferimento storico V1?V4
+
+Le sezioni seguenti descrivono il checkpoint recuperato. Dove differiscono su routing, Auth, backend, seed o test, prevale lo stato V5A sopra.
+
 ## Configurazione PWA
 
 La PWA e configurata in `vite.config.ts` con `vite-plugin-pwa`.

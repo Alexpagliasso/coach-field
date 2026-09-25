@@ -1,7 +1,9 @@
+import { matchesRequestedGroup, requireLocalPermission } from './localAccess'
 import { sessionSeed } from '../data/sessionSeed'
 import type { TrainingSession, TrainingSessionPhase } from '../types/domain'
 import { legacySessionToPlannedPhases, templateToSessionPhases } from '../utils/training'
-import { dbPromise, makeId } from './db'
+import { dbPromise } from './scopedDb'
+import { makeId } from './db'
 import { getAppState, saveAppState } from './appStateRepository'
 import { getTrainingTemplateById } from './trainingTemplatesRepository'
 
@@ -17,6 +19,7 @@ export async function getCurrentSession() {
 }
 
 export async function saveSession(session: TrainingSession) {
+  requireLocalPermission('training.edit')
   await (await dbPromise).put('sessions', session)
 }
 
@@ -34,7 +37,8 @@ export function normalizeSession(session: TrainingSession): TrainingSession {
   }
 }
 
-export async function getTrainingSessions() {
+export async function getTrainingSessions(groupId?: string) {
+  if (!matchesRequestedGroup(groupId)) return []
   const sessions = await (await dbPromise).getAll('sessions')
   return sessions.map(normalizeSession).sort((a, b) => (b.date ?? '').localeCompare(a.date ?? '') || (b.createdAt ?? '').localeCompare(a.createdAt ?? ''))
 }
@@ -45,6 +49,7 @@ export async function getTrainingSessionById(id: string) {
 }
 
 export async function updateTrainingSession(id: string, patch: Partial<TrainingSession>) {
+  requireLocalPermission('training.edit')
   const db = await dbPromise
   const current = await getTrainingSessionById(id)
   if (!current) return undefined
@@ -54,15 +59,21 @@ export async function updateTrainingSession(id: string, patch: Partial<TrainingS
 }
 
 export async function updateTrainingSessionPhase(sessionId: string, phaseId: string, patch: Partial<TrainingSessionPhase>) {
+  requireLocalPermission('training.evaluate')
+  const db = await dbPromise
   const current = await getTrainingSessionById(sessionId)
   if (!current) return undefined
+  const evaluationPatch = Object.fromEntries(Object.entries(patch).filter(([key]) => ['actualDurationMinutes', 'status', 'coachRating', 'coachNotes', 'variationUsed'].includes(key)))
   const plannedPhases = (current.plannedPhases ?? []).map((phase) => (
-    phase.id === phaseId ? { ...phase, ...patch } : phase
+    phase.id === phaseId ? { ...phase, ...evaluationPatch } : phase
   ))
-  return updateTrainingSession(sessionId, { plannedPhases })
+  const next = normalizeSession({ ...current, plannedPhases, updatedAt: new Date().toISOString() })
+  await db.put('sessions', next)
+  return next
 }
 
 export async function createTrainingSessionFromTemplate(templateId: string, date: string, startTime?: string) {
+  requireLocalPermission('training.create')
   const template = await getTrainingTemplateById(templateId)
   if (!template) throw new Error('Template not found')
   const now = new Date().toISOString()
@@ -86,6 +97,7 @@ export async function createTrainingSessionFromTemplate(templateId: string, date
 }
 
 export async function createTrainingSessionFromScratch(input: Pick<TrainingSession, 'title' | 'date' | 'startTime' | 'durationMinutes' | 'plannedPhases' | 'generalNotes' | 'takeaways'>) {
+  requireLocalPermission('training.create')
   const now = new Date().toISOString()
   const session: TrainingSession = {
     id: makeId(),
@@ -106,6 +118,7 @@ export async function createTrainingSessionFromScratch(input: Pick<TrainingSessi
 }
 
 export async function setCurrentTrainingSession(session: TrainingSession) {
+  requireLocalPermission('training.edit')
   const state = await getAppState()
   const phases = normalizeSession(session).plannedPhases ?? []
   if (!state) return
@@ -122,6 +135,7 @@ export async function setCurrentTrainingSession(session: TrainingSession) {
 }
 
 export async function deleteTrainingSession(id: string) {
+  requireLocalPermission('training.edit')
   const db = await dbPromise
   const [evaluations, attendance, voiceNotes, observations] = await Promise.all([
     db.getAllFromIndex('trainingPlayerEvaluations', 'by-session', id),

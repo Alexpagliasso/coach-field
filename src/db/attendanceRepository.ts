@@ -1,5 +1,6 @@
+import { captureLocalAccess, requireLocalPermission } from './localAccess'
 import type { Attendance, Player } from '../types/domain'
-import { dbPromise } from './db'
+import { dbPromise } from './scopedDb'
 
 const attendanceId = (sessionId: string, playerId: string) => `${sessionId}:${playerId}`
 
@@ -18,7 +19,7 @@ export async function ensureAttendanceForSession(sessionId: string, players: Pla
   const existingIds = new Set(existing.map((item) => item.playerId))
   const missing = players.filter((player) => !existingIds.has(player.id))
 
-  if (missing.length === 0) return existing
+  if (missing.length === 0 || !captureLocalAccess().permissions['attendance.edit']) return existing
 
   const tx = db.transaction('attendance', 'readwrite')
   await Promise.all(missing.map((player) => tx.store.put({
@@ -32,6 +33,7 @@ export async function ensureAttendanceForSession(sessionId: string, players: Pla
 }
 
 export async function setPlayerAttendance(sessionId: string, playerId: string, present: boolean) {
+  requireLocalPermission('attendance.edit')
   const row: Attendance = {
     id: attendanceId(sessionId, playerId),
     sessionId,
@@ -43,6 +45,7 @@ export async function setPlayerAttendance(sessionId: string, playerId: string, p
 }
 
 export async function setAllAttendance(sessionId: string, players: Player[], present: boolean) {
+  requireLocalPermission('attendance.edit')
   const tx = (await dbPromise).transaction('attendance', 'readwrite')
   await Promise.all(players.map((player) => tx.store.put({
     id: attendanceId(sessionId, player.id),

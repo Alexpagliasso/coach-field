@@ -1,3 +1,4 @@
+import { PermissionAction } from '../components/PermissionAction'
 import { useEffect } from 'react'
 import { X } from 'lucide-react'
 import type { ReactNode } from 'react'
@@ -171,7 +172,7 @@ export function ExerciseDetailModal({ exercise, sessionId, phaseId, onClose }: E
 
           {!hasAnyContent && <p className="muted-copy">Dettagli esercizio non disponibili.</p>}
 
-          <VoiceRecorder sessionId={sessionId} phaseId={phaseId} exerciseId={exercise.id ?? title} />
+          <PermissionAction permission="notes.create"><VoiceRecorder sessionId={sessionId} phaseId={phaseId} exerciseId={exercise.id ?? title} /></PermissionAction>
         </div>
 
         <footer className="sheet-footer">

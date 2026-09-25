@@ -1,5 +1,15 @@
 # Design System
 
+## Integrazione V5A senza redesign
+
+Le nuove schermate riusano page, form-field, list-card, primary-action e i token dei quattro temi esistenti. Aggiunte soltanto regole essenziali access-page/private-topbar/permission-row. Nessuna dashboard nuova o animazione aggiuntiva.
+
+APP_NAME in src/brand.ts centralizza il nome applicativo runtime e del manifest. Il nome gruppo/societ? ? separato dal brand. Il discriminante storico del formato backup rimane stabile per compatibilit?.
+
+## Riferimento storico V1?V4
+
+Le sezioni seguenti descrivono il checkpoint recuperato. Dove differiscono su routing, Auth, backend, seed o test, prevale lo stato V5A sopra.
+
 ## Principio
 
 Il design system usa CSS custom properties. I componenti devono usare token, non colori hardcoded.

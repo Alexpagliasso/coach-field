@@ -1,5 +1,21 @@
 # Known Issues
 
+## Limiti correnti V5A
+
+- Nessun login o deploy verificato contro un progetto Supabase reale: test Auth browser simulati, RLS eseguite in PGlite con auth.uid/ruoli di test.
+- Un solo dataset sportivo per browser; gli altri gruppi mostrano empty state. I dati non sono condivisi fra membri o dispositivi fino a V5B.
+- IndexedDB non cifrato: un utente con accesso al profilo browser pu? leggere lo storage. Usare profili browser separati se necessario.
+- Profilo e autorizzazioni richiedono rete all'avvio/rivalidazione; nessuna auth offline custom o revoca istantanea mentre offline.
+- Account staff e amministratori di societ? vengono predisposti da un operatore Supabase; nessuna UI signup, inviti o recupero password in V5A.
+- Ripristino sostituisce gli store presenti nel file, non effettua merge; backup vecchi senza mapping richiedono nuova associazione. Il backup pu? essere grande per audio base64.
+- Microfono reale, iOS/Safari, installazione standalone su dispositivo e refresh token reale restano verifiche manuali.
+- Il vecchio file seed contiene dati storici nella repository: escluso dal bundle distribuito, ma il recovery non riscrive la storia Git.
+- Le limitazioni funzionali V1?V4 (review non modificabili, editor template essenziale, statistiche avanzate assenti) restano valide.
+
+## Riferimento storico V1?V4
+
+Le sezioni seguenti descrivono il checkpoint recuperato. Dove differiscono su routing, Auth, backend, seed o test, prevale lo stato V5A sopra.
+
 ## Nessuna Suite Di Test Automatica
 
 Il repository non contiene test unitari o e2e. La qualita viene verificata con lint, build e test manuali.

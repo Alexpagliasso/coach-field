@@ -1,5 +1,17 @@
 # Data Model
 
+## Modello V5A
+
+IndexedDB resta versione 5, con i 13 store V1?V4 esistenti. I record sportivi hanno groupId opzionale; i dati precedenti senza groupId restano validi. appState ammette LocalGroupBinding { id: 'localGroupBinding', groupId, boundBy, boundAt }.
+
+I modelli cloud in src/types/staff.ts sono Organization, Group, UserProfile, OrganizationMembership, GroupMembership e CollaboratorPermission. Le colonne SQL snake_case vengono convertite in camelCase dal repository cloud. OrganizationMembership contiene il ruolo admin; GroupMembership ammette coach/collaborator. Non esiste user.role globale applicativo.
+
+Un solo dataset locale ? associabile. I record senza groupId sono leggibili esclusivamente nel gruppo del binding; quelli con groupId diverso vengono filtrati anche nelle letture per ID e nei backup. Le liste principali accettano groupId opzionale come preparazione V5B, senza abilitare ancora dataset locali multipli.
+
+## Riferimento storico V1?V4
+
+Le sezioni seguenti descrivono il checkpoint recuperato. Dove differiscono su routing, Auth, backend, seed o test, prevale lo stato V5A sopra.
+
 ## IndexedDB
 
 Database: `coach-field-db`

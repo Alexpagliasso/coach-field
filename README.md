@@ -1,3 +1,41 @@
+# Coach Field ? V5A Multi-Staff Foundation
+
+Recovery incrementale del checkpoint V1?V4: pagine tecniche esistenti, IndexedDB versione **5** invariata, nessuna migrazione dei dati sportivi al cloud.
+
+- Supabase: Auth, profili, societ?, gruppi, membership e permessi con RLS.
+- Flusso: home pubblica ? login staff ? selettore gruppi ? /app/:groupId/today.
+- Admin di societ?: tutti i gruppi, creazione/modifica/disattivazione e staff. Coach: controllo tecnico e collaboratori dei gruppi assegnati. Collaborator: default conservativi e override delegabili.
+- Dataset sportivo ancora locale: associazione esplicita a un solo gruppo; altri gruppi mostrano empty state. Nessuna condivisione sportiva fra dispositivi in V5A.
+- Backup conserva binding, stato e audio; esclude sessioni, token e chiavi. Logout conserva IndexedDB.
+- La rosa reale del vecchio seed non viene pi? inserita nelle nuove installazioni o pubblicata nel bundle; i dati gi? presenti restano intatti.
+
+## Avvio
+
+```sh
+npm ci
+npm run dev
+```
+
+Copiare .env.example in .env.local e configurare il progetto seguendo [setup Supabase, migration, bootstrap admin e privacy](docs/v5a-supabase-setup.md). Senza env la home pubblica funziona e il login segnala la configurazione mancante. Non utilizzare service-role key nel frontend.
+
+## Verifica
+
+```sh
+npm run build
+npm run lint
+npm test
+npx playwright install chromium
+npm run test:e2e
+```
+
+I test coprono permessi, accesso gruppi, regressioni dei repository locali, backup, SQL/RLS su PostgreSQL PGlite e smoke browser con Supabase simulato. Non attestano un login reale. Vedere [report recovery](docs/v5a-recovery-report.md) e [known issues](docs/12-known-issues.md).
+
+V5B (cloud sportivo + offline sync), V6 Parent Portal, redesign e AI **non implementati**. Commit e push restano sotto controllo dell'utente.
+
+## Documentazione del checkpoint recuperato
+
+Il testo seguente ? il riferimento storico V1?V4. Routing, stato Auth/backend, seed e test sono aggiornati dalle sezioni V5A e dalla documentazione collegata sopra.
+
 # Coach Field
 
 Coach Field e una PWA mobile-first per supportare un allenatore di calcio giovanile durante allenamenti e partite. L'app concentra in pochi tap template, sessioni reali, presenze, osservazioni, note vocali, valutazioni individuali e storico giocatore.

@@ -1,5 +1,7 @@
+import { PermissionAction } from '../components/PermissionAction'
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from '../groups/navigation'
+import { useNavigate } from '../groups/useNavigate'
 import { Copy, Plus, Search, Trash2 } from 'lucide-react'
 import { createTrainingSessionFromScratch, createTrainingSessionFromTemplate, getTrainingSessions } from '../db/sessionsRepository'
 import { createTrainingTemplate, deleteTrainingTemplate, duplicateTrainingTemplate, getTrainingTemplates, updateTrainingTemplate } from '../db/trainingTemplatesRepository'
@@ -244,12 +246,12 @@ export function TrainingPage() {
           <strong>{today ? today.title : 'Nessun allenamento oggi'}</strong>
           {today && <span>{today.startTime || 'Orario libero'} · {today.durationMinutes} min</span>}
         </div>
-        {today ? <Link className="primary-action" to={`/training/${today.id}`}>Apri sessione</Link> : <button type="button" className="primary-action" onClick={() => setSessionForm('scratch')}><Plus size={22} />Crea allenamento</button>}
+        {today ? <Link className="primary-action" to={`/training/${today.id}`}>Apri sessione</Link> : <PermissionAction permission="training.create"><button type="button" className="primary-action" onClick={() => setSessionForm('scratch')}><Plus size={22} />Crea allenamento</button></PermissionAction>}
       </section>
 
       <div className="action-row">
-        <button type="button" onClick={() => setSessionForm('scratch')}><Plus size={20} />Da zero</button>
-        <button type="button" onClick={() => setTemplateForm('new')}><Plus size={20} />Nuovo template</button>
+        <PermissionAction permission="training.create"><button type="button" onClick={() => setSessionForm('scratch')}><Plus size={20} />Da zero</button></PermissionAction>
+        <PermissionAction permission="templates.edit"><button type="button" onClick={() => setTemplateForm('new')}><Plus size={20} />Nuovo template</button></PermissionAction>
       </div>
 
       <section className="content-section">
@@ -271,7 +273,7 @@ export function TrainingPage() {
       <section className="content-section">
         <div className="section-header-row">
           <h2>Template allenamento</h2>
-          <button type="button" onClick={() => setTemplateForm('new')}><Plus size={18} />Nuovo</button>
+          <PermissionAction permission="templates.edit"><button type="button" onClick={() => setTemplateForm('new')}><Plus size={18} />Nuovo</button></PermissionAction>
         </div>
         <label className="search-field">
           <Search size={21} />
@@ -287,10 +289,10 @@ export function TrainingPage() {
                 <div className="template-tags">{template.tags.map((tag) => <b key={tag}>{tag}</b>)}</div>
               </div>
               <div className="vertical-actions">
-                <button type="button" onClick={() => setSessionForm(template)}>Usa template</button>
-                <button type="button" onClick={() => setTemplateForm(template)}>Modifica</button>
-                <button type="button" onClick={async () => { await duplicateTrainingTemplate(template.id); refresh() }}><Copy size={18} />Duplica</button>
-                <button type="button" className="danger" onClick={async () => { if (window.confirm('Eliminare questo template? Le sessioni create non verranno eliminate.')) { await deleteTrainingTemplate(template.id); refresh() } }}><Trash2 size={18} /></button>
+                <PermissionAction permission="training.create"><button type="button" onClick={() => setSessionForm(template)}>Usa template</button></PermissionAction>
+                <PermissionAction permission="templates.edit"><button type="button" onClick={() => setTemplateForm(template)}>Modifica</button></PermissionAction>
+                <PermissionAction permission="templates.edit"><button type="button" onClick={async () => { await duplicateTrainingTemplate(template.id); refresh() }}><Copy size={18} />Duplica</button></PermissionAction>
+                <PermissionAction permission="templates.edit"><button type="button" className="danger" onClick={async () => { if (window.confirm('Eliminare questo template? Le sessioni create non verranno eliminate.')) { await deleteTrainingTemplate(template.id); refresh() } }}><Trash2 size={18} /></button></PermissionAction>
               </div>
             </article>
           ))}
@@ -298,8 +300,8 @@ export function TrainingPage() {
         </div>
       </section>
 
-      {templateForm && <TemplateForm template={templateForm === 'new' ? undefined : templateForm} onSaved={refresh} onClose={() => setTemplateForm(undefined)} />}
-      {sessionForm && <SessionForm template={sessionForm === 'scratch' ? undefined : sessionForm} onSaved={(session) => { refresh(); navigate(`/training/${session.id}`) }} onClose={() => setSessionForm(undefined)} />}
+      {templateForm && <PermissionAction permission="templates.edit"><TemplateForm template={templateForm === 'new' ? undefined : templateForm} onSaved={refresh} onClose={() => setTemplateForm(undefined)} /></PermissionAction>}
+      {sessionForm && <PermissionAction permission="training.create"><SessionForm template={sessionForm === 'scratch' ? undefined : sessionForm} onSaved={(session) => { refresh(); navigate(`/training/${session.id}`) }} onClose={() => setSessionForm(undefined)} /></PermissionAction>}
     </section>
   )
 }

@@ -1,3 +1,4 @@
+import { PermissionAction } from '../components/PermissionAction'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import { Download, RotateCcw } from 'lucide-react'
@@ -109,13 +110,14 @@ export function NotesPage() {
     if (!file) return
     const confirmed = window.confirm('Ripristinare il backup? I dati locali correnti verranno sostituiti dagli elementi del file.')
     if (!confirmed) return
-    const payload = JSON.parse(await file.text()) as BackupPayload
-    await restoreBackup(payload)
-    await refresh()
-    event.target.value = ''
+    try {
+      const payload = JSON.parse(await file.text()) as BackupPayload
+      await restoreBackup(payload)
+    } catch (error) {
+      setBackupStatus(error instanceof Error ? error.message : 'Backup non valido.')
+    } finally { event.target.value = '' }
   }
 
-  if (!session || !appState) return null
 
   return (
     <section className="page">
@@ -131,16 +133,16 @@ export function NotesPage() {
         </select>
         <select value={phaseFilter} onChange={(event) => setPhaseFilter(event.target.value)} aria-label="Filtro fase">
           <option value="">Tutte le fasi</option>
-          {session.phases.map((phase) => <option key={phase.id} value={phase.id}>{phase.title}</option>)}
+          {session?.phases.map((phase) => <option key={phase.id} value={phase.id}>{phase.title}</option>)}
         </select>
       </div>
 
-      <VoiceRecorder
-        sessionId={session.id}
-        phaseId={phaseFilter || appState.currentPhaseId}
+      <PermissionAction permission="notes.create"><VoiceRecorder
+        sessionId={session?.id ?? 'general'}
+        phaseId={phaseFilter || appState?.currentPhaseId}
         playerId={playerFilter || undefined}
         onSaved={refresh}
-      />
+      /></PermissionAction>
 
       <section className="content-section backup-panel">
         <div>
@@ -163,15 +165,15 @@ export function NotesPage() {
           <span><strong>{dataCounts.voiceNotes ?? 0}</strong> note vocali</span>
           <span><strong>{dataCounts.appState ?? 0}</strong> impostazioni</span>
         </div>
-        <button type="button" className="primary-action" onClick={exportBackup}><Download size={22} />Esporta backup</button>
+        <PermissionAction permission="data.manage"><button type="button" className="primary-action" onClick={exportBackup}><Download size={22} />Esporta backup</button></PermissionAction>
         <p className="muted-copy">I dati non verranno modificati.</p>
         <p className="privacy-note">Il backup puo contenere dati dei giocatori e note dello staff. Conservalo in un luogo sicuro.</p>
         {backupStatus && <p className="save-flash compact-flash">{backupStatus}</p>}
       </section>
 
       <div className="action-row">
-        <button type="button" onClick={() => restoreInputRef.current?.click()}><RotateCcw size={20} />Ripristina</button>
-        <input ref={restoreInputRef} hidden type="file" accept="application/json" onChange={restore} />
+        <PermissionAction permission="data.manage"><button type="button" onClick={() => restoreInputRef.current?.click()}><RotateCcw size={20} />Ripristina</button></PermissionAction>
+        <PermissionAction permission="data.manage"><input ref={restoreInputRef} hidden type="file" accept="application/json" onChange={restore} /></PermissionAction>
       </div>
 
       <section className="content-section">

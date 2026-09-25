@@ -1,5 +1,17 @@
 # Development Guide
 
+## Sviluppo e verifica V5A
+
+Installare con npm ci. Copiare .env.example in .env.local e seguire [setup Supabase](v5a-supabase-setup.md). Senza configurazione, home e login funzionano e il login spiega le variabili mancanti. Non inserire service-role key o credenziali reali nel repository.
+
+Comandi: npm run dev; npm run build; npm run lint; npm test. Per il browser: npx playwright install chromium e npm run test:e2e. Vitest verifica resolver, accesso gruppi, repository con fake-indexeddb e RLS/migration realmente eseguite in PostgreSQL PGlite. Playwright avvia due server locali, uno senza configurazione e uno con API Supabase simulate. I fixture non sono account reali e non raggiungono il cloud.
+
+Il deploy statico deve riscrivere i deep link su index.html. Non pubblicare src/ o i file del seed: distribuire esclusivamente dist/. Il seed reale non ? importato nella build. Prima dell'uso operativo eseguire anche test sul progetto Supabase reale.
+
+## Riferimento storico V1?V4
+
+Le sezioni seguenti descrivono il checkpoint recuperato. Dove differiscono su routing, Auth, backend, seed o test, prevale lo stato V5A sopra.
+
 ## Requisiti
 
 - Node.js compatibile con il progetto.

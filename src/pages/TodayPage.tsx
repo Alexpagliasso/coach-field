@@ -1,5 +1,6 @@
+import { PermissionAction } from '../components/PermissionAction'
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link } from '../groups/navigation'
 import { ChevronRight, CircleStop, Pause, Play, TimerReset } from 'lucide-react'
 import { AttendanceSheet } from '../components/AttendanceSheet'
 import { getAppState, saveAppState } from '../db/appStateRepository'
@@ -144,7 +145,7 @@ export function TodayPage() {
     [displayPhases, state?.currentPhaseId],
   )
 
-  if (!session || !state || !phase) return null
+  if (!session || !state || !phase) return <p className="page">Nessuna seduta corrente disponibile.</p>
 
   const phaseIndex = displayPhases.findIndex((item) => item.id === phase.id)
   const plannedSeconds = (phase.endMinute - phase.startMinute) * 60
@@ -225,13 +226,13 @@ export function TodayPage() {
         </div>
         <div className="action-row">
           {state.timer.status === 'running' ? (
-            <button type="button" onClick={pausePhase}><Pause size={20} />Pausa</button>
+            <PermissionAction permission="training.edit"><button type="button" onClick={pausePhase}><Pause size={20} />Pausa</button></PermissionAction>
           ) : (
-            <button type="button" onClick={startPhase}><Play size={20} />Avvia fase</button>
+            <PermissionAction permission="training.edit"><button type="button" onClick={startPhase}><Play size={20} />Avvia fase</button></PermissionAction>
           )}
-          <button type="button" onClick={finishPhase}><CircleStop size={20} />Fine</button>
-          <button type="button" onClick={nextPhase}><ChevronRight size={20} />Succ.</button>
-          <button type="button" onClick={() => jumpToPhase(phase.id)}><TimerReset size={20} />Reset</button>
+          <PermissionAction permission="training.edit"><button type="button" onClick={finishPhase}><CircleStop size={20} />Fine</button></PermissionAction>
+          <PermissionAction permission="training.edit"><button type="button" onClick={nextPhase}><ChevronRight size={20} />Succ.</button></PermissionAction>
+          <PermissionAction permission="training.edit"><button type="button" onClick={() => jumpToPhase(phase.id)}><TimerReset size={20} />Reset</button></PermissionAction>
         </div>
       </article>
 
@@ -240,21 +241,21 @@ export function TodayPage() {
           <span className="eyebrow">Presenti</span>
           <strong>{presentCount} / {players.length}</strong>
         </div>
-        <button type="button" onClick={() => setAttendanceOpen(true)}>Gestisci presenze</button>
+        <PermissionAction permission="attendance.view"><button type="button" onClick={() => setAttendanceOpen(true)}>Gestisci presenze</button></PermissionAction>
       </section>
 
-      <VoiceRecorder sessionId={session.id} phaseId={phase.id} />
+      <PermissionAction permission="notes.create"><VoiceRecorder sessionId={session.id} phaseId={phase.id} /></PermissionAction>
 
       <div className="phase-strip" aria-label="Vai alla fase">
         {displayPhases.map((item, index) => (
-          <button
+          <PermissionAction permission="training.edit" key={item.id}><button
             key={item.id}
             type="button"
             className={item.id === phase.id ? 'active' : ''}
             onClick={() => jumpToPhase(item.id)}
           >
             F{index + 1}
-          </button>
+          </button></PermissionAction>
         ))}
       </div>
 
@@ -270,13 +271,13 @@ export function TodayPage() {
         />
       )}
       {attendanceOpen && (
-        <AttendanceSheet
+        <PermissionAction permission="attendance.view"><AttendanceSheet
           sessionId={session.id}
           players={players}
           attendance={attendance}
           onChanged={refreshPlayersAndAttendance}
           onClose={() => setAttendanceOpen(false)}
-        />
+        /></PermissionAction>
       )}
       {adaptationOpen && adaptation && (
         <AdaptationSheet adaptation={adaptation} onClose={() => setAdaptationOpen(false)} />

@@ -1,5 +1,7 @@
+import { matchesRequestedGroup, requireLocalPermission } from './localAccess'
 import type { TrainingTemplate, TrainingTemplatePhase } from '../types/domain'
-import { dbPromise, makeId } from './db'
+import { dbPromise } from './scopedDb'
+import { makeId } from './db'
 
 export type SaveTrainingTemplateInput = {
   title: string
@@ -12,7 +14,8 @@ export type SaveTrainingTemplateInput = {
   phases: TrainingTemplatePhase[]
 }
 
-export async function getTrainingTemplates() {
+export async function getTrainingTemplates(groupId?: string) {
+  if (!matchesRequestedGroup(groupId)) return []
   const templates = await (await dbPromise).getAll('trainingTemplates')
   return templates.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
 }
@@ -22,6 +25,7 @@ export async function getTrainingTemplateById(id: string) {
 }
 
 export async function createTrainingTemplate(input: SaveTrainingTemplateInput) {
+  requireLocalPermission('templates.edit')
   const now = new Date().toISOString()
   const template: TrainingTemplate = {
     id: makeId(),
@@ -41,6 +45,7 @@ export async function createTrainingTemplate(input: SaveTrainingTemplateInput) {
 }
 
 export async function updateTrainingTemplate(id: string, patch: Partial<SaveTrainingTemplateInput>) {
+  requireLocalPermission('templates.edit')
   const db = await dbPromise
   const current = await db.get('trainingTemplates', id)
   if (!current) return undefined
@@ -68,5 +73,6 @@ export async function duplicateTrainingTemplate(id: string) {
 }
 
 export async function deleteTrainingTemplate(id: string) {
+  requireLocalPermission('templates.edit')
   await (await dbPromise).delete('trainingTemplates', id)
 }

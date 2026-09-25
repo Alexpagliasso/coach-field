@@ -1,7 +1,10 @@
+import { requireLocalPermission } from './localAccess'
 import type { MatchPlayerEvaluation, PlayerRole } from '../types/domain'
-import { dbPromise, makeId } from './db'
+import { dbPromise } from './scopedDb'
+import { makeId } from './db'
 
 export async function createMatchPlayerEvaluation(matchId: string, playerId: string) {
+  requireLocalPermission('matches.evaluate')
   const now = new Date().toISOString()
   const evaluation: MatchPlayerEvaluation = {
     id: makeId(),
@@ -43,6 +46,7 @@ export async function getMatchPlayerEvaluationByMatchAndPlayer(matchId: string, 
 }
 
 export async function upsertMatchPlayerEvaluation(matchId: string, playerId: string, patch: Partial<Omit<MatchPlayerEvaluation, 'id' | 'matchId' | 'playerId' | 'createdAt'>>) {
+  requireLocalPermission('matches.evaluate')
   const db = await dbPromise
   const existing = await db.getFromIndex('matchPlayerEvaluations', 'by-match-player', [matchId, playerId])
   const now = new Date().toISOString()
@@ -67,6 +71,7 @@ export async function upsertMatchPlayerEvaluation(matchId: string, playerId: str
 }
 
 export async function updateMatchPlayerEvaluation(id: string, patch: Partial<Omit<MatchPlayerEvaluation, 'id' | 'matchId' | 'playerId' | 'createdAt'>>) {
+  requireLocalPermission('matches.evaluate')
   const db = await dbPromise
   const evaluation = await db.get('matchPlayerEvaluations', id)
   if (!evaluation) return
@@ -76,10 +81,12 @@ export async function updateMatchPlayerEvaluation(id: string, patch: Partial<Omi
 }
 
 export async function deleteMatchPlayerEvaluation(id: string) {
+  requireLocalPermission('matches.evaluate')
   await (await dbPromise).delete('matchPlayerEvaluations', id)
 }
 
 export async function setAllMatchPlayers(matchId: string, playerIds: string[], selected: boolean) {
+  requireLocalPermission('matches.evaluate')
   const db = await dbPromise
   const existing = await db.getAllFromIndex('matchPlayerEvaluations', 'by-match', matchId)
   const existingByPlayer = new Map(existing.map((evaluation) => [evaluation.playerId, evaluation]))

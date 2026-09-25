@@ -1815,3 +1815,14 @@ textarea {
     transition-duration: 0.01ms !important;
   }
 }
+/* V5A uses the existing theme tokens and forms. */
+.access-page { max-width: 780px; margin: 0 auto; }
+.access-page header, .private-topbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.access-page section { margin-block: 28px; }
+.access-page form { display: grid; gap: 14px; margin-block: 20px; }
+.private-topbar { padding: 14px 70px 14px 16px; border-bottom: 1px solid var(--border); background: var(--surface); }
+.private-topbar strong { flex-basis: 100%; }
+.private-topbar a, .private-topbar button { font-size: 13px; }
+.permission-row { display: flex; gap: 12px; align-items: center; margin-block: 12px; }
+.permission-row input { width: auto; }
+button:disabled { opacity: .5; cursor: not-allowed; }

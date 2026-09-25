@@ -3,6 +3,11 @@ import { getThemeColor, readStoredTheme, ThemeContext, THEME_STORAGE_KEY, type A
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<AppTheme>(() => readStoredTheme())
+  useEffect(() => {
+    const restored = () => setThemeState(readStoredTheme())
+    window.addEventListener('local-data-restored', restored)
+    return () => window.removeEventListener('local-data-restored', restored)
+  }, [])
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme

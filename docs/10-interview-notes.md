@@ -1,5 +1,15 @@
 # Interview Notes
 
+## Decisioni da spiegare nella demo V5A
+
+Il recovery parte dal codice V1?V4 recuperabile, preserva IndexedDB v5 e aggiunge soltanto la foundation cloud staff. Mostrare home pubblica, login, ruolo diverso per gruppo, azioni conservative collaborator e empty state cambiando gruppo. La demo locale usa fixture: non presentarla come login Supabase reale.
+
+Spiegare la separazione: RLS protegge lo stato cloud; il binding e i filtri impediscono leakage accidentale nell'app locale, ma non cifrano il dispositivo. Il backup conserva dati e mapping senza token. Il vecchio seed con nomi reali non viene pi? pubblicato nel bundle. Multi-staff non significa ancora condivisione dei dati sportivi fra dispositivi.
+
+## Riferimento storico V1?V4
+
+Le sezioni seguenti descrivono il checkpoint recuperato. Dove differiscono su routing, Auth, backend, seed o test, prevale lo stato V5A sopra.
+
 ## Pitch Tecnico
 
 Coach Field e una PWA React/TypeScript offline-first pensata per un caso d'uso reale: supportare un allenatore di calcio giovanile durante allenamenti e partite. La priorita progettuale e ridurre il carico cognitivo sul campo: pochi tap, bottom sheet, dati locali e UI mobile-first.

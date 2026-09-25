@@ -1,5 +1,8 @@
+import { PermissionAction } from '../components/PermissionAction'
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
+import { Link } from '../groups/navigation'
+import { useNavigate } from '../groups/useNavigate'
 import { Check, Trash2 } from 'lucide-react'
 import { AttendanceSheet } from '../components/AttendanceSheet'
 import { CompactStarRating } from '../components/PlayerStarRating'
@@ -140,7 +143,7 @@ export function TrainingSessionDetailPage() {
           <span className="eyebrow">Stato</span>
           <strong>{session.status === 'completed' ? 'Completato' : session.status === 'in_progress' ? 'In corso' : 'Pianificato'}</strong>
         </div>
-        <button type="button" className="primary-action" onClick={async () => { await setCurrentTrainingSession(session); navigate('/') }}>Apri in Oggi</button>
+        <PermissionAction permission="training.edit"><button type="button" className="primary-action" onClick={async () => { await setCurrentTrainingSession(session); navigate('/') }}>Apri in Oggi</button></PermissionAction>
       </section>
 
       {latestMatch?.trainingTakeaways && (
@@ -151,7 +154,7 @@ export function TrainingSessionDetailPage() {
             <p>{formatMatchDate(latestMatch.date)}</p>
           </div>
           <p>{latestMatch.trainingTakeaways}</p>
-          <button type="button" onClick={addLatestTakeaways}>Aggiungi alle note</button>
+          <PermissionAction permission="training.edit"><button type="button" onClick={addLatestTakeaways}>Aggiungi alle note</button></PermissionAction>
         </section>
       )}
 
@@ -160,7 +163,7 @@ export function TrainingSessionDetailPage() {
           <span className="eyebrow">Presenti</span>
           <strong>{presentPlayers.length} / {players.length}</strong>
         </div>
-        <button type="button" onClick={() => setAttendanceOpen(true)}>Gestisci presenze</button>
+        <PermissionAction permission="attendance.view"><button type="button" onClick={() => setAttendanceOpen(true)}>Gestisci presenze</button></PermissionAction>
       </section>
 
       <section className="content-section">
@@ -188,13 +191,13 @@ export function TrainingSessionDetailPage() {
           {presentPlayers.map((player) => {
             const evaluation = evaluationByPlayer.get(player.id)
             return (
-              <button key={player.id} type="button" className="list-card player-row" onClick={() => openEvaluation(player)}>
+              <PermissionAction permission="training.evaluate" key={player.id}><button key={player.id} type="button" className="list-card player-row" onClick={() => openEvaluation(player)}>
                 <div>
                   <strong>{player.firstName} {player.lastName}</strong>
                   <span>{formatPlayerYear(player.year)} · {evaluation?.rolesTried?.join(' · ') || player.idealRoles?.join(' · ') || player.previousRoles.join(' · ')}</span>
                   <small>{evaluation?.rating ? <CompactStarRating value={evaluation.rating} /> : 'DA VALUTARE'}{activeObjectivesByPlayer.get(player.id) ? ` · 🎯 ${activeObjectivesByPlayer.get(player.id)}` : ''}</small>
                 </div>
-              </button>
+              </button></PermissionAction>
             )
           })}
           {presentPlayers.length === 0 && <p className="empty-state">Nessun presente selezionato.</p>}
@@ -203,31 +206,31 @@ export function TrainingSessionDetailPage() {
 
       <section className="content-section">
         <h2>Note allenamento</h2>
-        <textarea value={session.generalNotes ?? ''} onChange={(event) => persistSession({ generalNotes: event.target.value })} rows={4} />
-        <VoiceRecorder sessionId={session.id} onSaved={refresh} />
+        <PermissionAction permission="training.edit"><textarea value={session.generalNotes ?? ''} onChange={(event) => persistSession({ generalNotes: event.target.value })} rows={4} /></PermissionAction>
+        <PermissionAction permission="notes.create"><VoiceRecorder sessionId={session.id} onSaved={refresh} /></PermissionAction>
       </section>
 
       <section className="content-section takeaway-section">
         <h2>Da riprendere</h2>
-        <textarea value={session.takeaways ?? ''} onChange={(event) => persistSession({ takeaways: event.target.value })} placeholder="Ampiezza lato debole&#10;Copertura dopo pressione&#10;Scelta dopo recupero" rows={4} />
+        <PermissionAction permission="training.edit"><textarea value={session.takeaways ?? ''} onChange={(event) => persistSession({ takeaways: event.target.value })} placeholder="Ampiezza lato debole&#10;Copertura dopo pressione&#10;Scelta dopo recupero" rows={4} /></PermissionAction>
       </section>
 
       {flash && <p className="save-flash compact-flash">{flash}</p>}
 
       <div className="action-row">
-        <button type="button" onClick={completeSession}><Check size={20} />Completa allenamento</button>
-        <button type="button" className="danger" onClick={deleteSession}><Trash2 size={20} />Elimina</button>
+        <PermissionAction permission="training.edit"><button type="button" onClick={completeSession}><Check size={20} />Completa allenamento</button></PermissionAction>
+        <PermissionAction permission="training.edit"><button type="button" className="danger" onClick={deleteSession}><Trash2 size={20} />Elimina</button></PermissionAction>
       </div>
       <Link to="/training" className="subtle-link">Torna agli allenamenti</Link>
 
       {attendanceOpen && (
-        <AttendanceSheet
+        <PermissionAction permission="attendance.view"><AttendanceSheet
           sessionId={session.id}
           players={players}
           attendance={attendance}
           onChanged={refresh}
           onClose={() => setAttendanceOpen(false)}
-        />
+        /></PermissionAction>
       )}
       {selectedPhase && <TrainingPhaseSheet sessionId={session.id} phase={selectedPhase} onChanged={refresh} onClose={() => setSelectedPhase(undefined)} />}
       {selectedEvaluation && (

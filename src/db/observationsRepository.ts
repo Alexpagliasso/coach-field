@@ -1,5 +1,7 @@
+import { requireLocalPermission } from './localAccess'
 import type { Observation, ObservationCategory } from '../types/domain'
-import { dbPromise, makeId } from './db'
+import { dbPromise } from './scopedDb'
+import { makeId } from './db'
 
 type AddObservationInput = {
   playerId: string
@@ -11,6 +13,7 @@ type AddObservationInput = {
 }
 
 export async function addObservation(input: AddObservationInput) {
+  requireLocalPermission('notes.create')
   const observation: Observation = {
     id: makeId(),
     createdAt: new Date().toISOString(),
@@ -31,5 +34,6 @@ export async function getObservationsByPlayer(playerId: string) {
 }
 
 export async function deleteObservation(id: string) {
+  requireLocalPermission('notes.delete')
   await (await dbPromise).delete('observations', id)
 }

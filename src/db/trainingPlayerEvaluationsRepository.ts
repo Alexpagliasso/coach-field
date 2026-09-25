@@ -1,5 +1,7 @@
+import { requireLocalPermission } from './localAccess'
 import type { TrainingPlayerEvaluation } from '../types/domain'
-import { dbPromise, makeId } from './db'
+import { dbPromise } from './scopedDb'
+import { makeId } from './db'
 
 export async function getTrainingPlayerEvaluations() {
   const evaluations = await (await dbPromise).getAll('trainingPlayerEvaluations')
@@ -25,6 +27,7 @@ export async function upsertTrainingPlayerEvaluation(
   playerId: string,
   patch: Partial<Omit<TrainingPlayerEvaluation, 'id' | 'sessionId' | 'playerId' | 'createdAt'>>,
 ) {
+  requireLocalPermission('training.evaluate')
   const db = await dbPromise
   const existing = await db.getFromIndex('trainingPlayerEvaluations', 'by-session-player', [sessionId, playerId])
   const now = new Date().toISOString()

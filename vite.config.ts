@@ -1,17 +1,19 @@
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
+import { APP_NAME } from './src/brand.ts'
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
+    { name: 'app-brand', transformIndexHtml: html => html.replaceAll('__APP_NAME__', APP_NAME) },
     react(),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg'],
       manifest: {
-        name: 'Coach Field',
-        short_name: 'CoachField',
+        name: APP_NAME,
+        short_name: APP_NAME,
         display: 'standalone',
         start_url: '/',
         theme_color: '#07110f',

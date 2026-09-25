@@ -1,5 +1,7 @@
+import { requireLocalPermission } from './localAccess'
 import type { PlayerDevelopmentReview, PlayerObjective, PlayerObjectiveCategory, PlayerObjectiveEvidence, PlayerObjectiveEvidenceOutcome, PlayerObjectivePriority, PlayerObjectiveStatus, PlayerRating, PlayerRole } from '../types/domain'
-import { dbPromise, makeId } from './db'
+import { dbPromise } from './scopedDb'
+import { makeId } from './db'
 
 export async function getPlayerObjectives(playerId: string) {
   const rows = await (await dbPromise).getAllFromIndex('playerObjectives', 'by-player', playerId)
@@ -24,6 +26,7 @@ export async function createPlayerObjective(input: {
   sourceTrainingSessionId?: string
   notes?: string
 }) {
+  requireLocalPermission('development.edit')
   const now = new Date().toISOString()
   const objective: PlayerObjective = {
     id: makeId(),
@@ -44,6 +47,7 @@ export async function createPlayerObjective(input: {
 }
 
 export async function updatePlayerObjective(id: string, patch: Partial<Omit<PlayerObjective, 'id' | 'playerId' | 'createdAt'>>) {
+  requireLocalPermission('development.edit')
   const db = await dbPromise
   const current = await db.get('playerObjectives', id)
   if (!current) return undefined
@@ -81,6 +85,7 @@ export async function addPlayerObjectiveEvidence(input: {
   trainingSessionId?: string
   date?: string
 }) {
+  requireLocalPermission('development.edit')
   const now = new Date().toISOString()
   const evidence: PlayerObjectiveEvidence = {
     id: makeId(),
@@ -111,6 +116,7 @@ export async function createPlayerDevelopmentReview(input: {
   suggestedRoles: PlayerRole[]
   summary?: string
 }) {
+  requireLocalPermission('development.edit')
   const now = new Date().toISOString()
   const review: PlayerDevelopmentReview = {
     id: makeId(),

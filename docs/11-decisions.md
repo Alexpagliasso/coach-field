@@ -1,5 +1,20 @@
 # Decisions
 
+## ADR V5A
+
+- **011 ? Organization ? Group ? Data.** Struttura pronta per pi? societ?. Admin organization-level senza obbligo di membership in ogni gruppo. Disattivazione preferita alla cancellazione.
+- **012 ? Ruoli per membership.** Coach/collaborator cambiano fra gruppi; nessun ruolo globale sull'utente. Parent non viene introdotto.
+- **013 ? Resolver centrale.** src/auth/permissions.ts contiene chiavi, default e non-delegabili. Override solo collaborator, supportano concessioni e revoche; staff.manage, group.settings e data.manage non sono delegabili, anche nel vincolo SQL.
+- **014 ? V5A/V5B.** Auth e struttura condivise in Supabase; dati sportivi ancora locali. Supabase canonico e IndexedDB cache sono obiettivi futuri, non comportamento corrente.
+- **015 ? Pubblico/privato.** Directory pubblica tramite proiezione RPC stretta; nessuna tabella staff leggibile anonimamente. Nessun dato sportivo pubblico. Seed rosa reale escluso dal bundle.
+- **016 ? Binding legacy.** Un solo gruppo associa esplicitamente il dataset. Store appState esistente, versione DB 5 invariata. Altri gruppi hanno empty state. Binding atomico non riassegnabile dall'app; il backup lo conserva e il restore privo di binding riapre l'associazione.
+- **017 ? Sicurezza cloud e limiti locali.** RLS e grant impediscono escalation sul cloud; guard/repository applicano l'isolamento applicativo locale. Non promettere protezione dal proprietario del dispositivo o revoca istantanea offline.
+- **018 ? Recovery conservativo.** Nessuna rimozione automatica dei vecchi giocatori placeholder e nessuna sostituzione di sedute esistenti con seed. Logout conserva i dati. Non modificare history/remotes n? effettuare push automatici.
+
+## Riferimento storico V1?V4
+
+Le sezioni seguenti descrivono il checkpoint recuperato. Dove differiscono su routing, Auth, backend, seed o test, prevale lo stato V5A sopra.
+
 ## ADR 001 - Local-First MVP
 
 Decisione: usare IndexedDB locale come persistenza principale.

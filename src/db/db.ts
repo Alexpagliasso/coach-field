@@ -1,5 +1,6 @@
+import type { LocalGroupBinding } from './localGroupBinding'
 import { openDB, type DBSchema } from 'idb'
-import { PLAYER_SEED_VERSION, playersSeed } from '../data/playersSeed'
+const PLAYER_SEED_VERSION = 4 // Historical seed marker; private roster is no longer bundled.
 import { sessionSeed } from '../data/sessionSeed'
 import type { AppMetaState, AppState, Attendance, Match, MatchPlayerEvaluation, Observation, Player, PlayerDevelopmentReview, PlayerObjective, PlayerObjectiveEvidence, PlayerYear, TrainingPlayerEvaluation, TrainingSession, TrainingTemplate, TrainingTemplatePhase, VoiceNote } from '../types/domain'
 import { legacySessionToPlannedPhases, snapshotExercise } from '../utils/training'
@@ -26,7 +27,7 @@ interface CoachFieldDb extends DBSchema {
   }
   appState: {
     key: string
-    value: AppState | AppMetaState
+    value: AppState | AppMetaState | LocalGroupBinding
   }
   attendance: {
     key: string
@@ -147,22 +148,17 @@ export const dbPromise = openDB<CoachFieldDb>('coach-field-db', 5, {
 
 export async function initializeDatabase() {
   const db = await dbPromise
-  const [playerCount, session, appState, storedPlayerSeedVersion, templateCount, sessions] = await Promise.all([
+  const [playerCount, session, appState, templateCount, sessions] = await Promise.all([
     db.count('players'),
     db.get('sessions', sessionSeed.id),
     db.get('appState', 'current'),
-    db.get('appState', 'playerSeedVersion'),
     db.count('trainingTemplates'),
     db.getAll('sessions'),
   ])
 
-  const needsPlayerSeedMigration =
-    !storedPlayerSeedVersion ||
-    !('value' in storedPlayerSeedVersion) ||
-    storedPlayerSeedVersion.value < PLAYER_SEED_VERSION
-  const needsSessionSeedMigration =
-    !session ||
-    session.phases.find((phase) => phase.id === 'phase-2')?.fields?.[0]?.specialRule?.title !== 'Assist = gol doppio'
+  // Recovery never replaces existing rosters or sessions with bundled seeds.
+  const needsPlayerSeedMigration = playerCount === 0
+  const needsSessionSeedMigration = !session && sessions.length === 0
   const needsAppStateSeed = !appState
   const needsTrainingTemplateSeed = templateCount === 0
   const needsSessionV3Migration = sessions.some((item) => !item.status || !item.date || !item.plannedPhases)
@@ -175,66 +171,10 @@ export async function initializeDatabase() {
     return
   }
 
-  const [currentPlayers, observations, attendance] = needsPlayerSeedMigration
-    ? await Promise.all([
-      db.getAll('players'),
-      db.getAll('observations'),
-      db.getAll('attendance'),
-    ])
-    : [[], [], []]
-
-  const tx = db.transaction(['players', 'sessions', 'appState', 'observations', 'attendance', 'trainingTemplates'], 'readwrite')
+  const tx = db.transaction(['players', 'sessions', 'appState', 'trainingTemplates'], 'readwrite')
   const writes: Array<Promise<unknown>> = []
-
-  if (playerCount === 0 || needsPlayerSeedMigration) {
-    const currentPlayerIds = new Set(currentPlayers.map((player) => player.id))
-    const realPlayerIds = new Set(playersSeed.map((player) => player.id))
-    const isRealRosterAlreadyLoaded = currentPlayers.some((player) => realPlayerIds.has(player.id))
-    const placeholderIds = currentPlayers
-      .filter((player) => !realPlayerIds.has(player.id) && player.status !== 'guest')
-      .map((player) => player.id)
-    const placeholderIdSet = new Set(placeholderIds)
-
-    writes.push(...placeholderIds.map((playerId) => tx.objectStore('players').delete(playerId)))
-    if (isRealRosterAlreadyLoaded) {
-      writes.push(...currentPlayers
-        .filter((player) => realPlayerIds.has(player.id))
-        .map((player) => tx.objectStore('players').put({
-          ...player,
-          rating: player.rating ?? null,
-          idealRoles: Array.isArray(player.idealRoles) ? player.idealRoles : [],
-          status: player.status ?? 'roster',
-        })))
-      const existingRealIds = new Set(currentPlayers.filter((player) => realPlayerIds.has(player.id)).map((player) => player.id))
-      writes.push(...playersSeed
-        .filter((player) => !existingRealIds.has(player.id))
-        .map((player) => tx.objectStore('players').put(player)))
-      writes.push(...currentPlayers
-        .filter((player) => player.status === 'guest')
-        .map((player) => tx.objectStore('players').put({
-          ...player,
-          rating: player.rating ?? null,
-          idealRoles: Array.isArray(player.idealRoles) ? player.idealRoles : [],
-          status: 'guest',
-        })))
-    } else {
-      writes.push(...playersSeed.map((player) => tx.objectStore('players').put(player)))
-    }
-
-    if (placeholderIdSet.size > 0 || currentPlayerIds.size > 0) {
-      writes.push(...observations
-        .filter((observation) => placeholderIdSet.has(observation.playerId))
-        .map((observation) => tx.objectStore('observations').delete(observation.id)))
-      writes.push(...attendance
-        .filter((item) => placeholderIdSet.has(item.playerId))
-        .map((item) => tx.objectStore('attendance').delete(item.id)))
-    }
-
-    writes.push(tx.objectStore('appState').put({
-      id: 'playerSeedVersion',
-      key: 'playerSeedVersion',
-      value: PLAYER_SEED_VERSION,
-    }))
+  if (playerCount === 0) {
+    writes.push(tx.objectStore('appState').put({ id: 'playerSeedVersion', key: 'playerSeedVersion', value: PLAYER_SEED_VERSION }))
   }
 
   if (needsSessionSeedMigration) {
@@ -291,12 +231,14 @@ export async function initializeDatabase() {
   }
 
   if (!appState) {
+    const initialSession = sessions[0] ?? sessionSeed
+    const initialPhaseId = initialSession.phases?.[0]?.id ?? initialSession.plannedPhases?.[0]?.id ?? ''
     writes.push(tx.objectStore('appState').put({
       id: 'current',
-      sessionId: sessionSeed.id,
-      currentPhaseId: sessionSeed.phases[0].id,
+      sessionId: initialSession.id,
+      currentPhaseId: initialPhaseId,
       timer: {
-        phaseId: sessionSeed.phases[0].id,
+        phaseId: initialPhaseId,
         status: 'idle',
         elapsedBeforeSeconds: 0,
       },
