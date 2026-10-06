@@ -253,7 +253,7 @@ export async function restoreBackup(payload: BackupPayload | CoachFieldExport) {
   await tx.done
   if (isCoachFieldExport(payload) && typeof window !== 'undefined') {
     const theme = payload.data.theme
-    if (theme && !Array.isArray(theme) && ['pitch', 'electric', 'purple', 'ice'].includes(theme.value)) {
+    if (theme && !Array.isArray(theme) && ['pitch', 'electric', 'purple', 'ice', 'light'].includes(theme.value)) {
       try { window.localStorage.setItem(THEME_STORAGE_KEY, theme.value) } catch { /* Storage may be unavailable. */ }
     }
   }

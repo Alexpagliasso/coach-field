@@ -16,6 +16,7 @@ import { ProtectedRoute, GroupAccessGuard, LocalDataGuard, PermissionGuard } fro
 import { PublicHome, LoginPage, GroupSelectorPage } from './pages/AccessPages'
 import { StaffPage } from './pages/StaffPage'
 import { AdminPage } from './pages/AdminPage'
+import { UiLabPage } from './pages/UiLabPage'
 import { Navigate } from 'react-router-dom'
 
 function App() {
@@ -24,6 +25,7 @@ function App() {
     <Route path="/login" element={<LoginPage />} />
     <Route element={<ProtectedRoute />}>
       <Route path="/app/groups" element={<GroupSelectorPage />} />
+      <Route path="/app/ui-lab" element={<UiLabPage />} />
       <Route path="/admin" element={<AdminPage />} />
       <Route path="/app/:groupId" element={<GroupAccessGuard />}>
         <Route element={<Layout />}>

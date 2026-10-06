@@ -1,12 +1,13 @@
 import { createContext, useContext } from 'react'
 
-export type AppTheme = 'pitch' | 'electric' | 'purple' | 'ice'
+export type AppTheme = 'pitch' | 'electric' | 'purple' | 'ice' | 'light'
 
 export const APP_THEMES: Array<{ id: AppTheme; name: string; description: string }> = [
   { id: 'pitch', name: 'Pitch', description: 'Campo · elegante' },
   { id: 'electric', name: 'Electric Blue', description: 'Tech · professionale' },
   { id: 'purple', name: 'Purple Data', description: 'Analytics · premium' },
   { id: 'ice', name: 'Ice Cyan', description: 'Fresco · moderno' },
+  { id: 'light', name: 'Light', description: 'Chiaro · professionale' },
 ]
 
 export const THEME_STORAGE_KEY = 'coach-field-theme'
@@ -31,10 +32,11 @@ export function readStoredTheme(): AppTheme {
 }
 
 export function getThemeColor(theme: AppTheme) {
+  if (theme === 'light') return '#f3f6f9'
   if (theme === 'electric') return '#090e18'
   if (theme === 'purple') return '#0e0b14'
   if (theme === 'ice') return '#071114'
-  return '#0b1210'
+  return '#070a0f'
 }
 
 export function useTheme() {

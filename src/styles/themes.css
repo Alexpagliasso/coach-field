@@ -1,24 +1,32 @@
 :root,
 [data-theme='pitch'] {
-  --bg: #0b1210;
-  --surface: #151e1a;
-  --surface-raised: #1c2822;
-  --surface-hover: #223029;
-  --border: #29372f;
-  --text-primary: #f4f7f5;
-  --text-secondary: #9eaaa3;
-  --text-muted: #6f7d75;
-  --primary: #34d399;
-  --primary-hover: #6ee7b7;
-  --primary-soft: rgba(52, 211, 153, 0.12);
-  --danger: #f87171;
-  --warning: #fbbf24;
-  --info: #60a5fa;
-  --success: #34d399;
-  --primary-foreground: #04130d;
-  --focus-ring: rgba(110, 231, 183, 0.7);
-  --radius-card: 14px;
-  --shadow-card: 0 14px 36px rgba(0, 0, 0, 0.28);
+  --bg: #070a0f;
+  --surface: #10151d;
+  --surface-raised: #161d27;
+  --surface-hover: #1c2633;
+  --border: #2a3544;
+  --text-primary: #f7f9fc;
+  --text-secondary: #9aa7b7;
+  --text-muted: #6f7c8c;
+  --primary: #b7ff3c;
+  --primary-hover: #c8ff70;
+  --primary-soft: rgba(183, 255, 60, 0.11);
+  --accent: #38d9ff;
+  --danger: #ff5c70;
+  --warning: #ffbf47;
+  --info: #38d9ff;
+  --success: #3ee59b;
+  --positive: #3ee59b;
+  --concern: #ff8a4c;
+  --primary-foreground: #101704;
+  --focus-ring: rgba(183, 255, 60, 0.62);
+  --radius-sm: 10px;
+  --radius-control: 12px;
+  --radius-card: 16px;
+  --radius-panel: 22px;
+  --shadow-card: 0 12px 32px rgba(0, 0, 0, 0.24);
+  --shadow-elevated: 0 24px 70px rgba(0, 0, 0, 0.38);
+  --space-page: clamp(1rem, 3vw, 2rem);
   --color-bg: var(--bg);
   --color-surface: var(--surface);
   --color-surface-elevated: var(--surface-raised);
@@ -31,6 +39,32 @@
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-danger: var(--danger);
+}
+
+[data-theme='light'] {
+  --bg: #f3f6f9;
+  --surface: #ffffff;
+  --surface-raised: #e9eef4;
+  --surface-hover: #dfe7ef;
+  --border: #c8d2de;
+  --text-primary: #101720;
+  --text-secondary: #526174;
+  --text-muted: #718095;
+  --primary: #4f7900;
+  --primary-hover: #3d5f00;
+  --primary-soft: rgba(79, 121, 0, 0.11);
+  --accent: #007d99;
+  --danger: #c92f45;
+  --warning: #9a5d00;
+  --info: #007d99;
+  --success: #087a4f;
+  --positive: #087a4f;
+  --concern: #b34712;
+  --primary-foreground: #ffffff;
+  --focus-ring: rgba(79, 121, 0, 0.48);
+  --shadow-card: 0 10px 28px rgba(25, 42, 61, 0.09);
+  --shadow-elevated: 0 22px 55px rgba(25, 42, 61, 0.16);
+  color-scheme: light;
 }
 
 [data-theme='electric'] {

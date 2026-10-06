@@ -99,7 +99,7 @@ test('four themes, focus treatment and mobile layout stay usable', async ({ page
   await page.setViewportSize({ width: 390, height: 844 })
   await mockCloud(page)
   await page.getByRole('button', { name: /entra nel gruppo/i }).first().click()
-  for (const theme of ['Pitch', 'Electric', 'Purple', 'Ice']) {
+  for (const theme of ['Pitch', 'Electric', 'Purple', 'Ice', 'Light']) {
     await page.getByRole('button', { name: 'Tema' }).click()
     await page.getByRole('button', { name: new RegExp(`^${theme}`) }).click()
     await expect(page.locator('html')).toHaveAttribute('data-theme', theme.toLowerCase())
@@ -112,6 +112,26 @@ test('four themes, focus treatment and mobile layout stay usable', async ({ page
   await expect(focused).toBeVisible()
   expect(await focused.evaluate(element => getComputedStyle(element).boxShadow)).not.toBe('none')
   await expect(page.getByRole('navigation', { name: 'Navigazione principale' })).toBeVisible()
+})
+test('authenticated UI lab renders foundation controls without responsive overflow', async ({ page }) => {
+  await mockCloud(page)
+  await page.goto('http://127.0.0.1:4174/app/ui-lab')
+  await expect(page.getByRole('heading', { name: 'Sport-tech, leggibile, pronto per il campo.' })).toBeVisible()
+  await expect(page.getByText('Palette semantica')).toBeVisible()
+  await expect(page.getByText('MATCH DAY · U10')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Cambia tema' })).toBeVisible()
+  await page.keyboard.press('Tab')
+  await expect(page.locator(':focus-visible')).toBeVisible()
+  for (const width of [390, 768, 1280]) {
+    await page.setViewportSize({ width, height: 844 })
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
+  }
+  await page.getByRole('button', { name: 'Cambia tema' }).click()
+  await page.getByRole('button', { name: /^Light/ }).click()
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light')
+  await page.getByRole('button', { name: 'Chiudi tema' }).click()
+  await page.getByRole('button', { name: 'Esci' }).click()
+  await expect(page).toHaveURL(/\/login$/)
 })
 test('mobile quick observations work for match team and training player', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
@@ -127,6 +147,7 @@ test('mobile quick observations work for match team and training player', async 
   await page.getByRole('button', { name: /entra nel gruppo/i }).first().click()
   page.on('dialog', dialog => dialog.accept())
   await page.getByRole('button', { name: 'Associa al gruppo attuale' }).click()
+  await expect(page.getByRole('button', { name: 'Associa al gruppo attuale' })).toHaveCount(0)
   await page.goto(`http://127.0.0.1:4174/app/${a}/matches`)
   await page.getByRole('button', { name: 'Nuova partita', exact: true }).click()
   await page.getByLabel('Avversario *').fill('Test Match')
@@ -141,6 +162,7 @@ test('mobile quick observations work for match team and training player', async 
   await page.getByLabel('Giocatore').selectOption('fixture-player')
   await page.getByLabel('Osservazione', { exact: true }).fill('Osservazione giocatore E2E')
   await page.getByRole('button', { name: 'Salva osservazione' }).click()
+  await expect(page.getByText('Osservazione salvata')).toBeVisible()
   await page.goto(`http://127.0.0.1:4174/app/${a}/notes`)
   await expect(page.getByText('Osservazione squadra E2E')).toBeVisible()
   await expect(page.getByText('Osservazione giocatore E2E')).toBeVisible()
