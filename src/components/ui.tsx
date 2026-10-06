@@ -6,7 +6,7 @@ export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'succ
 export type ButtonSize = 'sm' | 'md' | 'lg' | 'icon'
 
 export function buttonClass({ variant = 'secondary', size = 'md' }: { variant?: ButtonVariant; size?: ButtonSize } = {}) {
-  const variants = { primary: 'border-app-primary bg-app-primary text-app-primary-fg hover:bg-app-primary-strong', secondary: 'border-app-border bg-app-elevated text-app-text hover:border-app-primary hover:bg-app-surface', ghost: 'border-transparent bg-transparent text-app-muted hover:bg-app-elevated hover:text-app-text', danger: 'border-app-danger bg-app-danger text-white hover:brightness-110', success: 'border-app-success bg-app-success text-app-primary-fg hover:brightness-110' }
+  const variants = { primary: 'border-app-primary bg-app-primary !text-app-primary-fg hover:bg-app-primary-strong', secondary: 'border-app-border bg-app-elevated text-app-text hover:border-app-primary hover:bg-app-surface', ghost: 'border-transparent bg-transparent text-app-muted hover:bg-app-elevated hover:text-app-text', danger: 'border-app-danger bg-app-danger !text-white hover:brightness-110', success: 'border-app-success bg-app-success !text-app-primary-fg hover:brightness-110' }
   const sizes = { sm: 'min-h-11 px-3 text-sm', md: 'min-h-12 px-4 text-sm', lg: 'min-h-13 px-5 text-base', icon: 'size-11 p-0' }
   return join('inline-flex items-center justify-center gap-2 rounded-xl border font-semibold transition active:scale-[.98] disabled:pointer-events-none disabled:opacity-55', variants[variant], sizes[size])
 }

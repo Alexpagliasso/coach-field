@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#0b1210" />
+    <meta name="theme-color" content="#f6f7fb" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="__APP_NAME__" />
@@ -13,13 +13,13 @@
     <script>
       (() => {
         const themes = ['pitch', 'electric', 'purple', 'ice', 'light']
-        const colors = { pitch: '#070a0f', electric: '#090e18', purple: '#0e0b14', ice: '#071114', light: '#f3f6f9' }
-        let theme = 'pitch'
+        const colors = { pitch: '#11131a', electric: '#090e18', purple: '#0e0b14', ice: '#071114', light: '#f6f7fb' }
+        let theme = 'light'
         try {
           const stored = localStorage.getItem('coach-field-theme')
-          theme = themes.includes(stored) ? stored : 'pitch'
+          theme = themes.includes(stored) ? stored : 'light'
         } catch {
-          theme = 'pitch'
+          theme = 'light'
         }
         document.documentElement.dataset.theme = theme
         document.querySelector('meta[name="theme-color"]')?.setAttribute('content', colors[theme])

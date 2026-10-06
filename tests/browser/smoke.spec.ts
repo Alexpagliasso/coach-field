@@ -3,6 +3,7 @@ test('public home, login, missing config, protected deep link and no blank scree
   const errors: string[] = []
   page.on('pageerror', error => errors.push(error.message))
   await page.goto('/')
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light')
   await expect(page.getByRole('heading', { name: /Il campo ti dice/ })).toBeVisible()
   await expect(page.getByRole('link', { name: 'Accedi', exact: true })).toBeVisible()
   await page.goto('/login')
@@ -21,6 +22,8 @@ test('public product home is responsive and its navigation remains usable', asyn
     await expect(page.getByRole('heading', { name: /Il campo ti dice/ })).toBeVisible()
     await expect(page.getByRole('link', { name: /Entra in Coach Field/ }).first()).toBeVisible()
     expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
+    if (viewport.width === 390) await page.screenshot({ path: 'artifacts/color-v2-home-mobile.png', fullPage: true })
+    if (viewport.width === 1440) await page.screenshot({ path: 'artifacts/color-v2-home-desktop.png', fullPage: true })
   }
   await page.setViewportSize({ width: 1280, height: 800 })
   await page.getByRole('link', { name: 'Metodo', exact: true }).click()
@@ -111,14 +114,14 @@ test('organization admin sees groups without group memberships', async ({ page }
   await expect(page.getByText('Gruppo A', { exact: true })).toBeVisible()
   await expect(page.getByText('Gruppo B', { exact: true })).toBeVisible()
 })
-test('four themes, focus treatment and mobile layout stay usable', async ({ page }) => {
+test('themes, focus treatment and mobile layout stay usable', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await mockCloud(page)
   await page.getByRole('button', { name: /entra nel gruppo/i }).first().click()
-  for (const theme of ['Pitch', 'Electric', 'Purple', 'Ice', 'Light']) {
+  for (const [name, id] of [['Electric Editorial', 'light'], ['Electric Night', 'pitch'], ['Electric Blue', 'electric'], ['Purple Data', 'purple'], ['Ice Cyan', 'ice']]) {
     await page.getByRole('button', { name: 'Tema' }).click()
-    await page.getByRole('button', { name: new RegExp(`^${theme}`) }).click()
-    await expect(page.locator('html')).toHaveAttribute('data-theme', theme.toLowerCase())
+    await page.getByRole('button', { name: new RegExp(`^${name}`) }).click()
+    await expect(page.locator('html')).toHaveAttribute('data-theme', id)
     await page.getByRole('button', { name: 'Chiudi tema' }).click()
     const overflows = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)
     expect(overflows).toBe(false)
@@ -132,8 +135,8 @@ test('four themes, focus treatment and mobile layout stay usable', async ({ page
 test('authenticated UI lab renders foundation controls without responsive overflow', async ({ page }) => {
   await mockCloud(page)
   await page.goto('http://127.0.0.1:4174/app/ui-lab')
-  await expect(page.getByRole('heading', { name: 'Sport-tech, leggibile, pronto per il campo.' })).toBeVisible()
-  await expect(page.getByText('Palette semantica')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Electric Editorial, light-first.' })).toBeVisible()
+  await expect(page.getByText('Light, dark, brand e semantica')).toBeVisible()
   await expect(page.getByText('MATCH DAY · U10')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Cambia tema' })).toBeVisible()
   await page.keyboard.press('Tab')
@@ -143,9 +146,15 @@ test('authenticated UI lab renders foundation controls without responsive overfl
     expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
   }
   await page.getByRole('button', { name: 'Cambia tema' }).click()
-  await page.getByRole('button', { name: /^Light/ }).click()
+  await page.getByRole('button', { name: /^Electric Editorial/ }).click()
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light')
   await page.getByRole('button', { name: 'Chiudi tema' }).click()
+  await page.screenshot({ path: 'artifacts/color-v2-ui-lab-light.png', fullPage: true })
+  await page.getByRole('button', { name: 'Cambia tema' }).click()
+  await page.getByRole('button', { name: /^Electric Night/ }).click()
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'pitch')
+  await page.getByRole('button', { name: 'Chiudi tema' }).click()
+  await page.screenshot({ path: 'artifacts/color-v2-ui-lab-dark.png', fullPage: true })
   await page.getByRole('button', { name: 'Esci' }).click()
   await expect(page).toHaveURL(/\/login$/)
 })

@@ -7,7 +7,12 @@ import { ThemeSelectorSheet } from '../components/ThemeSelectorSheet'
 
 const swatches = [
   ['Background', 'var(--bg)'], ['Surface', 'var(--surface)'], ['Elevated', 'var(--surface-raised)'], ['Border', 'var(--border)'],
-  ['Primary', 'var(--primary)'], ['Accent', 'var(--accent)'], ['Success', 'var(--success)'], ['Warning', 'var(--warning)'], ['Danger', 'var(--danger)'], ['Info', 'var(--info)'],
+  ['Primary violet', 'var(--primary)'], ['Electric blue', 'var(--accent)'], ['Coral', 'var(--coral)'], ['Success', 'var(--success)'], ['Warning', 'var(--warning)'], ['Danger', 'var(--danger)'], ['Info', 'var(--info)'],
+]
+
+const directionPalettes = [
+  { name: 'Light · principale', colors: ['#F6F7FB', '#FFFFFF', '#EEF1F6', '#6547E8', '#2F80FF', '#F34F70'] },
+  { name: 'Dark · Electric Night', colors: ['#11131A', '#191C26', '#222633', '#806BFF', '#55A0FF', '#FF718B'] },
 ]
 
 export function UiLabPage() {
@@ -16,9 +21,9 @@ export function UiLabPage() {
   return <main className="ui-lab min-h-screen text-app-text">
     <header className="ui-lab-bar"><Link className={buttonClass({ variant: 'ghost', size: 'sm' })} to="/app/groups"><ArrowLeft size={17} /> Gruppi</Link><strong>Coach Field · UI Lab</strong><div className="flex gap-2"><IconButton label="Cambia tema" onClick={() => setThemeOpen(true)}><Palette size={19} /></IconButton><IconButton label="Esci" onClick={() => void signOut()}><LogOut size={19} /></IconButton></div></header>
     <div className="ui-lab-container">
-      <PageHeader eyebrow="Visual foundation 01" title="Sport-tech, leggibile, pronto per il campo." description="Token semantici e componenti essenziali per evolvere Coach Field senza riscrivere l'app." actions={<Button variant="primary"><Sparkles size={18} /> Azione primaria</Button>} />
+      <PageHeader eyebrow="Color direction V2" title="Electric Editorial, light-first." description="Violet come identità, blue tecnologico, coral come energia e colori semantici separati dal brand." actions={<Button variant="primary"><Sparkles size={18} /> Azione primaria</Button>} />
 
-      <section className="ui-lab-section"><div><p className="ui-kicker">Color system</p><h2 className="ui-section-title">Palette semantica</h2></div><div className="ui-swatch-grid">{swatches.map(([label, color]) => <Card key={label} className="ui-swatch"><span style={{ background: color }} /><strong>{label}</strong><small>{color}</small></Card>)}</div></section>
+      <section className="ui-lab-section"><div><p className="ui-kicker">Color system</p><h2 className="ui-section-title">Light, dark, brand e semantica</h2></div><div className="ui-direction-grid">{directionPalettes.map(palette => <Card key={palette.name} padding="lg"><strong>{palette.name}</strong><div className="ui-direction-strip">{palette.colors.map(color => <span key={color} style={{ background: color }} title={color} />)}</div></Card>)}</div><div className="ui-swatch-grid">{swatches.map(([label, color]) => <Card key={label} className="ui-swatch"><span style={{ background: color }} /><strong>{label}</strong><small>{color}</small></Card>)}</div></section>
 
       <section className="ui-lab-grid">
         <Card padding="lg"><p className="ui-kicker">Typography</p><p className="ui-display">Match day.</p><h1 className="ui-page-title">Titolo pagina</h1><h2 className="ui-section-title">Titolo sezione</h2><h3 className="ui-card-title">Titolo card</h3><p className="ui-body">Testo principale leggibile durante l’attività sul campo.</p><p className="ui-secondary">Informazione secondaria e metadati.</p><p className="ui-caption">CAPTION · 12:45</p><p className="ui-metric">87%</p></Card>
