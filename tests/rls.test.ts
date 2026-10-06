@@ -12,6 +12,7 @@ beforeAll(async () => {
     grant usage on schema auth to authenticated;
     grant execute on function auth.uid() to authenticated;`)
   await db.exec(readFileSync('supabase/migrations/202609230001_v5a_foundation.sql', 'utf8'))
+  await db.exec(readFileSync('supabase/migrations/202609250001_v5a_group_admin_rls_hotfix.sql', 'utf8'))
   await db.exec(`insert into auth.users values ('${ids.admin}','admin@test.local'),('${ids.coach}','coach@test.local'),('${ids.collaborator}','collaborator@test.local'),('${ids.outsider}','outsider@test.local');
     insert into organizations(id,name,slug) values ('${ids.org}','Club','club'),('${ids.otherOrg}','Other','other');
     insert into organization_memberships(organization_id,user_id) values ('${ids.org}','${ids.admin}');
@@ -27,6 +28,21 @@ async function asUser(user: string, sql: string) {
 describe('actual PostgreSQL RLS', () => {
   it('admin sees all organization groups without individual membership', async () => {
     expect((await asUser(ids.admin, 'select name from groups order by name')).rows).toEqual([{ name: 'A' }, { name: 'B' }])
+  })
+  it('allows an organization admin to create only groups in their organization', async () => {
+    expect((await asUser(ids.admin, `select auth.uid() as uid, private.is_admin('${ids.org}') as admin`)).rows).toEqual([{ uid: ids.admin, admin: true }])
+    await expect(asUser(ids.admin, `insert into groups(organization_id,name) values ('${ids.org}','Admin group')`)).resolves.toBeDefined()
+    await expect(asUser(ids.admin, `insert into groups(organization_id,name) values ('${ids.otherOrg}','Foreign group')`)).rejects.toThrow('row-level security')
+  })
+  it.each([
+    ['coach', ids.coach],
+    ['collaborator', ids.collaborator],
+  ])('denies arbitrary group creation to %s', async (_role, userId) => {
+    await expect(asUser(userId, `insert into groups(organization_id,name) values ('${ids.org}','Forbidden')`)).rejects.toThrow('row-level security')
+  })
+  it('denies anonymous group creation', async () => {
+    await db.exec('begin; set local role anon;')
+    try { await expect(db.query(`insert into groups(organization_id,name) values ('${ids.org}','Anonymous')`)).rejects.toThrow() } finally { await db.exec('rollback') }
   })
   it('coach A cannot see or administer B or another organization', async () => {
     expect((await asUser(ids.coach, 'select name from groups')).rows).toEqual([{ name: 'A' }])

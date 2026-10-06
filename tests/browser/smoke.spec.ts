@@ -8,7 +8,7 @@ test('public home, login, missing config, protected deep link and no blank scree
   await page.goto('/login')
   await expect(page.getByRole('heading', { name: 'Login staff' })).toBeVisible()
   await expect(page.getByRole('alert')).toContainText('Supabase non configurato')
-  await expect(page.getByRole('button', { name: 'ACCEDI' })).toBeDisabled()
+  await expect(page.getByRole('button', { name: /accedi/i })).toBeDisabled()
   await page.goto('/app/unknown/players/unknown')
   await expect(page).toHaveURL(/\/login$/)
   expect(errors).toEqual([])
@@ -36,7 +36,7 @@ async function mockCloud(page: Page, role: 'coach' | 'collaborator' | 'admin' = 
   await page.goto('http://127.0.0.1:4174/login')
   await page.getByLabel('Email', { exact: true }).fill('staff@test.local')
   await page.getByLabel('Password', { exact: true }).fill('fixture-password')
-  await page.getByRole('button', { name: 'ACCEDI' }).click()
+  await page.getByRole('button', { name: /accedi/i }).click()
   if (!failure) await expect(page.getByRole('heading', { name: 'I tuoi gruppi' })).toBeVisible()
 }
 test('mock staff login, explicit binding, V1–V4 pages, group isolation and logout', async ({ page }) => {
@@ -51,7 +51,7 @@ test('mock staff login, explicit binding, V1–V4 pages, group isolation and log
     await new Promise<void>((resolve, reject) => { tx.oncomplete = () => resolve(); tx.onerror = () => reject(tx.error) })
     db.close()
   })
-  await page.getByRole('button', { name: 'ENTRA' }).first().click()
+  await page.getByRole('button', { name: /entra nel gruppo/i }).first().click()
   await expect(page.getByRole('button', { name: 'Associa al gruppo attuale' })).toBeVisible()
   page.on('dialog', dialog => dialog.accept())
   await page.getByRole('button', { name: 'Associa al gruppo attuale' }).click()
@@ -71,7 +71,7 @@ test('mock staff login, explicit binding, V1–V4 pages, group isolation and log
     await expect(page.getByRole('heading', { name: heading, exact: true })).toBeVisible()
   }
   await page.getByRole('link', { name: 'Cambia gruppo' }).click()
-  await page.getByRole('button', { name: 'ENTRA' }).nth(1).click()
+  await page.getByRole('button', { name: /entra nel gruppo/i }).nth(1).click()
   await expect(page.getByText('Nessun dato locale per questo gruppo.', { exact: false })).toBeVisible()
   await page.goto(`http://127.0.0.1:4174/app/${b}/players`)
   await expect(page.getByText(playerName!, { exact: true })).toHaveCount(0)
@@ -81,7 +81,7 @@ test('mock staff login, explicit binding, V1–V4 pages, group isolation and log
 })
 test('collaborator cannot bind or access staff/admin; denied deep links remain readable', async ({ page }) => {
   await mockCloud(page, 'collaborator')
-  await page.getByRole('button', { name: 'ENTRA' }).first().click()
+  await page.getByRole('button', { name: /entra nel gruppo/i }).first().click()
   await expect(page.getByRole('button', { name: 'Associa al gruppo attuale' })).toHaveCount(0)
   await page.goto(`http://127.0.0.1:4174/app/${a}/staff`)
   await expect(page.getByRole('alert')).toHaveText('Permesso negato.')
@@ -95,12 +95,30 @@ test('organization admin sees groups without group memberships', async ({ page }
   await expect(page.getByText('Gruppo A', { exact: true })).toBeVisible()
   await expect(page.getByText('Gruppo B', { exact: true })).toBeVisible()
 })
+test('four themes, focus treatment and mobile layout stay usable', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await mockCloud(page)
+  await page.getByRole('button', { name: /entra nel gruppo/i }).first().click()
+  for (const theme of ['Pitch', 'Electric', 'Purple', 'Ice']) {
+    await page.getByRole('button', { name: 'Tema' }).click()
+    await page.getByRole('button', { name: new RegExp(`^${theme}`) }).click()
+    await expect(page.locator('html')).toHaveAttribute('data-theme', theme.toLowerCase())
+    await page.getByRole('button', { name: 'Chiudi tema' }).click()
+    const overflows = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)
+    expect(overflows).toBe(false)
+  }
+  await page.keyboard.press('Tab')
+  const focused = page.locator(':focus-visible')
+  await expect(focused).toBeVisible()
+  expect(await focused.evaluate(element => getComputedStyle(element).boxShadow)).not.toBe('none')
+  await expect(page.getByRole('navigation', { name: 'Navigazione principale' })).toBeVisible()
+})
 test('wrong credentials have a readable error', async ({ page }) => {
   await page.route('https://fixture.supabase.co/auth/v1/token**', route => route.fulfill({ status: 400, json: { error: 'invalid_grant', error_description: 'Invalid login credentials' } }))
   await page.goto('http://127.0.0.1:4174/login')
   await page.getByLabel('Email', { exact: true }).fill('wrong@test.local')
   await page.getByLabel('Password', { exact: true }).fill('wrong-password')
-  await page.getByRole('button', { name: 'ACCEDI' }).click()
+  await page.getByRole('button', { name: /accedi/i }).click()
   await expect(page.getByRole('alert')).toContainText('Email o password non corrette')
 })
 test('missing profile is readable and never opens private content', async ({ page }) => {

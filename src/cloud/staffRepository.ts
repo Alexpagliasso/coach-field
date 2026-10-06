@@ -26,7 +26,11 @@ export async function getProfile(id: string) {
   return fromRow<UserProfile>(data)
 }
 export async function saveGroup(group: Partial<Group> & Pick<Group, 'organizationId' | 'name'>) {
-  const { error } = await requireSupabase().from('groups').upsert(toRow(group))
+  const row = toRow(group)
+  const query = group.id
+    ? requireSupabase().from('groups').update(row).eq('id', group.id)
+    : requireSupabase().from('groups').insert(row)
+  const { error } = await query
   if (error) throw error
 }
 export async function assignStaff(group: Group, email: string, role: 'coach' | 'collaborator') {

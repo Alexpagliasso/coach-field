@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Outlet } from 'react-router-dom'
 import { NavLink } from '../groups/navigation'
-import { CalendarDays, Mic2, Palette, Trophy, Users } from 'lucide-react'
+import { CalendarDays, LogOut, Mic2, Palette, Repeat2, Trophy, UserCog, Users } from 'lucide-react'
 import { ThemeSelectorSheet } from './ThemeSelectorSheet'
 import { Link } from '../groups/navigation'
 import { useGroup, usePermissions } from '../groups/groupContext'
@@ -22,11 +22,15 @@ export function Layout() {
 
   return (
     <div className="app-shell">
-      <header className="private-topbar"><strong>{activeGroup?.name}</strong><span>{role === 'admin' ? 'Amministratore' : role === 'coach' ? 'Allenatore' : 'Collaboratore'}</span><Link to="/app/groups">Cambia gruppo</Link>{can('staff.view') && <Link to={`/app/${activeGroup?.id}/staff`}>Staff</Link>}<button onClick={() => void signOut()}>Esci</button></header>
-      <button type="button" className="theme-trigger" onClick={() => setThemeOpen(true)} aria-label="Tema">
-        <Palette size={21} aria-hidden="true" />
-        <span>Tema</span>
-      </button>
+      <header className="private-topbar">
+        <div className="min-w-0 flex-1"><span className="block text-[11px] font-bold uppercase tracking-widest text-app-muted">Gruppo attivo</span><strong className="block truncate text-base">{activeGroup?.name}</strong></div>
+        <span className="rounded-full border border-app-primary/40 bg-app-primary/10 px-2.5 py-1 text-xs font-bold text-app-primary">{role === 'admin' ? 'Amministratore' : role === 'coach' ? 'Allenatore' : 'Collaboratore'}</span>
+        <Link to="/app/groups"><Repeat2 size={16} /> Cambia gruppo</Link>{can('staff.view') && <Link to={`/app/${activeGroup?.id}/staff`}><UserCog size={16} /> Staff</Link>}<button onClick={() => void signOut()}><LogOut size={16} /> Esci</button>
+        <button type="button" className="theme-trigger" onClick={() => setThemeOpen(true)} aria-label="Tema">
+          <Palette size={21} aria-hidden="true" />
+          <span>Tema</span>
+        </button>
+      </header>
       <main className="app-main">
         <Outlet />
       </main>

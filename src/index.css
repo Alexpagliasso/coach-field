@@ -1,3 +1,21 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-app-bg: var(--color-bg);
+  --color-app-surface: var(--color-surface);
+  --color-app-elevated: var(--color-surface-elevated);
+  --color-app-border: var(--color-border);
+  --color-app-text: var(--color-text);
+  --color-app-muted: var(--color-text-muted);
+  --color-app-primary: var(--color-primary);
+  --color-app-primary-strong: var(--color-primary-strong);
+  --color-app-primary-fg: var(--color-primary-foreground);
+  --color-app-success: var(--color-success);
+  --color-app-warning: var(--color-warning);
+  --color-app-danger: var(--color-danger);
+  --radius-app: var(--radius-card);
+}
+
 :root {
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   color: var(--text-primary);
@@ -59,6 +77,20 @@ button {
   color: inherit;
 }
 
+button,
+[role='button'],
+a,
+input,
+select,
+textarea,
+summary {
+  outline: none;
+}
+
+:is(button, [role='button'], a, input, select, textarea, summary):focus-visible {
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
 a {
   color: inherit;
   text-decoration: none;
@@ -108,10 +140,6 @@ h3 {
 }
 
 .theme-trigger {
-  position: fixed;
-  top: calc(0.75rem + env(safe-area-inset-top));
-  right: max(0.75rem, calc((100vw - 980px) / 2 + 0.75rem));
-  z-index: 25;
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
@@ -167,7 +195,7 @@ h3 {
 .mini-section,
 .field-card {
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-card);
   background: var(--surface);
   box-shadow: 0 14px 34px color-mix(in srgb, var(--bg) 62%, transparent);
 }
@@ -305,7 +333,7 @@ h3 {
   min-height: 3.25rem;
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: var(--surface-hover);
+  background: var(--surface-raised);
   color: var(--text-primary);
   font-weight: 850;
 }
@@ -323,13 +351,13 @@ h3 {
   min-height: 4rem;
   border-color: var(--primary-hover);
   background: var(--primary);
-  color: var(--bg);
+  color: var(--primary-foreground);
   font-size: 1.12rem;
 }
 
 .danger,
 .danger-text {
-  color: var(--bg);
+  color: #fff;
 }
 
 .danger {
@@ -1046,11 +1074,12 @@ h3 {
   min-height: 4.25rem;
   width: 100%;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-card);
   background: var(--surface);
   color: var(--text-primary);
   padding: 0.85rem;
   text-align: left;
+  box-shadow: var(--shadow-card);
 }
 
 .list-card.selected {
@@ -1820,9 +1849,14 @@ textarea {
 .access-page header, .private-topbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
 .access-page section { margin-block: 28px; }
 .access-page form { display: grid; gap: 14px; margin-block: 20px; }
-.private-topbar { padding: 14px 70px 14px 16px; border-bottom: 1px solid var(--border); background: var(--surface); }
-.private-topbar strong { flex-basis: 100%; }
-.private-topbar a, .private-topbar button { font-size: 13px; }
+.private-topbar { position: sticky; top: 0; z-index: 19; padding: 10px 16px; border-bottom: 1px solid var(--border); background: color-mix(in srgb, var(--surface) 94%, transparent); box-shadow: 0 8px 24px color-mix(in srgb, #000 8%, transparent); backdrop-filter: blur(14px); }
+.private-topbar a, .private-topbar button { display: inline-flex; min-height: 42px; align-items: center; gap: 6px; border-radius: 10px; padding: 0 10px; font-size: 13px; font-weight: 750; }
+.private-topbar a:hover, .private-topbar button:hover { background: var(--surface-raised); color: var(--primary); }
 .permission-row { display: flex; gap: 12px; align-items: center; margin-block: 12px; }
 .permission-row input { width: auto; }
 button:disabled { opacity: .5; cursor: not-allowed; }
+
+@media (min-width: 768px) {
+  .page { padding-inline: 1.5rem; }
+  .access-page { padding-block: 2rem; }
+}
