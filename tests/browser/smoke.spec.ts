@@ -3,8 +3,8 @@ test('public home, login, missing config, protected deep link and no blank scree
   const errors: string[] = []
   page.on('pageerror', error => errors.push(error.message))
   await page.goto('/')
-  await expect(page.getByRole('heading', { name: 'Il lavoro di squadra comincia sul campo.' })).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Gruppi', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Il campo ti dice/ })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Accedi', exact: true })).toBeVisible()
   await page.goto('/login')
   await expect(page.getByRole('heading', { name: 'Login staff' })).toBeVisible()
   await expect(page.getByRole('alert')).toContainText('Supabase non configurato')
@@ -12,6 +12,22 @@ test('public home, login, missing config, protected deep link and no blank scree
   await page.goto('/app/unknown/players/unknown')
   await expect(page).toHaveURL(/\/login$/)
   expect(errors).toEqual([])
+})
+
+test('public product home is responsive and its navigation remains usable', async ({ page }) => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 768, height: 1024 }, { width: 1280, height: 800 }, { width: 1440, height: 900 }]) {
+    await page.setViewportSize(viewport)
+    await page.goto('/')
+    await expect(page.getByRole('heading', { name: /Il campo ti dice/ })).toBeVisible()
+    await expect(page.getByRole('link', { name: /Entra in Coach Field/ }).first()).toBeVisible()
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
+  }
+  await page.setViewportSize({ width: 1280, height: 800 })
+  await page.getByRole('link', { name: 'Metodo', exact: true }).click()
+  await expect(page).toHaveURL(/#metodo$/)
+  await expect(page.getByRole('heading', { name: 'Ogni dettaglio diventa evoluzione.' })).toBeInViewport()
+  await page.getByRole('link', { name: 'Accedi', exact: true }).click()
+  await expect(page).toHaveURL(/\/login$/)
 })
 
 const uid = '00000000-0000-0000-0000-000000000001'
