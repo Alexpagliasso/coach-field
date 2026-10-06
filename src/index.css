@@ -1860,3 +1860,14 @@ button:disabled { opacity: .5; cursor: not-allowed; }
   .page { padding-inline: 1.5rem; }
   .access-page { padding-block: 2rem; }
 }
+
+.observation-entry { width: 100%; }
+.quick-observation-sheet { display: flex; flex-direction: column; width: min(100%, 640px); max-height: min(92svh, 780px); border: 1px solid var(--border); border-radius: 22px 22px 0 0; background: var(--surface); box-shadow: 0 -18px 50px rgba(0,0,0,.35); }
+.quick-observation-scroll { display: grid; gap: 1rem; overflow-y: auto; padding: 0 1rem 1rem; }
+.segmented-control { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; }
+.segmented-control button { min-height: 48px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-raised); font-weight: 800; }
+.segmented-control button.selected { border-color: var(--primary); background: color-mix(in srgb, var(--primary) 18%, var(--surface)); color: var(--primary); }
+.observation-details { border: 1px solid var(--border); border-radius: 12px; padding: .75rem; background: var(--surface-raised); }
+.observation-details summary { min-height: 44px; cursor: pointer; font-weight: 800; }
+.observation-details-grid { display: grid; gap: 1rem; padding-top: .75rem; }
+@media (min-width: 640px) { .quick-observation-sheet { border-radius: 22px; } .observation-details-grid { grid-template-columns: 1fr 1fr; } }

@@ -18,7 +18,7 @@ interface CoachFieldDb extends DBSchema {
   observations: {
     key: string
     value: Observation
-    indexes: { 'by-player': string; 'by-created': string; 'by-phase': string }
+    indexes: { 'by-player': string; 'by-created': string; 'by-phase': string; 'by-status': string; 'by-context': string }
   }
   voiceNotes: {
     key: string
@@ -71,7 +71,7 @@ interface CoachFieldDb extends DBSchema {
   }
 }
 
-export const dbPromise = openDB<CoachFieldDb>('coach-field-db', 5, {
+export const dbPromise = openDB<CoachFieldDb>('coach-field-db', 6, {
   upgrade(db, oldVersion, _newVersion, transaction) {
     if (oldVersion < 1) {
       const players = db.createObjectStore('players', { keyPath: 'id' })
@@ -142,6 +142,12 @@ export const dbPromise = openDB<CoachFieldDb>('coach-field-db', 5, {
       const playerDevelopmentReviews = db.createObjectStore('playerDevelopmentReviews', { keyPath: 'id' })
       playerDevelopmentReviews.createIndex('by-player', 'playerId')
       playerDevelopmentReviews.createIndex('by-date', 'date')
+    }
+
+    if (oldVersion < 6) {
+      const observations = transaction.objectStore('observations')
+      if (!observations.indexNames.contains('by-status')) observations.createIndex('by-status', 'status')
+      if (!observations.indexNames.contains('by-context')) observations.createIndex('by-context', 'contextType')
     }
   },
 })

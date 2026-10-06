@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { assertCurrentAccess, captureLocalAccess } from '../db/localAccess'
 import { Mic, Square } from 'lucide-react'
 import { saveVoiceNote } from '../db/voiceNotesRepository'
+import type { ObservationContextType, ObservationSubjectType } from '../types/domain'
 
 type VoiceRecorderProps = {
   sessionId: string
@@ -9,10 +10,12 @@ type VoiceRecorderProps = {
   exerciseId?: string
   playerId?: string
   matchId?: string
+  subjectType?: ObservationSubjectType
+  contextType?: ObservationContextType
   onSaved?: () => void
 }
 
-export function VoiceRecorder({ sessionId, phaseId, exerciseId, playerId, matchId, onSaved }: VoiceRecorderProps) {
+export function VoiceRecorder({ sessionId, phaseId, exerciseId, playerId, matchId, subjectType, contextType, onSaved }: VoiceRecorderProps) {
   const [recording, setRecording] = useState(false)
   const [error, setError] = useState('')
   const [elapsed, setElapsed] = useState(0)
@@ -63,7 +66,7 @@ export function VoiceRecorder({ sessionId, phaseId, exerciseId, playerId, matchI
         setElapsed(0)
         try {
           assertCurrentAccess(access)
-          await saveVoiceNote({ sessionId, phaseId, exerciseId, playerId, matchId, durationSeconds, mimeType, audio })
+          await saveVoiceNote({ sessionId, phaseId, exerciseId, playerId, matchId, subjectType, contextType, durationSeconds, mimeType, audio })
           onSaved?.()
         } catch { setError('Registrazione non salvata: accesso al gruppo cambiato o storage non disponibile.') }
       }

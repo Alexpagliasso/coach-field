@@ -6,10 +6,10 @@ import { AudioNote } from '../components/AudioNote'
 import { VoiceRecorder } from '../components/VoiceRecorder'
 import { getAppState } from '../db/appStateRepository'
 import { exportCoachFieldData, getLocalDataCounts, restoreBackup, type BackupPayload } from '../db/backupRepository'
-import { getObservations } from '../db/observationsRepository'
+import { getObservations, updateObservationStatus } from '../db/observationsRepository'
 import { getPlayers } from '../db/playersRepository'
 import { getCurrentSession } from '../db/sessionsRepository'
-import { deleteVoiceNote, getVoiceNotes } from '../db/voiceNotesRepository'
+import { deleteVoiceNote, getVoiceNotes, updateVoiceNoteStatus } from '../db/voiceNotesRepository'
 import type { AppState, Observation, Player, TrainingSession, VoiceNote } from '../types/domain'
 import { formatDateTime } from '../utils/format'
 
@@ -21,6 +21,8 @@ export function NotesPage() {
   const [voiceNotes, setVoiceNotes] = useState<VoiceNote[]>([])
   const [playerFilter, setPlayerFilter] = useState('')
   const [phaseFilter, setPhaseFilter] = useState('')
+  const [subjectFilter, setSubjectFilter] = useState<'all' | 'team' | 'player'>('all')
+  const [contextFilter, setContextFilter] = useState<'all' | 'match' | 'training'>('all')
   const [dataCounts, setDataCounts] = useState<Record<string, number>>({})
   const [backupStatus, setBackupStatus] = useState('')
   const restoreInputRef = useRef<HTMLInputElement | null>(null)
@@ -70,12 +72,16 @@ export function NotesPage() {
   }
 
   const filteredObservations = useMemo(() => observations.filter((item) => (
-    (!playerFilter || item.playerId === playerFilter) && (!phaseFilter || item.phaseId === phaseFilter)
-  )), [observations, phaseFilter, playerFilter])
+    (!playerFilter || item.playerId === playerFilter) && (!phaseFilter || item.phaseId === phaseFilter) &&
+    (subjectFilter === 'all' || item.subjectType === subjectFilter) && (contextFilter === 'all' || item.contextType === contextFilter)
+  )), [contextFilter, observations, phaseFilter, playerFilter, subjectFilter])
+
+  const inboxObservations = filteredObservations.filter(item => item.status === 'inbox')
 
   const filteredVoiceNotes = useMemo(() => voiceNotes.filter((item) => (
     (!playerFilter || item.playerId === playerFilter) && (!phaseFilter || item.phaseId === phaseFilter)
   )), [phaseFilter, playerFilter, voiceNotes])
+  const inboxVoiceNotes = filteredVoiceNotes.filter(item => item.status === 'inbox' && (subjectFilter === 'all' || item.subjectType === subjectFilter) && (contextFilter === 'all' || item.contextType === contextFilter))
 
   const exportBackup = async () => {
     setBackupStatus('Preparazione backup...')
@@ -143,6 +149,12 @@ export function NotesPage() {
         playerId={playerFilter || undefined}
         onSaved={refresh}
       /></PermissionAction>
+
+      <section className="content-section">
+        <div className="section-header-row"><div><span className="eyebrow">Inbox</span><h2>Osservazioni da rivedere</h2></div><strong>{inboxObservations.length + inboxVoiceNotes.length}</strong></div>
+        <div className="filters"><select aria-label="Filtro soggetto" value={subjectFilter} onChange={event => setSubjectFilter(event.target.value as typeof subjectFilter)}><option value="all">Tutte</option><option value="team">Squadra</option><option value="player">Giocatori</option></select><select aria-label="Filtro contesto" value={contextFilter} onChange={event => setContextFilter(event.target.value as typeof contextFilter)}><option value="all">Ogni contesto</option><option value="match">Partita</option><option value="training">Allenamento</option></select></div>
+        <div className="list-stack">{inboxObservations.map(item => <article key={item.id} className="list-card"><div><strong>{item.text || 'Osservazione'}</strong><span>{item.subjectType === 'team' ? 'Squadra' : playerName(item.playerId)} · {item.contextType === 'match' ? 'Partita' : item.contextType === 'training' ? 'Allenamento' : 'Generale'}</span><small>{item.category ? `${item.category} · ` : ''}{item.sentiment ? `${item.sentiment} · ` : ''}{formatDateTime(item.createdAt)}</small></div><div className="vertical-actions"><PermissionAction permission="notes.create"><button type="button" onClick={async () => { await updateObservationStatus(item.id, 'reviewed'); refresh() }}>Rivedi</button></PermissionAction><PermissionAction permission="notes.create"><button type="button" onClick={async () => { await updateObservationStatus(item.id, 'archived'); refresh() }}>Archivia</button></PermissionAction></div></article>)}{inboxVoiceNotes.map(item => <article key={item.id} className="list-card"><div><strong>Osservazione vocale · {item.durationSeconds}s</strong><span>{item.subjectType === 'team' ? 'Squadra' : playerName(item.playerId)} · {item.contextType === 'match' ? 'Partita' : item.contextType === 'training' ? 'Allenamento' : 'Generale'}</span><small>{formatDateTime(item.createdAt)}</small></div><div className="vertical-actions"><button type="button" onClick={async () => { await updateVoiceNoteStatus(item.id, 'reviewed'); refresh() }}>Rivedi</button><button type="button" onClick={async () => { await updateVoiceNoteStatus(item.id, 'archived'); refresh() }}>Archivia</button></div></article>)}{inboxObservations.length + inboxVoiceNotes.length === 0 && <p className="empty-state">Nessuna osservazione da rivedere.</p>}</div>
+      </section>
 
       <section className="content-section backup-panel">
         <div>

@@ -3,7 +3,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { Link } from '../groups/navigation'
 import { useNavigate } from '../groups/useNavigate'
-import { Check, Trash2 } from 'lucide-react'
+import { Check, MessageSquarePlus, Trash2 } from 'lucide-react'
+import { QuickObservationSheet } from '../components/QuickObservationSheet'
 import { AttendanceSheet } from '../components/AttendanceSheet'
 import { CompactStarRating } from '../components/PlayerStarRating'
 import { TrainingPhaseSheet } from '../components/TrainingPhaseSheet'
@@ -33,6 +34,7 @@ export function TrainingSessionDetailPage() {
   const [latestMatch, setLatestMatch] = useState<Match>()
   const [activeObjectives, setActiveObjectives] = useState<PlayerObjective[]>([])
   const [flash, setFlash] = useState('')
+  const [observationOpen, setObservationOpen] = useState(false)
 
   const refresh = async () => {
     if (!id) return
@@ -138,6 +140,8 @@ export function TrainingSessionDetailPage() {
         <p>{session.durationMinutes} min · {presentPlayers.length} presenti</p>
       </header>
 
+      <PermissionAction permission="notes.create"><button type="button" className="primary-action observation-entry" onClick={() => setObservationOpen(true)}><MessageSquarePlus size={21} />+ Osservazione</button></PermissionAction>
+
       <section className="content-section match-summary">
         <div>
           <span className="eyebrow">Stato</span>
@@ -242,6 +246,7 @@ export function TrainingSessionDetailPage() {
           onClose={() => setSelectedEvaluation(undefined)}
         />
       )}
+      {observationOpen && <QuickObservationSheet contextType="training" sessionId={session.id} players={players} onSaved={() => setFlash('Osservazione salvata ✓')} onClose={() => setObservationOpen(false)} />}
     </section>
   )
 }

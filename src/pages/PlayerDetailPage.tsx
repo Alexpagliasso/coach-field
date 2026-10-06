@@ -13,7 +13,7 @@ import { getPlayer, promotePlayerToRoster, toggleGoalkeeperCandidate, updatePlay
 import { getCurrentSession, getTrainingSessionById } from '../db/sessionsRepository'
 import { getTrainingPlayerEvaluationsByPlayer } from '../db/trainingPlayerEvaluationsRepository'
 import { getVoiceNotesByPlayer } from '../db/voiceNotesRepository'
-import type { AppState, Attendance, Match, MatchPlayerEvaluation, Observation, ObservationCategory, Player, PlayerDevelopmentReview, PlayerObjective, PlayerObjectiveEvidence, PlayerObjectiveEvidenceOutcome, PlayerRating, PlayerRole, TrainingPlayerEvaluation, TrainingSession, VoiceNote } from '../types/domain'
+import type { AppState, Attendance, LegacyObservationCategory, Match, MatchPlayerEvaluation, Observation, Player, PlayerDevelopmentReview, PlayerObjective, PlayerObjectiveEvidence, PlayerObjectiveEvidenceOutcome, PlayerRating, PlayerRole, TrainingPlayerEvaluation, TrainingSession, VoiceNote } from '../types/domain'
 import { VoiceRecorder } from '../components/VoiceRecorder'
 import { formatDateTime } from '../utils/format'
 import { CompactStarRating, PlayerStarRating } from '../components/PlayerStarRating'
@@ -24,7 +24,7 @@ import { PlayerObjectiveSheet } from '../components/PlayerObjectiveSheet'
 import { PlayerReviewSheet } from '../components/PlayerReviewSheet'
 import { buildDevelopmentStats, buildDevelopmentTimeline, buildRoleHistory } from '../utils/playerDevelopment'
 
-const actions: Array<{ label: string; category: ObservationCategory; icon: typeof Sparkles }> = [
+const actions: Array<{ label: string; category: LegacyObservationCategory; icon: typeof Sparkles }> = [
   { label: 'Tecnica', category: 'technique', icon: Sparkles },
   { label: 'Gioco', category: 'game', icon: Goal },
   { label: 'Atteggiamento', category: 'attitude', icon: TriangleAlert },
@@ -32,7 +32,7 @@ const actions: Array<{ label: string; category: ObservationCategory; icon: typeo
   { label: 'Portiere', category: 'goalkeeper', icon: Shield },
 ]
 
-const categoryLabels: Record<ObservationCategory, string> = {
+const categoryLabels: Record<LegacyObservationCategory, string> = {
   technique: 'Tecnica',
   game: 'Gioco',
   attitude: 'Atteggiamento',
@@ -169,7 +169,7 @@ export function PlayerDetailPage() {
 
   if (!player) return <p className="page">Giocatore non disponibile.</p>
 
-  const quickAdd = async (category: ObservationCategory, value: 'positive' | 'attention' = 'positive', text?: string) => {
+  const quickAdd = async (category: LegacyObservationCategory, value: 'positive' | 'attention' = 'positive', text?: string) => {
     await addObservation({
       playerId: player.id,
       sessionId: session?.id ?? 'general',
@@ -536,7 +536,7 @@ export function PlayerDetailPage() {
           {observations.map((item) => (
             <article key={item.id} className="list-card">
               <div>
-                <strong>{categoryLabels[item.category]} · {item.value === 'positive' ? 'positivo' : 'attenzione'}</strong>
+                <strong>{item.category && item.category in categoryLabels ? categoryLabels[item.category as LegacyObservationCategory] : item.category ?? 'Osservazione'} · {item.sentiment ?? (item.value === 'positive' ? 'positivo' : 'attenzione')}</strong>
                 {item.note && <span>{item.note}</span>}
                 <small>{formatDateTime(item.createdAt)}</small>
               </div>

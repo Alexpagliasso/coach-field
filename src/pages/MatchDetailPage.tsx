@@ -3,7 +3,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { Link } from '../groups/navigation'
 import { useNavigate } from '../groups/useNavigate'
-import { Check, Trash2 } from 'lucide-react'
+import { Check, MessageSquarePlus, Trash2 } from 'lucide-react'
+import { QuickObservationSheet } from '../components/QuickObservationSheet'
 import { MatchPlayerEvaluationSheet } from '../components/MatchPlayerEvaluationSheet'
 import { PlayerStarRating, CompactStarRating } from '../components/PlayerStarRating'
 import { setAllMatchPlayers, upsertMatchPlayerEvaluation } from '../db/matchPlayerEvaluationsRepository'
@@ -24,6 +25,7 @@ export function MatchDetailPage() {
   const [evaluations, setEvaluations] = useState<MatchPlayerEvaluation[]>([])
   const [selectedEvaluation, setSelectedEvaluation] = useState<MatchPlayerEvaluation>()
   const [flash, setFlash] = useState('')
+  const [observationOpen, setObservationOpen] = useState(false)
 
   const refresh = async () => {
     if (!id) return
@@ -130,6 +132,8 @@ export function MatchDetailPage() {
       {match.status === 'completed' && <span className="save-flash">Partita completata · dati modificabili</span>}
       {flash && <p className="save-flash compact-flash">{flash}</p>}
 
+      <PermissionAction permission="notes.create"><button type="button" className="primary-action observation-entry" onClick={() => setObservationOpen(true)}><MessageSquarePlus size={21} />+ Osservazione</button></PermissionAction>
+
       <section className="content-section match-summary">
         <div>
           <span className="eyebrow">Stato</span>
@@ -231,6 +235,7 @@ export function MatchDetailPage() {
           onClose={() => setSelectedEvaluation(undefined)}
         />
       )}
+      {observationOpen && <QuickObservationSheet contextType="match" matchId={match.id} players={players} onSaved={() => setFlash('Osservazione salvata ✓')} onClose={() => setObservationOpen(false)} />}
     </section>
   )
 }

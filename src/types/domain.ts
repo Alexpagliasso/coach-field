@@ -37,23 +37,40 @@ export type Player = {
   status?: PlayerStatus
 }
 
-export type ObservationCategory =
+export type LegacyObservationCategory =
   | 'technique'
   | 'game'
   | 'attitude'
   | 'relationship'
   | 'goalkeeper'
 
+export type ObservationCategory = 'technical' | 'tactical' | 'attitude' | 'learning' | 'behaviour' | 'other'
+export type ObservationSubjectType = 'team' | 'player'
+export type ObservationContextType = 'match' | 'training' | 'general'
+export type ObservationSentiment = 'positive' | 'neutral' | 'concern'
+export type ObservationStatus = 'inbox' | 'reviewed' | 'archived'
+export type CorrectionResponse = 'improved' | 'unchanged' | 'worsened' | 'unknown'
+
 export type Observation = {
   groupId?: string
   id: string
-  playerId: string
-  sessionId: string
+  playerId?: string
+  sessionId?: string
+  matchId?: string
   phaseId?: string
-  category: ObservationCategory
-  value: 'positive' | 'attention'
+  exerciseId?: string
+  subjectType?: ObservationSubjectType
+  contextType?: ObservationContextType
+  text?: string
+  category?: ObservationCategory | LegacyObservationCategory
+  sentiment?: ObservationSentiment
+  status?: ObservationStatus
+  correction?: string
+  response?: CorrectionResponse
+  value?: 'positive' | 'attention'
   note?: string
   createdAt: string
+  updatedAt?: string
 }
 
 export type VoiceNote = {
@@ -64,7 +81,11 @@ export type VoiceNote = {
   phaseId?: string
   exerciseId?: string
   matchId?: string
+  subjectType?: ObservationSubjectType
+  contextType?: ObservationContextType
   createdAt: string
+  updatedAt?: string
+  status?: ObservationStatus
   durationSeconds: number
   mimeType: string
   audio: Blob

@@ -11,7 +11,7 @@ import { createMatch, getMatches } from '../src/db/matchesRepository'
 import { upsertMatchPlayerEvaluation, getMatchPlayerEvaluationsByPlayer } from '../src/db/matchPlayerEvaluationsRepository'
 import { createTrainingTemplate, getTrainingTemplates } from '../src/db/trainingTemplatesRepository'
 import { upsertTrainingPlayerEvaluation, getTrainingPlayerEvaluationsByPlayer } from '../src/db/trainingPlayerEvaluationsRepository'
-import { addObservation, getObservations } from '../src/db/observationsRepository'
+import { addObservation, createObservation, getObservations, updateObservationStatus } from '../src/db/observationsRepository'
 import { saveVoiceNote, getVoiceNotes } from '../src/db/voiceNotesRepository'
 import { createPlayerObjective, addPlayerObjectiveEvidence, createPlayerDevelopmentReview, getPlayerObjectives, getPlayerObjectiveEvidence, getPlayerDevelopmentReviews } from '../src/db/playerDevelopmentRepository'
 import { exportCoachFieldData, restoreBackup } from '../src/db/backupRepository'
@@ -37,13 +37,13 @@ beforeEach(async () => {
   })
 })
 describe('local V1–V4 regressions and V5A isolation', () => {
-  it('keeps version 5 and preserves existing legacy players during initialization', async () => {
+  it('keeps version 6 and preserves existing legacy players during initialization', async () => {
     const db = await dbPromise
     const player = (await getPlayers())[0]
     await db.put('players', { ...player, id: 'legacy-custom', firstName: 'Preserved', rating: 4 })
     await db.delete('appState', 'playerSeedVersion')
     await initializeDatabase()
-    expect(db.version).toBe(5)
+    expect(db.version).toBe(6)
     expect((await getPlayer('legacy-custom'))?.rating).toBe(4)
   })
   it('supports players, Today session, attendance, observations and audio', async () => {
@@ -59,6 +59,27 @@ describe('local V1–V4 regressions and V5A isolation', () => {
     await saveVoiceNote({ sessionId: session.id, playerId: player.id, durationSeconds: 1, mimeType: 'audio/webm', audio: new Blob(['audio'], { type: 'audio/webm' }) })
     expect(await getObservations()).toHaveLength(1)
     expect(await (await getVoiceNotes())[0].audio.text()).toBe('audio')
+  })
+  it('supports universal observations, states, isolation, legacy reads and backup compatibility', async () => {
+    const db = await dbPromise, player = (await getPlayers())[0], session = (await getCurrentSession())!
+    const match = await createMatch({ date: '2026-10-06', opponent: 'Fixture', matchType: 'friendly', homeAway: 'home' })
+    const team = await createObservation({ text: 'Team note', subjectType: 'team', contextType: 'match', matchId: match.id })
+    expect(team.status).toBe('inbox'); expect(team.playerId).toBeUndefined(); expect(team.category).toBeUndefined()
+    const individual = await createObservation({ text: 'Player note', subjectType: 'player', playerId: player.id, contextType: 'training', sessionId: session.id, category: 'learning', sentiment: 'neutral', correction: 'Open body', response: 'improved' })
+    expect(individual).toMatchObject({ category: 'learning', sentiment: 'neutral', correction: 'Open body', response: 'improved' })
+    await expect(createObservation({ text: 'Invalid', subjectType: 'player', contextType: 'general' })).rejects.toThrow('giocatore')
+    expect((await updateObservationStatus(team.id, 'reviewed'))?.status).toBe('reviewed')
+    expect((await updateObservationStatus(team.id, 'archived'))?.status).toBe('archived')
+    await db.put('observations', { id: 'legacy-observation', playerId: player.id, sessionId: session.id, category: 'technique', value: 'positive', note: 'Legacy', createdAt: '2026-01-01T00:00:00.000Z' })
+    expect((await getObservations()).find(item => item.id === 'legacy-observation')).toMatchObject({ text: 'Legacy', subjectType: 'player', contextType: 'training', category: 'technical', sentiment: 'positive', status: 'reviewed' })
+    await db.put('observations', { ...individual, id: 'foreign-observation', groupId: 'B' })
+    expect((await getObservations()).some(item => item.id === 'foreign-observation')).toBe(false)
+    const backup = await exportCoachFieldData()
+    await restoreBackup(JSON.parse(JSON.stringify(backup)))
+    expect((await getObservations()).find(item => item.id === individual.id)).toMatchObject({ correction: 'Open body', response: 'improved' })
+    const previous = { localGroupBinding: await getLocalGroupBinding(), exportedAt: new Date().toISOString(), players: await getPlayers(), observations: [{ id: 'old-backup-observation', playerId: player.id, sessionId: session.id, category: 'game' as const, value: 'attention' as const, note: 'Old backup', createdAt: '2025-01-01T00:00:00.000Z' }], session, voiceNotes: [] }
+    await restoreBackup(previous)
+    expect((await getObservations())[0]).toMatchObject({ text: 'Old backup', category: 'tactical', status: 'reviewed' })
   })
   it('supports matches, training templates, session snapshots and evaluations', async () => {
     const player = (await getPlayers())[0]
