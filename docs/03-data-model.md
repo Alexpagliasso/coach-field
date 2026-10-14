@@ -406,3 +406,8 @@ L'id e composto come `sessionId:playerId`.
 La costante `PLAYER_SEED_VERSION` vive in `src/data/playersSeed.ts`. La migrazione V2 partite vive nello schema IndexedDB versione `3`; la V3 allenamenti/template vive nella versione `4`; la V4 player development aggiunge store additivi nello schema versione `5`.
 
 All'avvio `initializeDatabase()` legge `appState.playerSeedVersion`; se manca o e inferiore alla versione corrente, esegue la migrazione dei giocatori. La migrazione rimuove vecchi placeholder, preserva sessioni, voice notes e dati non correlati, e aggiorna la versione solo al termine delle scritture.
+# Cloud player foundation
+
+`public.players` represents a stable player identity inside one organization. `public.group_player_memberships` represents membership in a group and season, including lifecycle (`active`, `inactive`, `left`, `archived`), roster/guest semantics and group-specific roles.
+
+This schema is foundation only. The operational `Player` model, UI and related sports entities continue to use IndexedDB. Existing UUIDs can be supplied as cloud player IDs during a future explicit import; legacy non-UUID IDs will require mapping.

@@ -12,7 +12,7 @@ Le sezioni seguenti descrivono il checkpoint recuperato. Dove differiscono su ro
 
 ## Pitch Tecnico
 
-Coach Field e una PWA React/TypeScript offline-first pensata per un caso d'uso reale: supportare un allenatore di calcio giovanile durante allenamenti e partite. La priorita progettuale e ridurre il carico cognitivo sul campo: pochi tap, bottom sheet, dati locali e UI mobile-first.
+GrowPitch è una PWA React/TypeScript offline-first pensata per un caso d'uso reale: supportare un allenatore di calcio giovanile durante allenamenti e partite. La priorità progettuale è ridurre il carico cognitivo sul campo: pochi tap, bottom sheet, dati locali e UI mobile-first.
 
 ## Problema Di Prodotto
 
@@ -27,7 +27,7 @@ L'allenatore deve:
 - riutilizzare template senza perdere lo storico reale delle sessioni svolte.
 - seguire obiettivi qualitativi individuali senza trasformare bambini in classifiche.
 
-Coach Field unifica questi bisogni in un'app installabile, senza backend.
+GrowPitch unifica questi bisogni in un'app installabile, senza backend.
 
 ## Scelte Architetturali Da Spiegare
 

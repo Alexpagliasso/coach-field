@@ -14,7 +14,7 @@ Le sezioni seguenti descrivono il checkpoint recuperato. Dove differiscono su ro
 
 ## Stato Attuale
 
-Coach Field e un MVP locale/mobile-first. Funziona per gestire template e sessioni allenamento, raccogliere dati individuali durante l'allenamento, tracciare partite con valutazioni giocatore e seguire lo sviluppo qualitativo dei singoli.
+GrowPitch è un MVP locale/mobile-first. Funziona per gestire template e sessioni allenamento, raccogliere dati individuali durante l'allenamento, tracciare partite con valutazioni giocatore e seguire lo sviluppo qualitativo dei singoli.
 
 ## Priorita Alta
 

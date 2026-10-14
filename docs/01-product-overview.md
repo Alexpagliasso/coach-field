@@ -12,7 +12,7 @@ Le sezioni seguenti descrivono il checkpoint recuperato. Dove differiscono su ro
 
 ## Problema
 
-Coach Field risolve un problema operativo: durante un allenamento di calcio giovanile l'allenatore deve gestire tempo, consegne, presenze e osservazioni senza perdere attenzione sul campo.
+GrowPitch risolve un problema operativo: durante un allenamento di calcio giovanile l'allenatore deve gestire tempo, consegne, presenze e osservazioni senza perdere attenzione sul campo.
 
 Un foglio cartaceo e facile da sporcare o dimenticare; una nota generica sul telefono non struttura bene fasi, giocatori e osservazioni; un gestionale completo spesso e troppo lento durante una seduta reale.
 

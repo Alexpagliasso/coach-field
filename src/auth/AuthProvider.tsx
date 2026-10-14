@@ -4,7 +4,6 @@ import { getProfile } from '../cloud/staffRepository'
 import { errorMessage, requireSupabase, supabase } from '../lib/supabase'
 import type { UserProfile } from '../types/staff'
 import { AuthContext } from './authContext'
-import { clearLocalAccess } from '../db/localAccess'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
@@ -19,7 +18,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, next) => {
       const current = ++generation
       received = true
-      clearLocalAccess()
       setSession(next); setProfile(null); setError(''); setLoading(Boolean(next))
       // Keep the auth callback synchronous: profile requests run outside the auth lock.
       if (next) setTimeout(() => {
@@ -36,7 +34,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) throw new Error(error.status === 400 ? 'Email o password non corrette.' : errorMessage(error))
   }
   const signOut = async () => {
-    clearLocalAccess(); setSession(null); setProfile(null)
+    setSession(null); setProfile(null)
     const { error } = await requireSupabase().auth.signOut({ scope: 'local' })
     if (error) setError(errorMessage(error))
   }

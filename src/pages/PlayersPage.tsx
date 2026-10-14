@@ -1,149 +1,43 @@
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { ArrowDown, ArrowUp, ArrowUpDown, Plus, Search, Trash2, Users } from 'lucide-react'
 import { PermissionAction } from '../components/PermissionAction'
-import { useEffect, useState } from 'react'
-import { Link } from '../groups/navigation'
-import { Plus, Search, Shield } from 'lucide-react'
-import { AddPlayerModal } from '../components/AddPlayerModal'
+import { DialogSheet } from '../components/DialogSheet'
+import { PlayerProfileModal } from '../components/PlayerProfileModal'
 import { CompactStarRating } from '../components/PlayerStarRating'
-import { getAllActiveObjectives } from '../db/playerDevelopmentRepository'
-import { getPlayers } from '../db/playersRepository'
-import type { Player, PlayerObjective } from '../types/domain'
-import { formatPlayerAge, formatPlayerYear, sortYearValue } from '../utils/player'
+import { Button, EmptyState, ErrorState, Select } from '../components/ui'
+import { getWorkGroupPlayerSummaries, getWorkGroupRoster, setTeamRosterPlayerGroup, type WorkGroupPlayerSummary, type WorkGroupRosterEntry } from '../cloud/playerCloudRepository'
+import { useGroup, usePermissions } from '../groups/groupContext'
+import { errorMessage } from '../lib/supabase'
+import { nextPlayerSort, playerSortLabels, sortWorkGroupRoster, type PlayerSort, type PlayerSortKey } from '../utils/playerSorting'
 
-type SortMode = 'name' | 'rating-desc' | 'rating-asc' | 'year'
+type Action = { kind: 'remove'; entry: WorkGroupRosterEntry } | undefined
 
 export function PlayersPage() {
-  const [players, setPlayers] = useState<Player[]>([])
-  const [activeObjectives, setActiveObjectives] = useState<PlayerObjective[]>([])
-  const [query, setQuery] = useState('')
-  const [filter, setFilter] = useState('all')
-  const [sortMode, setSortMode] = useState<SortMode>('name')
-  const [addOpen, setAddOpen] = useState(false)
-
-  useEffect(() => {
-    Promise.all([getPlayers(), getAllActiveObjectives()]).then(([loadedPlayers, loadedObjectives]) => {
-      setPlayers(loadedPlayers)
-      setActiveObjectives(loadedObjectives)
-    })
-  }, [])
-
-  const refreshPlayers = () => Promise.all([getPlayers(), getAllActiveObjectives()]).then(([loadedPlayers, loadedObjectives]) => {
-    setPlayers(loadedPlayers)
-    setActiveObjectives(loadedObjectives)
-  })
-  const activeObjectiveCounts = new Map<string, number>()
-  activeObjectives.forEach((objective) => activeObjectiveCounts.set(objective.playerId, (activeObjectiveCounts.get(objective.playerId) ?? 0) + 1))
-
-  const matchesFilter = (player: Player) => {
-    if (filter === 'all') return true
-    if (filter === 'objectives') return (activeObjectiveCounts.get(player.id) ?? 0) > 0
-    if (filter === '2016') return player.year === 2016
-    if (filter === '2017') return player.year === 2017
-    return player.previousRoles.some((role) => {
-      const normalized = role.toLowerCase()
-      return (
-        (filter === 'por' && normalized === 'portiere') ||
-        (filter === 'dif' && normalized === 'difensore') ||
-        (filter === 'cen' && normalized === 'centrocampista') ||
-        (filter === 'att' && normalized === 'attaccante') ||
-        (filter === 'jolly' && normalized === 'jolly')
-      )
-    })
-  }
-
-  const filteredPlayers = players
-    .filter((player) => {
-      const text = `${player.firstName} ${player.lastName} ${player.previousRoles.join(' ')}`.toLowerCase()
-      return matchesFilter(player) && text.includes(query.toLowerCase())
-    })
-    .sort((a, b) => {
-      if (sortMode === 'year') return sortYearValue(a.year) - sortYearValue(b.year) || a.firstName.localeCompare(b.firstName)
-      if (sortMode === 'rating-desc') {
-        if (a.rating === null && b.rating === null) return a.firstName.localeCompare(b.firstName)
-        if (a.rating === null) return 1
-        if (b.rating === null) return -1
-        return b.rating - a.rating || a.firstName.localeCompare(b.firstName)
-      }
-      if (sortMode === 'rating-asc') {
-        if (a.rating === null && b.rating === null) return a.firstName.localeCompare(b.firstName)
-        if (a.rating === null) return 1
-        if (b.rating === null) return -1
-        return a.rating - b.rating || a.firstName.localeCompare(b.firstName)
-      }
-      return a.firstName.localeCompare(b.firstName)
-    })
-
-  const filters = [
-    { id: 'all', label: 'Tutti' },
-    { id: '2016', label: '2016' },
-    { id: '2017', label: '2017' },
-    { id: 'por', label: 'POR' },
-    { id: 'dif', label: 'DIF' },
-    { id: 'cen', label: 'CEN' },
-    { id: 'att', label: 'ATT' },
-    { id: 'jolly', label: 'JOLLY' },
-    { id: 'objectives', label: 'Obiettivi attivi' },
-  ]
-
-  return (
-    <section className="page">
-      <header className="page-header compact">
-        <span className="eyebrow">Rosa</span>
-        <h1>Giocatori</h1>
-        <p>{players.length} giocatori</p>
-      </header>
-      <PermissionAction permission="players.create"><button type="button" className="primary-action add-player-trigger" onClick={() => setAddOpen(true)}>
-        <Plus size={22} />Giocatore
-      </button></PermissionAction>
-      <Link to="/goalkeepers" className="subtle-link goalkeeper-entry">
-        <Shield size={19} />
-        Area portieri
-      </Link>
-      <label className="search-field">
-        <Search size={21} />
-        <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cerca nome o ruolo" />
-      </label>
-      <label className="sort-control">
-        <span>Ordina</span>
-        <select value={sortMode} onChange={(event) => setSortMode(event.target.value as SortMode)}>
-          <option value="name">Nome</option>
-          <option value="rating-desc">Valutazione ↓</option>
-          <option value="rating-asc">Valutazione ↑</option>
-          <option value="year">Anno</option>
-        </select>
-      </label>
-      <div className="filter-pills" aria-label="Filtra giocatori">
-        {filters.map((item) => (
-          <button key={item.id} type="button" className={filter === item.id ? 'active' : ''} onClick={() => setFilter(item.id)}>
-            {item.label}
-          </button>
-        ))}
-      </div>
-      <div className="list-stack">
-        {filteredPlayers.map((player) => (
-          <Link key={player.id} to={`/players/${player.id}`} className="list-card player-row">
-            <div>
-              <strong>{player.firstName} {player.lastName}</strong>
-              <span>{formatPlayerYear(player.year)} · {formatPlayerAge(player.year)}</span>
-              <span>{player.previousRoles.join(' · ')}</span>
-              <span className="player-card-meta">
-                <CompactStarRating value={player.rating} />
-                {(player.idealRoles?.length ?? 0) > 0 && <b>{player.idealRoles.join(' · ')}</b>}
-                {(activeObjectiveCounts.get(player.id) ?? 0) > 0 && <b>🎯 {activeObjectiveCounts.get(player.id)}</b>}
-                {player.status === 'guest' && <b className="status-badge">OSPITE</b>}
-              </span>
-            </div>
-            {player.goalkeeperCandidate && <Shield aria-label="Candidato portiere" size={23} />}
-          </Link>
-        ))}
-        {filteredPlayers.length === 0 && <p className="empty-state">Nessun giocatore trovato.</p>}
-      </div>
-      {addOpen && (
-        <PermissionAction permission="players.create"><AddPlayerModal
-          players={players}
-          onAdded={refreshPlayers}
-          onClose={() => setAddOpen(false)}
-        /></PermissionAction>
-      )}
-    </section>
-  )
+  const { activeGroup, availableGroups } = useGroup(); const { isAdmin } = usePermissions()
+  const [roster, setRoster] = useState<WorkGroupRosterEntry[]>([]), [summaries, setSummaries] = useState<Map<string, WorkGroupPlayerSummary>>(new Map())
+  const [query, setQuery] = useState(''), [error, setError] = useState(''), [loading, setLoading] = useState(true), [busy, setBusy] = useState(false), [sort, setSort] = useState<PlayerSort>(), [selectedGroupId, setSelectedGroupId] = useState(''), [page, setPage] = useState(1)
+  const [action, setAction] = useState<Action>(), [profilePlayerId, setProfilePlayerId] = useState<string>(); const request = useRef(0)
+  const groups = availableGroups.filter(group => group.organizationId === activeGroup?.organizationId && group.teamId === activeGroup?.teamId)
+  const rosterGroupId = selectedGroupId || activeGroup?.id
+  const rosterGroup = groups.find(group => group.id === rosterGroupId) ?? activeGroup
+  const refresh = useCallback(async () => { if (!rosterGroup) return; const current = ++request.current; setLoading(true); setError(''); setRoster([]); setSummaries(new Map()); try { const next = await getWorkGroupRoster(rosterGroup.id); const metrics = await getWorkGroupPlayerSummaries(rosterGroup.id, next.map(item => item.player.id)); if (current !== request.current) return; setRoster(next); setSummaries(metrics) } catch (reason) { if (current === request.current) setError(errorMessage(reason)) } finally { if (current === request.current) setLoading(false) } }, [rosterGroup])
+  useEffect(() => { void refresh() }, [refresh])
+  useEffect(() => { setSelectedGroupId(activeGroup?.id ?? ''); setPage(1) }, [activeGroup?.id])
+  useEffect(() => { if (!profilePlayerId && rosterGroup) void refresh() }, [rosterGroup, profilePlayerId, refresh])
+  const visible = sortWorkGroupRoster(roster.filter(({ player }) => `${player.firstName} ${player.lastName}`.toLocaleLowerCase().includes(query.toLocaleLowerCase('it'))), summaries, sort)
+  const pageSize = 10; const pages = Math.max(1, Math.ceil(visible.length / pageSize)); const paged = visible.slice((page - 1) * pageSize, page * pageSize)
+  const resetPage = (update: () => void) => { setPage(1); update() }
+  const toggleSort = (key: PlayerSortKey) => resetPage(() => setSort(current => nextPlayerSort(current, key)))
+  const remove = async () => { if (!action || busy) return; setBusy(true); setError(''); try { await setTeamRosterPlayerGroup(action.entry.membership.id, null); setAction(undefined); await refresh() } catch (reason) { setError(errorMessage(reason)) } finally { setBusy(false) } }
+  return <section className="page players-command-page"><header className="page-header compact"><span className="eyebrow">Rosa WorkGroup · Supabase</span><h1>Giocatori</h1><p>Rosa stabile e metriche cloud. Seleziona un WorkGroup autorizzato per consultarne le assegnazioni.</p></header><section className="players-group-section" aria-labelledby="players-groups-title"><div><span className="eyebrow">Gruppi</span><h2 id="players-groups-title">WorkGroup disponibili</h2></div><div className="players-group-pills" role="group" aria-label="Filtra per WorkGroup">{groups.map(group => <button key={group.id} type="button" className={group.id === rosterGroupId ? 'active' : ''} aria-pressed={group.id === rosterGroupId} onClick={() => resetPage(() => setSelectedGroupId(group.id))}><strong>{group.name}</strong><small>{group.id === activeGroup?.id ? 'Attivo' : 'Rosa assegnata'}</small></button>)}</div></section><div className="players-command-actions"><PermissionAction permission="players.create"><Button variant="primary" onClick={() => window.location.assign(`/app/${rosterGroup?.id ?? activeGroup?.id}/settings`)}><Plus size={20} />Assegna dalla rosa della categoria</Button></PermissionAction></div><section className="players-control-panel" aria-label="Ricerca e ordinamento giocatori"><label className="search-field"><Search size={21} /><input value={query} onChange={event => resetPage(() => setQuery(event.target.value))} placeholder="Cerca per nome" /></label><div className="players-mobile-sort md:hidden"><Select aria-label="Ordina giocatori per" value={sort?.key ?? 'name'} onChange={event => resetPage(() => setSort({ key: event.target.value as PlayerSortKey, direction: sort?.direction ?? 'asc' }))}>{(Object.keys(playerSortLabels) as PlayerSortKey[]).map(key => <option key={key} value={key}>{playerSortLabels[key]}</option>)}</Select><Button size="sm" variant="secondary" onClick={() => resetPage(() => setSort(current => current ? { ...current, direction: current.direction === 'asc' ? 'desc' : 'asc' } : { key: 'name', direction: 'asc' }))} aria-label={`Ordine ${sort?.direction === 'desc' ? 'decrescente' : 'crescente'}`}>{sort?.direction === 'desc' ? <ArrowDown size={16} /> : <ArrowUp size={16} />}</Button></div></section>{error && <ErrorState message={error} action={<Button size="sm" onClick={() => void refresh()}>Riprova</Button>} />}{loading ? <p className="empty-state">Caricamento rosa…</p> : visible.length === 0 ? <EmptyState icon={Users} title="Nessun giocatore nel WorkGroup" description="Assegna un giocatore dalla rosa della categoria." /> : <><div className="hidden overflow-hidden rounded-xl border border-app-border md:block"><table className="players-data-table w-full text-left text-sm"><thead className="bg-app-elevated text-app-muted"><tr>{(['name', 'role', 'rating', 'trainings', 'callups', 'matchesPlayed'] as PlayerSortKey[]).map(key => <SortableHeader key={key} column={key} sort={sort} onSort={toggleSort} />)}<th aria-label="Azioni" /></tr></thead><tbody>{paged.map(entry => <DesktopRow key={entry.assignment.id} entry={entry} summary={summaries.get(entry.player.id)} onOpen={setProfilePlayerId} onRemove={() => setAction({ kind: 'remove', entry })} editable={isAdmin} />)}</tbody></table></div><div className="grid gap-2 md:hidden">{paged.map(entry => <MobileCard key={entry.assignment.id} entry={entry} summary={summaries.get(entry.player.id)} onOpen={setProfilePlayerId} onRemove={() => setAction({ kind: 'remove', entry })} editable={isAdmin} />)}</div><nav className="players-pagination" aria-label="Paginazione giocatori"><span>{(page - 1) * pageSize + 1}–{Math.min(page * pageSize, visible.length)} di {visible.length}</span><div><Button size="sm" disabled={page === 1} onClick={() => setPage(current => current - 1)}>Precedente</Button><Button size="sm" disabled={page >= pages} onClick={() => setPage(current => current + 1)}>Successiva</Button></div></nav></>}{action && <DialogSheet onClose={() => !busy && setAction(undefined)} busy={busy} labelledBy="remove-player-title"><div className="grid gap-4 p-4"><h1 id="remove-player-title">Rimuovi dal WorkGroup</h1><p>Rimuovere {action.entry.player.firstName} {action.entry.player.lastName}? Il profilo e la rosa della categoria restano invariati.</p>{error && <ErrorState message={error} />}<div className="flex justify-end gap-2"><Button variant="ghost" disabled={busy} onClick={() => setAction(undefined)}>Annulla</Button><Button variant="danger" loading={busy} onClick={() => void remove()}>Conferma rimozione</Button></div></div></DialogSheet>}<PlayerProfileModal open={Boolean(profilePlayerId)} playerId={profilePlayerId} groupId={rosterGroup?.id} onClose={() => setProfilePlayerId(undefined)} /></section>
 }
+function SortableHeader({ column, sort, onSort }: { column: PlayerSortKey; sort: PlayerSort; onSort: (column: PlayerSortKey) => void }) {
+  const active = sort?.key === column
+  const ariaSort = active ? sort.direction === 'asc' ? 'ascending' : 'descending' : 'none'
+  const Icon = active ? sort.direction === 'asc' ? ArrowUp : ArrowDown : ArrowUpDown
+  return <th aria-sort={ariaSort}><button type="button" className={`players-sort-trigger ${active ? 'active' : ''}`} onClick={() => onSort(column)}>{playerSortLabels[column]}<Icon size={14} aria-hidden /></button></th>
+}
+type Props = { entry: WorkGroupRosterEntry; summary?: WorkGroupPlayerSummary; onOpen: (id: string) => void; onRemove: () => void; editable: boolean }
+const Training = ({ summary }: { summary?: WorkGroupPlayerSummary }) => <>{summary ? `${summary.trainingPresent}/${summary.trainingMarked || '—'}` : '—'}</>
+function DesktopRow({ entry, summary, onOpen, onRemove, editable }: Props) { const { player } = entry; return <tr className="border-t border-app-border hover:bg-app-elevated/60"><td className="p-0"><button className="player-profile-trigger block w-full p-3 text-left" onClick={() => onOpen(player.id)} aria-label={`Apri profilo di ${player.firstName} ${player.lastName}`}><strong>{player.firstName} {player.lastName}</strong><small className="block text-app-muted">{player.birthYear ? `Anno ${player.birthYear}` : 'Anno non indicato'}</small></button></td><td>{player.preferredRole || 'Ruolo non impostato'}</td><td><CompactStarRating value={player.technicalRating ?? null} /></td><td><Training summary={summary} /></td><td>{summary?.callups ?? '—'}</td><td>{summary?.matchesPlayed ?? '—'}</td><td>{editable && <Button size="sm" variant="ghost" onClick={onRemove} aria-label={`Rimuovi ${player.firstName}`}><Trash2 size={16} /></Button>}</td></tr> }
+function MobileCard({ entry, summary, onOpen, onRemove, editable }: Props) { const { player } = entry; return <article className="rounded-xl border border-app-border bg-app-elevated"><button className="player-profile-trigger block w-full p-3 text-left" onClick={() => onOpen(player.id)} aria-label={`Apri profilo di ${player.firstName} ${player.lastName}`}><strong>{player.firstName} {player.lastName}</strong><span className="mt-1 block text-sm text-app-muted">Ruolo: {player.preferredRole || 'Ruolo non impostato'} · <CompactStarRating value={player.technicalRating ?? null} /></span><span className="mt-2 grid grid-cols-3 gap-2 text-xs text-app-muted"><span>Allenamenti<br /><b className="text-app-text"><Training summary={summary} /></b></span><span>Convocazioni<br /><b className="text-app-text">{summary?.callups ?? '—'}</b></span><span>Partite<br /><b className="text-app-text">{summary?.matchesPlayed ?? '—'}</b></span></span></button>{editable && <div className="flex justify-end border-t border-app-border p-2"><Button size="sm" variant="ghost" onClick={onRemove}><Trash2 size={16} />Rimuovi</Button></div>}</article> }

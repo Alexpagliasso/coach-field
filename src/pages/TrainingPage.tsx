@@ -1,322 +1,99 @@
+import { useEffect, useRef, useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
+import { ArrowLeft, CalendarDays, Check, ChevronLeft, ChevronRight, ClipboardList, Copy, Dumbbell, Grid2X2, List, Pencil, Plus, Search, Star, Trash2, X } from 'lucide-react'
 import { PermissionAction } from '../components/PermissionAction'
-import { useEffect, useMemo, useState } from 'react'
-import { Link } from '../groups/navigation'
-import { useNavigate } from '../groups/useNavigate'
-import { Copy, Plus, Search, Trash2 } from 'lucide-react'
-import { createTrainingSessionFromScratch, createTrainingSessionFromTemplate, getTrainingSessions } from '../db/sessionsRepository'
-import { createTrainingTemplate, deleteTrainingTemplate, duplicateTrainingTemplate, getTrainingTemplates, updateTrainingTemplate } from '../db/trainingTemplatesRepository'
-import type { TrainingSession, TrainingSessionPhase, TrainingTemplate, TrainingTemplatePhase } from '../types/domain'
-import { makeId } from '../db/db'
-import { isToday, sessionDateLabel } from '../utils/training'
+import { useGroup, usePermissions } from '../groups/groupContext'
+import { duplicateCloudTrainingSession, getCloudTrainingArchive, getCloudTrainingSession, getCloudTrainingSessionCounts, getCloudTrainingSessionPage, getExerciseFavoriteIds, getExerciseLibrary, getRecentExerciseIds, saveCloudTrainingSession, saveExercise, setExerciseFavorite, type CloudTrainingSession, type ExerciseLibraryItem, type TrainingSessionExercise } from '../cloud/trainingCloudRepository'
+import { localSessionDate, seasonBounds } from '../utils/trainingFilters'
+import type { TrainingArchiveSort, TrainingArchiveStatus } from '../utils/trainingArchive'
+import { Badge, Button, Card, EmptyState, ErrorState, Field, Input, LoadingState, Select, Textarea } from '../components/ui'
+import { DialogSheet } from '../components/DialogSheet'
+import { TrainingAttendanceSheet } from '../components/TrainingAttendanceSheet'
+import { errorMessage } from '../lib/supabase'
+import { EXERCISE_CATEGORIES, EXERCISE_OBJECTIVES, exerciseCategoryLabel, filterExerciseLibrary } from '../utils/exerciseTaxonomy'
 
-type TemplateFormProps = {
-  template?: TrainingTemplate
-  onSaved: () => void
-  onClose: () => void
-}
-
-type SessionFormProps = {
-  template?: TrainingTemplate
-  onSaved: (session: TrainingSession) => void
-  onClose: () => void
-}
-
-const emptyPhase = (order: number): TrainingTemplatePhase => ({
-  id: makeId(),
-  title: `Fase ${order}`,
-  durationMinutes: 10,
-  order,
-  notes: '',
-})
-
-function splitTags(value: string) {
-  return value.split(',').map((tag) => tag.trim()).filter(Boolean)
-}
-
-function TemplateForm({ template, onSaved, onClose }: TemplateFormProps) {
-  const [title, setTitle] = useState(template?.title ?? '')
-  const [description, setDescription] = useState(template?.description ?? '')
-  const [duration, setDuration] = useState(template?.expectedDurationMinutes ?? 90)
-  const [minPlayers, setMinPlayers] = useState(template?.minPlayers?.toString() ?? '')
-  const [maxPlayers, setMaxPlayers] = useState(template?.maxPlayers?.toString() ?? '')
-  const [tags, setTags] = useState((template?.tags ?? []).join(', '))
-  const [phases, setPhases] = useState<TrainingTemplatePhase[]>(template?.phases ?? [emptyPhase(1)])
-  const [error, setError] = useState('')
-
-  const updatePhase = (id: string, patch: Partial<TrainingTemplatePhase>) => {
-    setPhases((current) => current.map((phase) => phase.id === id ? { ...phase, ...patch } : phase))
-  }
-
-  const movePhase = (id: string, direction: -1 | 1) => {
-    setPhases((current) => {
-      const index = current.findIndex((phase) => phase.id === id)
-      const nextIndex = index + direction
-      if (index < 0 || nextIndex < 0 || nextIndex >= current.length) return current
-      const next = [...current]
-      const [phase] = next.splice(index, 1)
-      next.splice(nextIndex, 0, phase)
-      return next.map((item, itemIndex) => ({ ...item, order: itemIndex + 1 }))
-    })
-  }
-
-  const save = async () => {
-    setError('')
-    if (!title.trim()) {
-      setError('Titolo obbligatorio.')
-      return
-    }
-    const input = {
-      title,
-      description,
-      expectedDurationMinutes: Number(duration) || 90,
-      minPlayers: minPlayers ? Number(minPlayers) : undefined,
-      maxPlayers: maxPlayers ? Number(maxPlayers) : undefined,
-      tags: splitTags(tags),
-      phases: phases.map((phase, index) => ({ ...phase, order: index + 1, durationMinutes: Number(phase.durationMinutes) || 0 })),
-    }
-    if (template) await updateTrainingTemplate(template.id, input)
-    else await createTrainingTemplate(input)
-    onSaved()
-    onClose()
-  }
-
-  return (
-    <div className="sheet-backdrop" role="presentation" onClick={onClose}>
-      <section className="training-form-sheet" role="dialog" aria-modal="true" aria-labelledby="template-form-title" onClick={(event) => event.stopPropagation()}>
-        <div className="sheet-handle" />
-        <header className="exercise-sheet-header">
-          <div>
-            <span className="eyebrow">Template allenamento</span>
-            <h1 id="template-form-title">{template ? 'Modifica template' : 'Nuovo template'}</h1>
-          </div>
-          <button type="button" className="icon-button" onClick={onClose} aria-label="Chiudi template">×</button>
-        </header>
-        <div className="add-player-scroll">
-          <label className="form-field"><span>Titolo *</span><input value={title} onChange={(event) => setTitle(event.target.value)} autoFocus /></label>
-          <label className="form-field"><span>Descrizione</span><textarea rows={3} value={description} onChange={(event) => setDescription(event.target.value)} /></label>
-          <div className="score-grid">
-            <label className="form-field"><span>Durata prevista</span><input type="number" min="1" value={duration} onChange={(event) => setDuration(Number(event.target.value))} /></label>
-            <label className="form-field"><span>Tag</span><input value={tags} onChange={(event) => setTags(event.target.value)} placeholder="Tecnica, Possesso" /></label>
-          </div>
-          <div className="score-grid">
-            <label className="form-field"><span>Min giocatori</span><input type="number" min="0" value={minPlayers} onChange={(event) => setMinPlayers(event.target.value)} /></label>
-            <label className="form-field"><span>Max giocatori</span><input type="number" min="0" value={maxPlayers} onChange={(event) => setMaxPlayers(event.target.value)} /></label>
-          </div>
-          <section className="content-section">
-            <div className="section-header-row">
-              <h2>Fasi</h2>
-              <button type="button" onClick={() => setPhases((current) => [...current, emptyPhase(current.length + 1)])}><Plus size={18} />Fase</button>
-            </div>
-            {phases.map((phase, index) => (
-              <article key={phase.id} className="list-card training-phase-editor">
-                <div>
-                  <label className="form-field"><span>Titolo</span><input value={phase.title} onChange={(event) => updatePhase(phase.id, { title: event.target.value })} /></label>
-                  <label className="form-field"><span>Durata</span><input type="number" min="0" value={phase.durationMinutes} onChange={(event) => updatePhase(phase.id, { durationMinutes: Number(event.target.value) })} /></label>
-                  <label className="form-field"><span>Note</span><textarea rows={2} value={phase.notes ?? ''} onChange={(event) => updatePhase(phase.id, { notes: event.target.value })} /></label>
-                </div>
-                <div className="vertical-actions">
-                  <button type="button" onClick={() => movePhase(phase.id, -1)} disabled={index === 0}>↑</button>
-                  <button type="button" onClick={() => movePhase(phase.id, 1)} disabled={index === phases.length - 1}>↓</button>
-                  <button type="button" className="danger" onClick={() => setPhases((current) => current.filter((item) => item.id !== phase.id))}><Trash2 size={18} /></button>
-                </div>
-              </article>
-            ))}
-          </section>
-          {error && <p className="form-error">{error}</p>}
-        </div>
-        <footer className="sheet-footer"><button type="button" className="primary-action" onClick={save}>Salva template</button></footer>
-      </section>
-    </div>
-  )
-}
-
-function SessionForm({ template, onSaved, onClose }: SessionFormProps) {
-  const [title, setTitle] = useState(template?.title ?? 'Allenamento')
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
-  const [startTime, setStartTime] = useState('')
-  const [duration, setDuration] = useState(template?.expectedDurationMinutes ?? 90)
-  const [phases, setPhases] = useState<TrainingSessionPhase[]>(template
-    ? template.phases.map((phase) => ({ id: makeId(), title: phase.title, order: phase.order, plannedDurationMinutes: phase.durationMinutes, exerciseId: phase.exerciseId, exerciseSnapshot: phase.exerciseSnapshot, status: 'planned', coachNotes: phase.notes }))
-    : [{ id: makeId(), title: 'Fase 1', order: 1, plannedDurationMinutes: 10, status: 'planned' }])
-  const [error, setError] = useState('')
-
-  const save = async () => {
-    setError('')
-    if (!title.trim()) {
-      setError('Titolo obbligatorio.')
-      return
-    }
-    const session = template
-      ? await createTrainingSessionFromTemplate(template.id, date, startTime)
-      : await createTrainingSessionFromScratch({ title, date, startTime, durationMinutes: Number(duration) || 90, plannedPhases: phases, generalNotes: '', takeaways: '' })
-    onSaved(session)
-    onClose()
-  }
-
-  return (
-    <div className="sheet-backdrop" role="presentation" onClick={onClose}>
-      <section className="training-form-sheet" role="dialog" aria-modal="true" aria-labelledby="session-form-title" onClick={(event) => event.stopPropagation()}>
-        <div className="sheet-handle" />
-        <header className="exercise-sheet-header">
-          <div>
-            <span className="eyebrow">{template ? 'Da template' : 'Da zero'}</span>
-            <h1 id="session-form-title">Crea allenamento</h1>
-          </div>
-          <button type="button" className="icon-button" onClick={onClose} aria-label="Chiudi allenamento">×</button>
-        </header>
-        <div className="add-player-scroll">
-          <label className="form-field"><span>Titolo</span><input value={title} onChange={(event) => setTitle(event.target.value)} disabled={Boolean(template)} /></label>
-          <div className="score-grid">
-            <label className="form-field"><span>Data</span><input type="date" value={date} onChange={(event) => setDate(event.target.value)} /></label>
-            <label className="form-field"><span>Orario</span><input type="time" value={startTime} onChange={(event) => setStartTime(event.target.value)} /></label>
-          </div>
-          {!template && (
-            <>
-              <label className="form-field"><span>Durata</span><input type="number" min="1" value={duration} onChange={(event) => setDuration(Number(event.target.value))} /></label>
-              <section className="content-section">
-                <div className="section-header-row">
-                  <h2>Fasi</h2>
-                  <button type="button" onClick={() => setPhases((current) => [...current, { id: makeId(), title: `Fase ${current.length + 1}`, order: current.length + 1, plannedDurationMinutes: 10, status: 'planned' }])}><Plus size={18} />Fase</button>
-                </div>
-                {phases.map((phase) => (
-                  <article key={phase.id} className="list-card">
-                    <div>
-                      <label className="form-field"><span>Titolo</span><input value={phase.title} onChange={(event) => setPhases((current) => current.map((item) => item.id === phase.id ? { ...item, title: event.target.value } : item))} /></label>
-                      <label className="form-field"><span>Durata</span><input type="number" min="0" value={phase.plannedDurationMinutes ?? 0} onChange={(event) => setPhases((current) => current.map((item) => item.id === phase.id ? { ...item, plannedDurationMinutes: Number(event.target.value) } : item))} /></label>
-                    </div>
-                    <button type="button" className="danger" onClick={() => setPhases((current) => current.filter((item) => item.id !== phase.id).map((item, index) => ({ ...item, order: index + 1 })))}><Trash2 size={18} /></button>
-                  </article>
-                ))}
-              </section>
-            </>
-          )}
-          {error && <p className="form-error">{error}</p>}
-        </div>
-        <footer className="sheet-footer"><button type="button" className="primary-action" onClick={save}>Crea allenamento</button></footer>
-      </section>
-    </div>
-  )
-}
+type DraftExercise = Omit<TrainingSessionExercise, 'id' | 'position'>
+type Editor = { session?: CloudTrainingSession; exercises: DraftExercise[] }
+const dateKey = () => new Date().toISOString().slice(0, 10)
+const labelDate = (date: string) => new Date(`${date}T12:00:00`).toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short' })
+const draftFrom = (session?: CloudTrainingSession): Editor => ({ session, exercises: (session?.exercises ?? []).map(({ exerciseId, snapshotName, snapshotObjective, snapshotDescription, durationMinutes, coachNotes }) => ({ exerciseId, snapshotName, snapshotObjective, snapshotDescription, durationMinutes, coachNotes })) })
+const emptySession = (): Editor => ({ exercises: [] })
 
 export function TrainingPage() {
-  const [sessions, setSessions] = useState<TrainingSession[]>([])
-  const [templates, setTemplates] = useState<TrainingTemplate[]>([])
-  const [query, setQuery] = useState('')
-  const [templateForm, setTemplateForm] = useState<TrainingTemplate | 'new'>()
-  const [sessionForm, setSessionForm] = useState<TrainingTemplate | 'scratch'>()
-  const navigate = useNavigate()
-
-  const refresh = async () => {
-    const [loadedSessions, loadedTemplates] = await Promise.all([getTrainingSessions(), getTrainingTemplates()])
-    setSessions(loadedSessions)
-    setTemplates(loadedTemplates)
+  const { activeGroup } = useGroup(); const { can } = usePermissions(); const { id: sessionId, groupId } = useParams(); const navigate = useNavigate()
+  const [sessions, setSessions] = useState<CloudTrainingSession[]>([]); const [total, setTotal] = useState(0); const [nextSession, setNextSession] = useState<CloudTrainingSession>(); const [library, setLibrary] = useState<ExerciseLibraryItem[]>([])
+  const [status, setStatus] = useState<TrainingArchiveStatus>('all'); const [query, setQuery] = useState(''); const [theme, setTheme] = useState(''); const [period, setPeriod] = useState<'season'|'month'|'three'|'custom'>('season'); const [from, setFrom] = useState(''); const [to, setTo] = useState(''); const [counts, setCounts] = useState({ total: 0, planned: 0, completed: 0 }); const sequence = useRef(0); const [sort, setSort] = useState<TrainingArchiveSort>('recent'); const [page, setPage] = useState(1); const [view, setView] = useState<'grid' | 'list'>('grid')
+  const [editor, setEditor] = useState<Editor>(); const [loading, setLoading] = useState(true); const [busy, setBusy] = useState(false); const [error, setError] = useState(''); const [notice, setNotice] = useState('')
+  const reset = (update: () => void) => { setPage(1); update() }
+  const load = async () => {
+    if (!activeGroup || (period === 'custom' && (!from || !to || from > to))) return
+    const request = ++sequence.current; setLoading(true); setError('')
+    const now = new Date(); const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`; const three = new Date(now.getFullYear(), now.getMonth() - 2, 1).toISOString().slice(0, 10)
+    const bounds = period === 'season' ? seasonBounds(activeGroup.season) : period === 'month' ? { from: month, to: undefined } : period === 'three' ? { from: three, to: undefined } : period === 'custom' ? { from, to } : undefined
+    const today = localSessionDate()
+    try {
+      const [next, nextScheduled, nextLibrary, nextCounts] = await Promise.all([
+        getCloudTrainingArchive(activeGroup.id, { query, status, theme, from: bounds?.from, to: bounds?.to, today }, sort, page, 12),
+        getCloudTrainingSessionPage(activeGroup.id, { page: 1, pageSize: 1, filter: 'planned', today, ascending: true }),
+        getExerciseLibrary(activeGroup.organizationId), getCloudTrainingSessionCounts(activeGroup.id, today),
+      ])
+      if (request !== sequence.current) return
+      setSessions(next.sessions); setTotal(next.total); setNextSession(nextScheduled.sessions[0]); setLibrary(nextLibrary); setCounts(nextCounts)
+    } catch (cause) { if (request === sequence.current) setError(errorMessage(cause)) } finally { if (request === sequence.current) setLoading(false) }
   }
-
-  useEffect(() => {
-    let cancelled = false
-    Promise.all([getTrainingSessions(), getTrainingTemplates()]).then(([loadedSessions, loadedTemplates]) => {
-      if (cancelled) return
-      setSessions(loadedSessions)
-      setTemplates(loadedTemplates)
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
-  const filteredTemplates = useMemo(() => templates.filter((template) => {
-    const text = `${template.title} ${template.tags.join(' ')}`.toLowerCase()
-    return text.includes(query.toLowerCase())
-  }), [query, templates])
-  const upcoming = sessions.filter((session) => session.status !== 'completed')
-  const past = sessions.filter((session) => session.status === 'completed')
-  const today = sessions.find((session) => isToday(session.date))
-
-  return (
-    <section className="page">
-      <header className="page-header compact">
-        <span className="eyebrow">Allenamenti</span>
-        <h1>Training</h1>
-        <p>{sessions.length} sessioni · {templates.length} template</p>
-      </header>
-
-      <section className="content-section training-today">
-        <div>
-          <span className="eyebrow">Prossimo / Oggi</span>
-          <strong>{today ? today.title : 'Nessun allenamento oggi'}</strong>
-          {today && <span>{today.startTime || 'Orario libero'} · {today.durationMinutes} min</span>}
-        </div>
-        {today ? <Link className="primary-action" to={`/training/${today.id}`}>Apri sessione</Link> : <PermissionAction permission="training.create"><button type="button" className="primary-action" onClick={() => setSessionForm('scratch')}><Plus size={22} />Crea allenamento</button></PermissionAction>}
-      </section>
-
-      <div className="action-row">
-        <PermissionAction permission="training.create"><button type="button" onClick={() => setSessionForm('scratch')}><Plus size={20} />Da zero</button></PermissionAction>
-        <PermissionAction permission="templates.edit"><button type="button" onClick={() => setTemplateForm('new')}><Plus size={20} />Nuovo template</button></PermissionAction>
-      </div>
-
-      <section className="content-section">
-        <h2>Prossimi</h2>
-        <div className="list-stack">
-          {upcoming.map((session) => <TrainingSessionCard key={session.id} session={session} />)}
-          {upcoming.length === 0 && <p className="empty-state">Nessun allenamento registrato.</p>}
-        </div>
-      </section>
-
-      <section className="content-section">
-        <h2>Storico</h2>
-        <div className="list-stack">
-          {past.map((session) => <TrainingSessionCard key={session.id} session={session} />)}
-          {past.length === 0 && <p className="empty-state">Nessun allenamento completato.</p>}
-        </div>
-      </section>
-
-      <section className="content-section">
-        <div className="section-header-row">
-          <h2>Template allenamento</h2>
-          <PermissionAction permission="templates.edit"><button type="button" onClick={() => setTemplateForm('new')}><Plus size={18} />Nuovo</button></PermissionAction>
-        </div>
-        <label className="search-field">
-          <Search size={21} />
-          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cerca template..." />
-        </label>
-        <div className="list-stack">
-          {filteredTemplates.map((template) => (
-            <article key={template.id} className="list-card template-card">
-              <div>
-                <strong>{template.title}</strong>
-                <span>{template.expectedDurationMinutes} min · {template.phases.length} fasi</span>
-                {(template.minPlayers || template.maxPlayers) && <small>{template.minPlayers ?? '—'}–{template.maxPlayers ?? '—'} giocatori</small>}
-                <div className="template-tags">{template.tags.map((tag) => <b key={tag}>{tag}</b>)}</div>
-              </div>
-              <div className="vertical-actions">
-                <PermissionAction permission="training.create"><button type="button" onClick={() => setSessionForm(template)}>Usa template</button></PermissionAction>
-                <PermissionAction permission="templates.edit"><button type="button" onClick={() => setTemplateForm(template)}>Modifica</button></PermissionAction>
-                <PermissionAction permission="templates.edit"><button type="button" onClick={async () => { await duplicateTrainingTemplate(template.id); refresh() }}><Copy size={18} />Duplica</button></PermissionAction>
-                <PermissionAction permission="templates.edit"><button type="button" className="danger" onClick={async () => { if (window.confirm('Eliminare questo template? Le sessioni create non verranno eliminate.')) { await deleteTrainingTemplate(template.id); refresh() } }}><Trash2 size={18} /></button></PermissionAction>
-              </div>
-            </article>
-          ))}
-          {filteredTemplates.length === 0 && <p className="empty-state">Nessun template ancora. Salva i tuoi allenamenti migliori e riutilizzali.</p>}
-        </div>
-      </section>
-
-      {templateForm && <PermissionAction permission="templates.edit"><TemplateForm template={templateForm === 'new' ? undefined : templateForm} onSaved={refresh} onClose={() => setTemplateForm(undefined)} /></PermissionAction>}
-      {sessionForm && <PermissionAction permission="training.create"><SessionForm template={sessionForm === 'scratch' ? undefined : sessionForm} onSaved={(session) => { refresh(); navigate(`/training/${session.id}`) }} onClose={() => setSessionForm(undefined)} /></PermissionAction>}
-    </section>
-  )
+  useEffect(() => { void load() }, [activeGroup?.id, page, query, status, theme, period, from, to, sort])
+  const markCompleted = async (session: CloudTrainingSession) => { setBusy(true); try { await saveCloudTrainingSession({ ...session, status: 'completed', exercises: (session.exercises ?? []).map(({ id: _id, position: _position, ...exercise }) => exercise) }); setNotice('Allenamento segnato come completato.'); await load() } catch (cause) { setError(errorMessage(cause)) } finally { setBusy(false) } }
+  const duplicate = async (session: CloudTrainingSession) => { setBusy(true); try { await duplicateCloudTrainingSession(session.id); setNotice('Allenamento duplicato.'); await load() } catch (cause) { setError(errorMessage(cause)) } finally { setBusy(false) } }
+  if (!activeGroup) return <section className="page"><EmptyState title="Scegli un WorkGroup" description="Apri un gruppo per pianificare gli allenamenti." /></section>
+  if (editor) return <TrainingEditor editor={editor} library={library} groupId={activeGroup.id} organizationId={activeGroup.organizationId} onExerciseCreated={item => setLibrary(current => [...current, item].sort((a, b) => a.name.localeCompare(b.name)))} onClose={() => setEditor(undefined)} onSaved={async () => { setEditor(undefined); await load() }} onError={setError} />
+  if (sessionId) return <TrainingSessionDetail sessionId={sessionId} groupId={activeGroup.id} routeGroupId={groupId ?? activeGroup.id} editable={can('training.edit')} onBack={() => navigate(`/app/${groupId ?? activeGroup.id}/training`)} onEdit={session => setEditor(draftFrom(session))} onDuplicate={duplicate} onComplete={markCompleted} />
+  const pages = Math.max(1, Math.ceil(total / 12))
+  return <section className="page training-command-page training-hub training-archive"><header className="training-hub-header"><div><span className="eyebrow">Archivio cloud · {activeGroup.name}</span><h1>Allenamenti</h1><p>Cerca, riordina e consulta tutte le sedute della stagione.</p></div><PermissionAction permission="training.edit"><Button variant="primary" disabled={busy} onClick={() => setEditor(emptySession())}><Plus size={18} />Nuova seduta</Button></PermissionAction></header>
+    {nextSession && <button type="button" className="training-next-session" onClick={() => navigate(`/app/${groupId ?? activeGroup.id}/training/${nextSession.id}`)}><span>Prossima seduta</span><strong>{nextSession.title}</strong><small>{labelDate(nextSession.sessionDate)}{nextSession.startTime ? ` · ${nextSession.startTime.slice(0, 5)}` : ''} · {nextSession.plannedDurationMinutes} min</small><Dumbbell size={22} /></button>}
+    <section className="training-archive-overview" aria-label="Riepilogo allenamenti"><article><span>Archivio</span><strong>{counts.total}</strong><small>Sedute cloud</small></article><article><span>Prossime</span><strong>{counts.planned}</strong><small>Da portare in campo</small></article><article><span>Completate</span><strong>{counts.completed}</strong><small>Storico consolidato</small></article></section>
+    <section className="training-archive-controls" aria-label="Filtri archivio allenamenti"><label className="search-field"><Search size={18} /><input value={query} onChange={event => reset(() => setQuery(event.target.value))} placeholder="Titolo, obiettivo, note o esercizio" /></label><Select value={status} onChange={event => reset(() => setStatus(event.target.value as TrainingArchiveStatus))}><option value="all">Tutti gli stati</option><option value="planned">Programmate</option><option value="completed">Completate</option></Select><Select value={period} onChange={event => reset(() => setPeriod(event.target.value as typeof period))}><option value="season">Intera stagione</option><option value="month">Mese corrente</option><option value="three">Ultimi 3 mesi</option><option value="custom">Intervallo date</option></Select><Select value={sort} onChange={event => reset(() => setSort(event.target.value as TrainingArchiveSort))}><option value="recent">Più recenti</option><option value="oldest">Meno recenti</option><option value="upcoming">Prossime sedute</option><option value="title">Titolo</option></Select><Input value={theme} onChange={event => reset(() => setTheme(event.target.value))} placeholder="Tema / obiettivo" /><div className="training-view-switch" role="group" aria-label="Visualizzazione archivio"><Button size="sm" variant={view === 'grid' ? 'primary' : 'ghost'} aria-pressed={view === 'grid'} onClick={() => setView('grid')}><Grid2X2 size={16} />Griglia</Button><Button size="sm" variant={view === 'list' ? 'primary' : 'ghost'} aria-pressed={view === 'list'} onClick={() => setView('list')}><List size={16} />Lista</Button></div></section>
+    {period === 'custom' && <div className="training-date-range"><Input type="date" value={from} onChange={event => reset(() => setFrom(event.target.value))} /><Input type="date" value={to} onChange={event => reset(() => setTo(event.target.value))} /><Button variant="ghost" onClick={() => reset(() => { setPeriod('season'); setFrom(''); setTo('') })}>Ripristina</Button>{from && to && from > to && <ErrorState message="La data iniziale deve precedere la data finale." />}</div>}
+    {error && <ErrorState message={error} action={<Button size="sm" onClick={() => void load()}>Riprova</Button>} />}{notice && <div role="status" className="my-4 rounded-xl border border-app-success/40 bg-app-success/10 p-3 text-sm font-medium">{notice}</div>}
+    {loading ? <LoadingState label="Caricamento archivio allenamenti…" /> : <><section className={view === 'grid' ? 'training-archive-grid' : 'training-archive-list'}>{sessions.map(session => <SessionArchiveCard key={session.id} session={session} view={view} onOpen={() => navigate(`/app/${groupId ?? activeGroup.id}/training/${session.id}`)} onEdit={() => setEditor(draftFrom(session))} onDuplicate={() => void duplicate(session)} onComplete={() => void markCompleted(session)} editable={can('training.edit')} />)}{sessions.length === 0 && <EmptyState icon={CalendarDays} title="Nessun allenamento nell’archivio" description="Modifica ricerca o filtri, oppure pianifica una nuova seduta cloud." />}</section>{total > 0 && <nav className="training-archive-pagination" aria-label="Paginazione archivio"><span>{(page - 1) * 12 + 1}–{Math.min(page * 12, total)} di {total}</span><div><Button size="sm" disabled={page === 1} onClick={() => setPage(current => current - 1)}>Precedente</Button><Button size="sm" disabled={page >= pages} onClick={() => setPage(current => current + 1)}>Successiva</Button></div></nav>}</>}
+  </section>
 }
 
-function TrainingSessionCard({ session }: { session: TrainingSession }) {
-  const completed = session.status === 'completed'
-  return (
-    <Link to={`/training/${session.id}`} className="list-card training-session-card">
-      <time>{sessionDateLabel(session.date)}</time>
-      <div>
-        <strong>{session.title}</strong>
-        <span>{session.startTime || 'Orario libero'} · {session.durationMinutes} min</span>
-        <small>{session.plannedPhases?.length ?? session.phases?.length ?? 0} fasi</small>
-      </div>
-      <b className={completed ? 'status-badge complete' : 'status-badge'}>{completed ? 'COMPLETATO' : 'PIANIFICATO'}</b>
-    </Link>
-  )
+function SessionArchiveCard({ session, view, onOpen, onEdit, onDuplicate, onComplete, editable }: { session: CloudTrainingSession; view: 'grid' | 'list'; onOpen: () => void; onEdit: () => void; onDuplicate: () => void; onComplete: () => void; editable: boolean }) {
+  return <Card padding="sm" className={`training-archive-card ${view}`}><button type="button" className="training-archive-card-main" onClick={onOpen}><div><p className="eyebrow">{labelDate(session.sessionDate)}{session.startTime ? ` · ${session.startTime.slice(0, 5)}` : ''}</p><h2>{session.title}</h2><p>{session.objective || 'Obiettivo da definire'}</p></div><Badge variant={session.status === 'completed' ? 'success' : 'primary'}>{session.status === 'completed' ? 'Completato' : 'Programmato'}</Badge></button><div className="training-archive-card-meta"><span>{session.plannedDurationMinutes} min</span><span>{session.exercises?.length ?? 0} esercizi</span></div>{editable && <div className="training-archive-card-actions"><Button size="sm" variant="ghost" onClick={onEdit}><Pencil size={15} />Modifica</Button><Button size="sm" variant="ghost" onClick={onDuplicate}><Copy size={15} />Duplica</Button>{session.status !== 'completed' && <Button size="sm" variant="ghost" onClick={onComplete}><Check size={15} />Completa</Button>}</div>}</Card>
+}
+
+function TrainingSessionDetail({ sessionId, groupId, routeGroupId, editable, onBack, onEdit, onDuplicate, onComplete }: { sessionId: string; groupId: string; routeGroupId: string; editable: boolean; onBack: () => void; onEdit: (session: CloudTrainingSession) => void; onDuplicate: (session: CloudTrainingSession) => Promise<void>; onComplete: (session: CloudTrainingSession) => Promise<void> }) {
+  const [session, setSession] = useState<CloudTrainingSession>(); const [loading, setLoading] = useState(true); const [error, setError] = useState(''); const [fieldSession, setFieldSession] = useState<CloudTrainingSession>(); const [tab, setTab] = useState<'program' | 'attendance'>('program'); const [attendanceDirty, setAttendanceDirty] = useState(false); const request = useRef(0)
+  const load = async () => { const current = ++request.current; setLoading(true); setError(''); try { const next = await getCloudTrainingSession(sessionId, groupId); if (current !== request.current) return; setSession(next) } catch (cause) { if (current === request.current) setError(errorMessage(cause)) } finally { if (current === request.current) setLoading(false) } }
+  useEffect(() => { void load() }, [sessionId, groupId])
+  const back = () => { if (attendanceDirty && !window.confirm('Ci sono modifiche alle presenze non confermate. Tornare comunque all’archivio?')) return; onBack() }
+  if (loading) return <section className="page"><LoadingState label="Caricamento seduta cloud…" /></section>
+  if (!session) return <section className="page"><ErrorState message={error || 'Seduta non trovata.'} action={<Button onClick={() => void load()}>Riprova</Button>} /></section>
+  return <section className="page training-session-page"><button type="button" className="training-back-link" onClick={back}><ArrowLeft size={17} />Archivio allenamenti</button><header className="training-session-hero"><div><p className="eyebrow">{labelDate(session.sessionDate)}{session.startTime ? ` · ${session.startTime.slice(0, 5)}` : ''}</p><h1>{session.title}</h1><p>{session.objective || 'Obiettivo da definire'}</p></div><Badge variant={session.status === 'completed' ? 'success' : 'primary'}>{session.status === 'completed' ? 'Completato' : 'Programmato'}</Badge><div className="training-session-actions"><Button onClick={() => setFieldSession(session)}><Dumbbell size={16} />Modalità campo</Button>{editable && <><Button onClick={() => void onDuplicate(session)}><Copy size={16} />Duplica</Button>{session.status !== 'completed' && <Button onClick={() => void (async () => { await onComplete(session); await load() })()}><Check size={16} />Completa</Button>}<Button variant="primary" onClick={() => onEdit(session)}><Pencil size={16} />Modifica</Button></>}</div></header><div className="training-session-facts"><span>{session.plannedDurationMinutes} min programmati</span><span>{session.exercises?.length ?? 0} esercizi</span><span>WorkGroup {routeGroupId === groupId ? 'attivo' : 'autorizzato'}</span></div><div className="training-detail-tabs" role="tablist" aria-label="Dettaglio seduta"><button role="tab" aria-selected={tab === 'program'} onClick={() => setTab('program')}>Programma</button><button role="tab" aria-selected={tab === 'attendance'} onClick={() => setTab('attendance')}>Presenze</button></div>{tab === 'program' ? <section className="training-program-timeline" aria-label="Programma allenamento">{session.coachNotes && <p className="training-detail-notes">{session.coachNotes}</p>}{(session.exercises ?? []).map((exercise, index) => <article key={exercise.id} className="training-program-step"><span>{index + 1}</span><div><p>{exercise.durationMinutes} min · {exercise.snapshotObjective || 'Obiettivo da definire'}</p><h2>{exercise.snapshotName}</h2>{exercise.snapshotDescription && <p className="training-program-description">{exercise.snapshotDescription}</p>}{exercise.coachNotes && <p className="training-program-coach"><strong>Nota mister: </strong>{exercise.coachNotes}</p>}</div></article>)}{!session.exercises?.length && <EmptyState title="Seduta senza esercizi" description="Aggiungi esercizi dal workspace della seduta." />}</section> : <section className="training-attendance-full" aria-labelledby="attendance-panel-title"><div><p className="eyebrow">Appello cloud</p><h2 id="attendance-panel-title">Presenze</h2><p>Salva esplicitamente gli stati della seduta, anche quando è completata.</p></div><TrainingAttendanceSheet embedded open onClose={() => setTab('program')} onDirtyChange={setAttendanceDirty} session={session} /></section>}{fieldSession && <FieldMode session={fieldSession} onClose={() => setFieldSession(undefined)} />}</section>
+}
+
+function TrainingEditor({ editor: initial, library, groupId, organizationId, onExerciseCreated, onClose, onSaved, onError }: { editor: Editor; library: ExerciseLibraryItem[]; groupId: string; organizationId: string; onExerciseCreated: (item: ExerciseLibraryItem) => void; onClose: () => void; onSaved: () => Promise<void>; onError: (message: string) => void }) {
+  const session = initial.session
+  const [title, setTitle] = useState(session?.title ?? ''); const [date, setDate] = useState(session?.sessionDate ?? dateKey()); const [time, setTime] = useState(session?.startTime?.slice(0, 5) ?? ''); const [objective, setObjective] = useState(session?.objective ?? ''); const [duration, setDuration] = useState(session?.plannedDurationMinutes ?? 90); const [notes, setNotes] = useState(session?.coachNotes ?? ''); const [status, setStatus] = useState<'planned' | 'completed'>(session?.status ?? 'planned'); const [exercises, setExercises] = useState(initial.exercises)
+  const [query, setQuery] = useState(''); const [category, setCategory] = useState(''); const [exerciseObjective, setExerciseObjective] = useState(''); const [playerCount, setPlayerCount] = useState(''); const [view, setView] = useState<'all'|'favorites'|'recent'>('all'); const [mobileTab, setMobileTab] = useState<'library'|'session'>('session')
+  const [favorites, setFavorites] = useState<Set<string>>(new Set()); const [recent, setRecent] = useState<string[]>([]); const [favoritesAvailable, setFavoritesAvailable] = useState(true); const [quickOpen, setQuickOpen] = useState(false); const [dirty, setDirty] = useState(false); const [busy, setBusy] = useState(false); const [localError, setLocalError] = useState('')
+  useEffect(() => { void Promise.all([getExerciseFavoriteIds(organizationId).catch(() => null), getRecentExerciseIds(groupId).catch(() => [])]).then(([ids, recentIds]) => { setFavoritesAvailable(ids !== null); setFavorites(new Set(ids ?? [])); setRecent(recentIds) }) }, [groupId, organizationId])
+  const mark = () => setDirty(true)
+  const add = (item: ExerciseLibraryItem) => { setExercises(current => [...current, { exerciseId: item.id, snapshotName: item.name, snapshotObjective: item.objective, snapshotDescription: item.detailedDescription || item.shortDescription, durationMinutes: item.suggestedDurationMinutes ?? 10, coachNotes: '' }]); mark(); setMobileTab('session') }
+  const update = (index: number, patch: Partial<DraftExercise>) => { setExercises(current => current.map((item, itemIndex) => itemIndex === index ? { ...item, ...patch } : item)); mark() }
+  const move = (index: number, direction: -1 | 1) => { setExercises(current => { const target = index + direction; if (target < 0 || target >= current.length) return current; const next = [...current]; [next[index], next[target]] = [next[target], next[index]]; return next }); mark() }
+  const close = () => { if (dirty && !window.confirm('Ci sono modifiche non salvate alla seduta. Chiudere comunque?')) return; onClose() }
+  const save = async () => { if (!title.trim() || !date || duration < 1 || duration > 480) { setLocalError('Inserisci titolo, data e una durata valida.'); return }; setBusy(true); setLocalError(''); try { await saveCloudTrainingSession({ id: session?.id, groupId, sessionDate: date, startTime: time || null, title: title.trim(), objective, plannedDurationMinutes: Number(duration), coachNotes: notes, status, exercises }); setDirty(false); await onSaved() } catch (cause) { const message = errorMessage(cause); setLocalError(message); onError(message) } finally { setBusy(false) } }
+  const createQuickExercise = async (event: React.FormEvent<HTMLFormElement>) => { event.preventDefault(); const form = new FormData(event.currentTarget); const name = String(form.get('name') ?? '').trim(); if (!name) return; setBusy(true); setLocalError(''); try { const item = await saveExercise({ organizationId, name, objective: String(form.get('objective') ?? '').trim(), shortDescription: String(form.get('description') ?? '').trim(), category: String(form.get('category') ?? '') || null, tags: String(form.get('tags') ?? '').split(',').map(value => value.trim()).filter(Boolean), materials: String(form.get('materials') ?? '').split(',').map(value => value.trim()).filter(Boolean), suggestedDurationMinutes: Number(form.get('duration')) || null, suggestedPlayerCount: Number(form.get('players')) || null }); onExerciseCreated(item); add(item); setQuickOpen(false) } catch (cause) { setLocalError(errorMessage(cause)) } finally { setBusy(false) } }
+  const toggleFavorite = async (item: ExerciseLibraryItem) => { if (!favoritesAvailable) return; setBusy(true); try { const next = !favorites.has(item.id); await setExerciseFavorite(organizationId, item.id, next); setFavorites(current => { const updated = new Set(current); next ? updated.add(item.id) : updated.delete(item.id); return updated }) } catch (cause) { setLocalError(errorMessage(cause)) } finally { setBusy(false) } }
+  const available = filterExerciseLibrary(library, { query, category, objective: exerciseObjective, playerCount }).filter(item => view !== 'favorites' || favorites.has(item.id)).sort((a, b) => view === 'recent' ? recent.indexOf(a.id) - recent.indexOf(b.id) : a.name.localeCompare(b.name))
+  const exerciseMinutes = exercises.reduce((total, item) => total + (Number(item.durationMinutes) || 0), 0); const difference = duration - exerciseMinutes
+  const libraryPanel = <section className={`training-builder-library rounded-app border border-app-border bg-app-elevated p-4 ${mobileTab === 'library' ? '' : 'hidden md:block'}`}><div className="mb-3 flex items-center justify-between gap-3"><div><p className="eyebrow">Libreria condivisa</p><h2 className="font-bold">Esercizi</h2></div><Button size="sm" variant="primary" onClick={() => setQuickOpen(current => !current)}><Plus size={15} />Nuovo</Button></div>{quickOpen && <form className="mb-4 grid gap-2 rounded-xl border border-app-primary/30 bg-app-surface p-3" onSubmit={createQuickExercise}><strong>Crea e aggiungi alla seduta</strong><Input name="name" required autoFocus placeholder="Titolo esercizio" /><div className="grid gap-2 sm:grid-cols-2"><Input name="objective" placeholder="Obiettivo" /><Select name="category" defaultValue=""><option value="">Categoria</option>{EXERCISE_CATEGORIES.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}</Select><Input name="duration" type="number" min="1" max="480" placeholder="Durata min" /><Input name="players" type="number" min="1" max="100" placeholder="Giocatori" /></div><Textarea name="description" placeholder="Descrizione breve" /><details><summary className="cursor-pointer text-sm font-semibold">Campi avanzati</summary><div className="mt-2 grid gap-2"><Input name="tags" placeholder="Tag / obiettivi, separati da virgole" /><Input name="materials" placeholder="Materiali, separati da virgole" /></div></details><div className="flex justify-end gap-2"><Button type="button" size="sm" variant="ghost" onClick={() => setQuickOpen(false)}>Annulla</Button><Button type="submit" size="sm" variant="primary" loading={busy}>Crea e aggiungi</Button></div></form>}<label className="search-field flex items-center gap-2"><Search size={17} /><input className="min-w-0 flex-1" value={query} onChange={event => setQuery(event.target.value)} placeholder="Cerca titolo, descrizione o tag" /></label><div className="mt-2 grid gap-2 sm:grid-cols-2"><Select value={category} onChange={event => setCategory(event.target.value)} aria-label="Categoria esercizio"><option value="">Categorie</option>{EXERCISE_CATEGORIES.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}</Select><Select value={exerciseObjective} onChange={event => setExerciseObjective(event.target.value)} aria-label="Obiettivo esercizio"><option value="">Obiettivi</option>{EXERCISE_OBJECTIVES.map(item => <option key={item} value={item}>{item}</option>)}</Select><Select value={playerCount} onChange={event => setPlayerCount(event.target.value)} aria-label="Numero giocatori"><option value="">Giocatori</option><option value="6">Fino a 6</option><option value="10">Fino a 10</option><option value="16">Fino a 16</option></Select><Button size="sm" variant="ghost" onClick={() => { setQuery(''); setCategory(''); setExerciseObjective(''); setPlayerCount(''); setView('all') }}>Azzera</Button></div><div className="mt-3 flex gap-1" role="group" aria-label="Viste esercizi"><Button size="sm" variant={view === 'all' ? 'primary' : 'ghost'} onClick={() => setView('all')}>Tutti</Button><Button size="sm" variant={view === 'favorites' ? 'primary' : 'ghost'} disabled={!favoritesAvailable} onClick={() => setView('favorites')}><Star size={14} />Preferiti</Button><Button size="sm" variant={view === 'recent' ? 'primary' : 'ghost'} onClick={() => setView('recent')}>Recenti</Button></div><p className="mt-3 text-xs text-app-muted">{available.length} risultati{!favoritesAvailable ? ' · Preferiti disponibili dopo migration 019' : ''}</p><div className="mt-3 max-h-[42dvh] space-y-2 overflow-auto pr-1">{available.map(item => <article key={item.id} className="rounded-xl border border-app-border bg-app-surface p-3"><div className="flex items-start justify-between gap-2"><div className="min-w-0"><strong className="block truncate">{item.name}</strong><p className="mt-1 text-xs text-app-muted">{item.objective || exerciseCategoryLabel(item.category)}</p></div><Button size="icon" variant="ghost" disabled={!favoritesAvailable || busy} aria-label="Preferito" onClick={() => void toggleFavorite(item)}><Star size={15} fill={favorites.has(item.id) ? 'currentColor' : 'none'} /></Button></div><div className="mt-2 flex flex-wrap gap-1">{item.category && <Badge>{exerciseCategoryLabel(item.category)}</Badge>}{item.tags.slice(0, 2).map(tag => <Badge key={tag} variant="info">{tag}</Badge>)}</div><Button size="sm" className="mt-3" onClick={() => add(item)}><Plus size={15} />Aggiungi</Button></article>)}{available.length === 0 && <EmptyState icon={ClipboardList} title="Nessun esercizio trovato" description="Prova a modificare i filtri oppure crea un esercizio." action={<Button size="sm" onClick={() => setQuickOpen(true)}><Plus size={15} />Nuovo esercizio</Button>} />}</div></section>
+  const sequencePanel = <section className={`training-builder-sequence rounded-app border border-app-border bg-app-surface p-4 ${mobileTab === 'session' ? '' : 'hidden md:block'}`}><div className="mb-3 flex items-center justify-between"><div><p className="eyebrow">La mia seduta</p><h2 className="font-bold">Sequenza</h2></div><Badge variant="primary">{exercises.length}</Badge></div><div className="max-h-[50dvh] space-y-2 overflow-auto">{exercises.map((item, index) => <article key={`${item.exerciseId ?? 'custom'}-${index}`} className="training-sequence-card rounded-xl border border-app-border bg-app-elevated p-3"><div className="flex items-start gap-2"><span className="training-sequence-number">{index + 1}</span><div className="min-w-0 flex-1"><strong>{item.snapshotName}</strong><p className="text-xs text-app-muted">{item.snapshotObjective}</p><div className="mt-2 grid gap-2 sm:grid-cols-2"><Input type="number" min="1" max="480" aria-label={`Durata ${item.snapshotName}`} value={item.durationMinutes} onChange={event => update(index, { durationMinutes: Number(event.target.value) })} /><Input aria-label={`Note ${item.snapshotName}`} value={item.coachNotes} onChange={event => update(index, { coachNotes: event.target.value })} placeholder="Note specifiche" /></div></div><div className="flex flex-col gap-1"><Button size="sm" variant="ghost" disabled={index === 0} onClick={() => move(index, -1)} aria-label="Sposta su">↑</Button><Button size="sm" variant="ghost" disabled={index === exercises.length - 1} onClick={() => move(index, 1)} aria-label="Sposta giù">↓</Button><Button size="sm" variant="ghost" aria-label="Rimuovi esercizio" onClick={() => { setExercises(current => current.filter((_, itemIndex) => itemIndex !== index)); mark() }}><Trash2 size={15} /></Button></div></div></article>)}{exercises.length === 0 && <p className="rounded-xl border border-dashed border-app-border p-4 text-sm text-app-muted">Aggiungi esercizi dalla libreria. La bozza non viene salvata automaticamente.</p>}</div></section>
+  return <section className="page training-builder-workspace"><div className="training-builder grid gap-5"><header className="training-builder-workspace-header"><div><p className="eyebrow">Training Builder V2 · cloud</p><h1 id="training-editor-title">{session ? 'Modifica seduta' : 'Nuova seduta'}</h1><p>Informazioni, libreria e sequenza restano nella stessa bozza finché non salvi.</p></div><Button variant="ghost" aria-label="Chiudi workspace" onClick={close}><X size={18} />Chiudi</Button></header><div className="training-duration-summary"><span><b>{duration}</b> min programmati</span><span><b>{exerciseMinutes}</b> min esercizi</span><span className={difference < 0 ? 'is-over' : ''}>{difference < 0 ? `${Math.abs(difference)} min oltre` : `${difference} min liberi`}</span></div><section className="training-builder-information"><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><Field label="Data"><Input type="date" value={date} onChange={event => { setDate(event.target.value); mark() }} /></Field><Field label="Ora"><Input type="time" value={time} onChange={event => { setTime(event.target.value); mark() }} /></Field><Field label="Durata (min)"><Input type="number" min="1" max="480" value={duration} onChange={event => { setDuration(Number(event.target.value)); mark() }} /></Field><Field label="Stato"><Select value={status} onChange={event => { setStatus(event.target.value as 'planned' | 'completed'); mark() }}><option value="planned">Programmato</option><option value="completed">Completato</option></Select></Field></div><Field label="Titolo"><Input value={title} onChange={event => { setTitle(event.target.value); mark() }} placeholder="Es. Possesso palla" autoFocus /></Field><Field label="Obiettivo"><Input value={objective} onChange={event => { setObjective(event.target.value); mark() }} placeholder="Es. uscita dalla pressione" /></Field><Field label="Note del mister"><Textarea value={notes} onChange={event => { setNotes(event.target.value); mark() }} placeholder="Indicazioni generali per la seduta" /></Field></section><div className="grid grid-cols-2 gap-2 md:hidden"><Button size="sm" variant={mobileTab === 'library' ? 'primary' : 'ghost'} onClick={() => setMobileTab('library')}>Libreria</Button><Button size="sm" variant={mobileTab === 'session' ? 'primary' : 'ghost'} onClick={() => setMobileTab('session')}>La mia seduta ({exercises.length})</Button></div><div className="training-builder-grid">{libraryPanel}{sequencePanel}</div>{localError && <ErrorState message={localError} />}<div className="training-builder-savebar"><Button onClick={close} disabled={busy}>Annulla</Button><Button variant="primary" loading={busy} onClick={() => void save()}>Salva allenamento</Button></div></div></section>
+}
+
+function FieldMode({ session, onClose }: { session: CloudTrainingSession; onClose: () => void }) {
+  const [index, setIndex] = useState(0); const [showList, setShowList] = useState(false); const exercises = session.exercises ?? []; const exercise = exercises[index]
+  return <DialogSheet labelledBy="field-mode-title" onClose={onClose} className="add-player-sheet max-w-3xl"><div className="add-player-scroll flex min-h-[75vh] flex-col gap-5"><div className="flex items-center justify-between"><div><p className="eyebrow">Modalità campo</p><h1 id="field-mode-title">{session.title}</h1></div><Button size="icon" variant="ghost" aria-label="Chiudi" onClick={onClose}><X size={18} /></Button></div>{exercise ? <><div className="rounded-app bg-app-primary p-5 text-app-primary-fg"><p className="text-sm font-bold uppercase tracking-wide">Esercizio {index + 1} di {exercises.length}</p><h2 className="mt-3 text-3xl font-black">{exercise.snapshotName}</h2><strong className="mt-4 block text-5xl">{exercise.durationMinutes}<small className="ml-2 text-xl">min</small></strong></div><div><h3 className="text-lg font-bold">{exercise.snapshotObjective}</h3><p className="mt-2 whitespace-pre-wrap leading-relaxed text-app-muted">{exercise.snapshotDescription || 'Nessuna istruzione aggiuntiva.'}</p>{exercise.coachNotes && <p className="mt-4 rounded-xl border-l-4 border-app-primary bg-app-elevated p-3 text-sm"><strong>Nota mister: </strong>{exercise.coachNotes}</p>}</div><div className="mt-auto flex items-center justify-between gap-2"><Button disabled={index === 0} onClick={() => setIndex(current => current - 1)}><ChevronLeft size={18} />Precedente</Button><Button variant="ghost" onClick={() => setShowList(value => !value)}>Lista completa</Button><Button variant="primary" disabled={index === exercises.length - 1} onClick={() => setIndex(current => current + 1)}>Successivo<ChevronRight size={18} /></Button></div>{showList && <div className="max-h-44 overflow-auto rounded-xl border border-app-border">{exercises.map((item, itemIndex) => <button type="button" key={item.id} onClick={() => { setIndex(itemIndex); setShowList(false) }} className="flex w-full justify-between border-b border-app-border p-3 text-left text-sm"><span>{itemIndex + 1}. {item.snapshotName}</span><span>{item.durationMinutes} min</span></button>)}</div>}</> : <EmptyState title="Seduta senza esercizi" description="Aggiungi esercizi dall'editor della seduta." />}</div></DialogSheet>
 }

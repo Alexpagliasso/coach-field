@@ -1,4 +1,4 @@
-# Coach Field ? V5A Multi-Staff Foundation
+# GrowPitch — V5A Multi-Staff Foundation
 
 Recovery incrementale del checkpoint V1?V4: pagine tecniche esistenti, IndexedDB versione **5** invariata, nessuna migrazione dei dati sportivi al cloud.
 
@@ -36,11 +36,11 @@ V5B (cloud sportivo + offline sync), V6 Parent Portal, redesign e AI **non imple
 
 Il testo seguente ? il riferimento storico V1?V4. Routing, stato Auth/backend, seed e test sono aggiornati dalle sezioni V5A e dalla documentazione collegata sopra.
 
-# Coach Field
+# GrowPitch
 
-Coach Field e una PWA mobile-first per supportare un allenatore di calcio giovanile durante allenamenti e partite. L'app concentra in pochi tap template, sessioni reali, presenze, osservazioni, note vocali, valutazioni individuali e storico giocatore.
+GrowPitch è una PWA mobile-first per il coaching e lo sviluppo nel calcio giovanile. L'app concentra in pochi tap template, sessioni reali, presenze, osservazioni, note vocali, valutazioni individuali e storico giocatore.
 
-Il progetto nasce per risolvere un problema concreto: durante un allenamento non c'e tempo per navigare menu complessi, prendere appunti lunghi o ricordare a memoria tutte le consegne. Coach Field porta sul telefono una traccia pratica della seduta e uno spazio locale per salvare osservazioni rapide, anche offline.
+Il progetto nasce per risolvere un problema concreto: durante un allenamento non c'è tempo per navigare menu complessi, prendere appunti lunghi o ricordare a memoria tutte le consegne. GrowPitch porta sul telefono una traccia pratica della seduta e uno spazio locale per salvare osservazioni rapide, anche offline.
 
 L'utente principale e un allenatore di calcio giovanile che usa iPhone, smartphone o tablet direttamente a bordo campo.
 
@@ -90,7 +90,7 @@ La UI non accede direttamente a IndexedDB: passa da funzioni repository come `ge
 
 ## Offline-First
 
-Coach Field salva i dati applicativi in IndexedDB nel browser:
+GrowPitch salva i dati applicativi in IndexedDB nel browser:
 
 - giocatori
 - sedute
@@ -159,7 +159,9 @@ La build produce la cartella `dist/`.
 
 ## Current Status
 
-Coach Field e un MVP funzionante per uso locale/mobile-first. Le funzionalita centrali sono implementate: timer, presenze, rosa, osservazioni, note vocali, adattamento ai presenti, gestione partite, template/sessioni allenamento, player development qualitativo, PWA, temi e backup completo.
+GrowPitch è un MVP funzionante per uso locale/mobile-first. Le funzionalità centrali sono implementate: timer, presenze, rosa, osservazioni, note vocali, adattamento ai presenti, gestione partite, template/sessioni allenamento, player development qualitativo, PWA, temi e backup completo.
+
+> Coach Field was renamed to GrowPitch. Gli identificatori persistenti legacy restano invariati per compatibilità.
 
 Non sono presenti backend, autenticazione, sincronizzazione cloud o test automatici. L'editor template/sessioni e volutamente essenziale e mobile-first.
 

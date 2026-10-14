@@ -1,7 +1,7 @@
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
-import { APP_NAME } from './src/brand.ts'
+import { APP_DESCRIPTION, APP_NAME } from './src/brand.ts'
 import tailwindcss from '@tailwindcss/vite'
 
 // https://vite.dev/config/
@@ -16,10 +16,12 @@ export default defineConfig({
       manifest: {
         name: APP_NAME,
         short_name: APP_NAME,
+        description: APP_DESCRIPTION,
+        lang: 'it',
         display: 'standalone',
         start_url: '/',
-        theme_color: '#07110f',
-        background_color: '#07110f',
+        theme_color: '#6547e8',
+        background_color: '#f6f7fb',
         icons: [
           {
             src: '/favicon.svg',

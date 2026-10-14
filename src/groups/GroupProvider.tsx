@@ -3,11 +3,10 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/authContext'
 import { resolvePermissions } from '../auth/permissions'
 import { loadStaffContext, type StaffContextData } from '../cloud/staffRepository'
-import { clearLocalAccess } from '../db/localAccess'
 import { errorMessage } from '../lib/supabase'
 import { groupRole } from './access'
 import { GroupContext } from './groupContext'
-const empty: StaffContextData = { organizations: [], groups: [], organizationMemberships: [], memberships: [], overrides: [] }
+const empty: StaffContextData = { organizations: [], organizationSeasons: [], teams: [], groups: [], organizationMemberships: [], memberships: [], overrides: [] }
 export function GroupProvider({ children }: { children: ReactNode }) {
   const { user, isAuthenticated } = useAuth()
   const [state, setState] = useState({ data: empty, owner: '', loading: false, error: '' })
@@ -16,7 +15,6 @@ export function GroupProvider({ children }: { children: ReactNode }) {
   const userId = isAuthenticated ? user?.id ?? '' : ''
   const generation = useRef(0)
   const reload = useCallback(async () => {
-    clearLocalAccess()
     const request = ++generation.current
     if (!userId) return
     setState({ data: empty, owner: userId, loading: true, error: '' })
@@ -32,6 +30,6 @@ export function GroupProvider({ children }: { children: ReactNode }) {
   const membership = data.memberships.find(item => item.groupId === activeGroup?.id && item.userId === userId && item.active)
   const permissions = resolvePermissions({ role, overrides: data.overrides.filter(item => item.membershipId === membership?.id) })
   return <GroupContext.Provider value={{ data, loading: Boolean(userId) && (state.owner !== userId || state.loading), error: state.error, availableGroups, activeGroup, membership, role, permissions, reload,
-    switchGroup: id => { clearLocalAccess(); navigate(`/app/${id}/today`) },
+    switchGroup: id => { navigate(`/app/${id}/today`) },
   }}>{children}</GroupContext.Provider>
 }

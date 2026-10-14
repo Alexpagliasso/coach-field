@@ -19,7 +19,7 @@ export function UiLabPage() {
   const [themeOpen, setThemeOpen] = useState(false)
   const { signOut } = useAuth()
   return <main className="ui-lab min-h-screen text-app-text">
-    <header className="ui-lab-bar"><Link className={buttonClass({ variant: 'ghost', size: 'sm' })} to="/app/groups"><ArrowLeft size={17} /> Gruppi</Link><strong>Coach Field · UI Lab</strong><div className="flex gap-2"><IconButton label="Cambia tema" onClick={() => setThemeOpen(true)}><Palette size={19} /></IconButton><IconButton label="Esci" onClick={() => void signOut()}><LogOut size={19} /></IconButton></div></header>
+    <header className="ui-lab-bar"><Link className={buttonClass({ variant: 'ghost', size: 'sm' })} to="/app/groups"><ArrowLeft size={17} /> Gruppi</Link><strong>GrowPitch · UI Lab</strong><div className="flex gap-2"><IconButton label="Cambia tema" onClick={() => setThemeOpen(true)}><Palette size={19} /></IconButton><IconButton label="Esci" onClick={() => void signOut()}><LogOut size={19} /></IconButton></div></header>
     <div className="ui-lab-container">
       <PageHeader eyebrow="Color direction V2" title="Electric Editorial, light-first." description="Violet come identità, blue tecnologico, coral come energia e colori semantici separati dal brand." actions={<Button variant="primary"><Sparkles size={18} /> Azione primaria</Button>} />
 
@@ -33,7 +33,7 @@ export function UiLabPage() {
       </section>
 
       <section className="ui-lab-section"><div><p className="ui-kicker">Product preview</p><h2 className="ui-section-title">Composizione sport-tech</h2></div><div className="ui-demo-grid">
-        <Card className="ui-score-card" padding="lg"><div className="flex items-center justify-between"><Badge variant="danger"><Radio size={13} /> Live</Badge><Trophy className="text-app-primary" size={25} /></div><p className="ui-caption">MATCH DAY · U10</p><h3>Coach Field U10</h3><div className="ui-score"><strong>2</strong><span>—</span><strong>1</strong></div><p className="ui-secondary">Avversario</p></Card>
+        <Card className="ui-score-card" padding="lg"><div className="flex items-center justify-between"><Badge variant="danger"><Radio size={13} /> Live</Badge><Trophy className="text-app-primary" size={25} /></div><p className="ui-caption">MATCH DAY · U10</p><h3>GrowPitch U10</h3><div className="ui-score"><strong>2</strong><span>—</span><strong>1</strong></div><p className="ui-secondary">Avversario</p></Card>
         <Card className="ui-observation-card" padding="lg"><div className="flex items-center justify-between gap-3"><div><p className="ui-kicker">Nuova osservazione</p><h3>Squadra</h3></div><Badge variant="primary">Inbox</Badge></div><blockquote>“Poca personalità nella metà campo offensiva.”</blockquote><div className="flex flex-wrap gap-2"><Badge variant="info">Tattica</Badge><Badge variant="concern"><Activity size={13} /> Da monitorare</Badge></div><Button className="mt-auto" variant="primary">Rivedi osservazione</Button></Card>
       </div></section>
     </div>

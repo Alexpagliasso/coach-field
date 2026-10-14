@@ -4,6 +4,6 @@ export class AppErrorBoundary extends Component<{ children: ReactNode }, { faile
   state = { failed: false }
   static getDerivedStateFromError() { return { failed: true } }
   render() {
-    return this.state.failed ? <main className="page"><h1>{APP_NAME}</h1><p role="alert">Impossibile aprire questa schermata. I dati locali non sono stati cancellati.</p><button onClick={() => window.location.reload()}>Riprova</button><a href="/app/groups">Torna ai gruppi</a></main> : this.props.children
+    return this.state.failed ? <main className="page"><h1>{APP_NAME}</h1><p role="alert">Impossibile aprire questa schermata. I dati cloud non sono stati modificati.</p><button onClick={() => window.location.reload()}>Riprova</button><a href="/app/groups">Torna ai gruppi</a></main> : this.props.children
   }
 }

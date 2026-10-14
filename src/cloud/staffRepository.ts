@@ -1,5 +1,6 @@
 import { requireSupabase } from '../lib/supabase'
-import type { CollaboratorPermission, Group, GroupMembership, Organization, OrganizationMembership, UserProfile } from '../types/staff'
+import type { CollaboratorPermission, Group, GroupMembership, Organization, OrganizationMembership, OrganizationSeason, Team, UserProfile } from '../types/staff'
+import { isValidSeason } from '../utils/season'
 
 // Postgres uses snake_case; the application domain consistently uses camelCase.
 export function fromRow<T>(row: unknown): T {
@@ -12,11 +13,63 @@ export async function listRows<T>(table: string): Promise<T[]> {
   return (data ?? []).map(fromRow<T>)
 }
 export async function loadStaffContext() {
-  const [organizations, groups, organizationMemberships, memberships, overrides] = await Promise.all([
-    listRows<Organization>('organizations'), listRows<Group>('groups'), listRows<OrganizationMembership>('organization_memberships'),
-    listRows<GroupMembership>('group_memberships'), listRows<CollaboratorPermission>('collaborator_permissions'),
+  const [organizations, organizationSeasons, teams, groups, organizationMemberships, memberships, overrides] = await Promise.all([
+    listRows<Organization>('organizations'), listRows<OrganizationSeason>('organization_seasons'), listRows<Team>('teams'),
+    listRows<Group>('groups'), listRows<OrganizationMembership>('organization_memberships'), listRows<GroupMembership>('group_memberships'), listRows<CollaboratorPermission>('collaborator_permissions'),
   ])
-  return { organizations, groups, organizationMemberships, memberships, overrides }
+  return { organizations, organizationSeasons, teams, groups, organizationMemberships, memberships, overrides }
+}
+export async function bootstrapOrganization(name: string) {
+  const { data, error } = await requireSupabase().rpc('bootstrap_organization', { p_name: name }).single()
+  if (error) throw error
+  if (!data) throw new Error('Creazione organizzazione non riuscita.')
+  return fromRow<Organization>(data)
+}
+export async function listOrganizationSeasons(organizationId: string) {
+  const { data, error } = await requireSupabase().from('organization_seasons').select('*').eq('organization_id', organizationId).order('name')
+  if (error) throw error
+  return (data ?? []).map(fromRow<OrganizationSeason>)
+}
+export async function createOrganizationSeason(input: Pick<OrganizationSeason, 'organizationId' | 'name'>) {
+  const organizationId = input.organizationId.trim()
+  const name = input.name.trim()
+  if (!organizationId) throw new Error('Societa non valida.')
+  if (!isValidSeason(name)) throw new Error('Stagione non valida.')
+
+  const client = requireSupabase()
+  const { data: sessionData } = await client.auth.getSession()
+  const { data: auth, error: authError } = await client.auth.getUser()
+  if (authError || !auth.user) throw new Error('Sessione autenticata non disponibile. Accedi di nuovo e riprova.')
+
+  const payload = { organization_id: organizationId, name }
+  console.debug('[GrowPitch season create]', {
+    sessionUserId: sessionData.session?.user?.id ?? null,
+    getUserId: auth.user.id,
+    hasAccessToken: Boolean(sessionData.session?.access_token),
+    organizationId,
+    seasonName: name,
+  })
+  console.debug('[GrowPitch season create:before-insert]', { organizationId, seasonName: name })
+  const { data, error } = await client.from('organization_seasons').insert(payload).select('*').single()
+  console.debug('[GrowPitch season create:insert-result]', error ? {
+    code: error.code,
+    message: error.message,
+    details: error.details,
+    hint: error.hint,
+  } : { seasonId: data?.id ?? null, organizationId: data?.organization_id ?? null, seasonName: data?.name ?? null })
+  if (error) throw error
+  console.debug('[GrowPitch season create:after-insert]', { seasonId: data.id })
+  return fromRow<OrganizationSeason>(data)
+}
+export async function listTeams(seasonId: string) {
+  const { data, error } = await requireSupabase().from('teams').select('*').eq('season_id', seasonId).order('name')
+  if (error) throw error
+  return (data ?? []).map(fromRow<Team>)
+}
+export async function createTeam(input: Pick<Team, 'organizationId' | 'seasonId' | 'name'>) {
+  const { data, error } = await requireSupabase().from('teams').insert(toRow(input)).select('*').single()
+  if (error) throw error
+  return fromRow<Team>(data)
 }
 export type StaffContextData = Awaited<ReturnType<typeof loadStaffContext>>
 export async function getProfile(id: string) {

@@ -14,7 +14,7 @@ Le sezioni seguenti descrivono il checkpoint recuperato. Dove differiscono su ro
 
 ## Overview
 
-Coach Field e una SPA React con persistenza locale. La struttura e volutamente semplice: pagine React, componenti riusabili, repository IndexedDB e seed statici.
+GrowPitch è una SPA React con persistenza locale. La struttura è volutamente semplice: pagine React, componenti riusabili, repository IndexedDB e seed statici.
 
 ```mermaid
 flowchart TD
@@ -130,3 +130,8 @@ Questa scelta mantiene l'MVP semplice, ma richiede refresh manuali dopo alcune s
 ## Deployment
 
 Il progetto e configurato come app statica Vite. Non e presente configurazione Vercel dedicata nel repository.
+# Player cloud foundation (not yet active)
+
+The current Players UI and every sports workflow still read and write IndexedDB. The additive Supabase foundation defines organization-scoped player identities and seasonal group memberships, plus an isolated cloud repository that is not connected to the UI.
+
+No local import, dual-write, cache or synchronization is active. IndexedDB and its JSON backup remain the safeguard for existing sports data until a separate, explicit migration phase is completed.
