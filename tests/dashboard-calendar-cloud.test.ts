@@ -30,7 +30,7 @@ describe('cloud dashboard and calendar flow', () => {
     expect(dashboard).not.toContain('getCurrentSession')
     expect(dashboard).not.toContain('getAppState')
     expect(dashboard).toContain('getWorkGroupRoster(activeGroup.id)')
-    expect(dashboard).toContain('getCloudMatches(activeGroup.id, today)')
+    expect(dashboard).toContain('getCloudMatches(activeGroup.id)')
     expect(dashboard).not.toContain('getMatches')
     expect(dashboard).toContain('Rosa WorkGroup')
     expect(calendar).toContain('getCloudTrainingSessionsInRange(activeGroup.id, monthStart, monthEnd)')
@@ -55,5 +55,18 @@ describe('cloud dashboard and calendar flow', () => {
       expect(source).toContain('>Riprova</Button>')
       expect(source).toContain('current !== request.current')
     }
+  })
+
+  it('organizes the authenticated cloud data as an analytical bento dashboard without duplicate navigation', () => {
+    for (const label of ['Cabina di regia', 'Prossima attività', 'Presenze alle ultime sedute', 'Risultati recenti', 'Convocazioni', 'Riepilogo gruppo']) expect(dashboard).toContain(label)
+    expect(dashboard).not.toContain('Azioni rapide')
+    expect(dashboard).not.toContain('Prossimi impegni')
+    expect(dashboard).toContain('DashboardPanel')
+    expect(dashboard).toContain('DashboardStatTile')
+    expect(dashboard).toContain('TacticalBackdrop')
+    expect(dashboard).toContain('getDashboardAttendanceTrend')
+    expect(dashboard).toContain('getDashboardCallupDistribution')
+    expect(dashboard).toContain("item.status === 'completed'")
+    expect(dashboard).toContain("item.matchDate >= today")
   })
 })

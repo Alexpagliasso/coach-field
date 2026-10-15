@@ -5,6 +5,7 @@ import { MatchesPage } from './pages/MatchesPage'
 import { PlayersPage } from './pages/PlayersPage'
 import { TodayPage } from './pages/TodayPage'
 import { TrainingPage } from './pages/TrainingPage'
+import { TrainingImportPage } from './pages/TrainingImportPage'
 
 import { AuthProvider } from './auth/AuthProvider'
 import { GroupProvider } from './groups/GroupProvider'
@@ -53,6 +54,7 @@ function App() {
           <Route path="today" element={<PermissionGuard permission="training.view"><TodayPage /></PermissionGuard>} />
           <Route path="players" element={<PermissionGuard permission="players.view"><PlayersPage /></PermissionGuard>} />
           <Route path="training" element={<PermissionGuard permission="training.view"><TrainingPage /></PermissionGuard>} />
+          <Route path="training-import" element={<PermissionGuard permission="training.edit"><TrainingImportPage /></PermissionGuard>} />
           <Route path="exercises" element={<PermissionGuard permission="templates.view"><ExerciseLibraryPage /></PermissionGuard>} />
           <Route path="players/:id" element={<LegacyGroupRedirect to="players" />} />
           <Route path="goalkeepers" element={<LegacyGroupRedirect to="players" />} />
