@@ -6,6 +6,8 @@ const repository = readFileSync(new URL('../src/cloud/matchCloudRepository.ts', 
 const matches = readFileSync(new URL('../src/pages/MatchesPage.tsx', import.meta.url), 'utf8')
 const detail = readFileSync(new URL('../src/pages/MatchDetailPage.tsx', import.meta.url), 'utf8')
 const callups = readFileSync(new URL('../src/components/MatchCallupsPanel.tsx', import.meta.url), 'utf8')
+const lineup = readFileSync(new URL('../src/components/MatchLineupPanel.tsx', import.meta.url), 'utf8')
+const live = readFileSync(new URL('../src/components/MatchLivePanel.tsx', import.meta.url), 'utf8')
 const calendar = readFileSync(new URL('../src/pages/CalendarPage.tsx', import.meta.url), 'utf8')
 const dashboard = readFileSync(new URL('../src/pages/GroupDashboardPage.tsx', import.meta.url), 'utf8')
 
@@ -37,6 +39,27 @@ describe('Match Center cloud flow', () => {
     expect(callups).toContain('PlayerProfileModal')
     expect(callups).toContain('sourceGroupName')
     expect(callups).not.toContain('getMatches')
+  })
+
+  it('mounts an atomic, tap-first initial lineup editor instead of the former placeholder', () => {
+    expect(detail).toContain('MatchLineupPanel')
+    expect(detail).not.toContain('Formazione non ancora disponibile')
+    for (const operation of ['getCloudMatchInitialLineup', 'saveCloudMatchInitialLineup']) expect(repository).toContain(operation)
+    expect(lineup).toContain('slotsFor(formation)')
+    expect(lineup).toContain("callup.status === 'called' || callup.status === 'confirmed'")
+    expect(lineup).toContain('Salva formazione')
+    expect(lineup).toContain('Bozza salvata')
+  })
+
+  it('mounts the mobile live console with authoritative cloud recovery, goals, substitutions and final report', () => {
+    expect(detail).toContain('MatchLivePanel')
+    for (const operation of ['getCloudMatchLiveSnapshot', 'getCloudMatchLiveReport', 'startCloudMatchLive', 'pauseCloudMatchLive', 'finishCloudMatchPeriod', 'substituteCloudMatchPlayer', 'recordCloudMatchGoal', 'voidCloudMatchGoal', 'completeCloudMatchLive']) expect(live).toContain(operation)
+    expect(live).toContain('document.visibilityState')
+    expect(live).toContain('Riprova operazione')
+    expect(live).toContain('FIGC consolidato')
+    expect(live).toContain('Report finale')
+    expect(live).not.toContain('localStorage')
+    expect(live).not.toContain('indexedDB')
   })
 
   it('shows cloud matches alongside cloud training in calendar and dashboard without a local fallback', () => {

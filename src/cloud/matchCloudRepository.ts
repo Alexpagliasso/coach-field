@@ -8,6 +8,7 @@ export type CloudMatch = {
   id: string; organizationId: string; groupId: string; matchDate: string; startTime?: string | null
   opponent: string; homeAway: CloudMatchHomeAway; location?: string | null; competition?: string | null
   status: CloudMatchStatus; ourScore?: number | null; opponentScore?: number | null; coachNotes: string
+  matchFormat: 'seven_a_side'; periodCount: number; periodDurationMinutes: number; initialFormation: '2-3-1' | '3-2-1'
   createdBy: string; createdAt: string; updatedAt: string
 }
 export type CloudMatchCallupStatus = 'called' | 'confirmed' | 'unavailable'
@@ -15,6 +16,11 @@ export type CloudMatchCallup = { id: string; matchId: string; organizationId: st
 export type CloudMatchCallupCandidate = { player: CloudPlayer; sourceGroupId: string; sourceGroupName: string }
 export type CloudMatchPage = { matches: CloudMatch[]; total: number }
 export type CloudMatchHistoryItem = CloudMatchCallup & { match?: CloudMatch }
+export type CloudMatchLineupEntry = {
+  id: string; matchId: string; playerId: string; slotId: string; positionX: number; positionY: number
+  createdAt: string; updatedAt: string; player?: CloudPlayer
+}
+export type CloudMatchLineupSaveEntry = Pick<CloudMatchLineupEntry, 'playerId' | 'slotId' | 'positionX' | 'positionY'>
 
 type MatchInput = Omit<CloudMatch, 'id' | 'createdBy' | 'createdAt' | 'updatedAt'> & { id?: string }
 const toRow = (row: object) => Object.fromEntries(Object.entries(row).filter(([, value]) => value !== undefined).map(([key, value]) => [key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`), value]))
@@ -76,6 +82,28 @@ export async function getCloudMatchCallups(matchId: string) {
     const group = sourceGroup as { id?: string; name?: string } | null
     return { ...fromRow<CloudMatchCallup>(callup), sourceGroupName: group?.name, player: player ? fromRow<CloudPlayer>(player) : undefined }
   })
+}
+
+export async function getCloudMatchInitialLineup(matchId: string) {
+  const { data, error } = await requireSupabase().from('match_initial_lineup_entries').select('*, player:players(*)').eq('match_id', matchId).order('slot_id')
+  if (error) throw error
+  return ((data ?? []) as unknown[]).map(raw => {
+    const record = raw as Record<string, unknown>; const { player, ...entry } = record
+    return { ...fromRow<CloudMatchLineupEntry>(entry), player: player ? fromRow<CloudPlayer>(player as object) : undefined }
+  })
+}
+
+/** Replaces the complete initial lineup in one authorized database transaction. */
+export async function saveCloudMatchInitialLineup(matchId: string, entries: CloudMatchLineupSaveEntry[], expectedUpdatedAt: string, initialFormation?: CloudMatch['initialFormation']) {
+  const params: Record<string, unknown> = {
+    p_match_id: matchId,
+    p_entries: entries.map(entry => ({ playerId: entry.playerId, slotId: entry.slotId, positionX: entry.positionX, positionY: entry.positionY })),
+    p_expected_updated_at: expectedUpdatedAt,
+  }
+  if (initialFormation) params.p_initial_formation = initialFormation
+  const { data, error } = await requireSupabase().rpc('save_match_initial_lineup', params)
+  if (error) throw error
+  return String(data)
 }
 
 /**
