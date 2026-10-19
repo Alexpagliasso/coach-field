@@ -1,5 +1,5 @@
 import { requireSupabase } from '../lib/supabase'
-import type { CollaboratorPermission, Group, GroupMembership, Organization, OrganizationMembership, OrganizationSeason, Team, UserProfile } from '../types/staff'
+import type { CollaboratorPermission, DemoViewerAccess, Group, GroupMembership, Organization, OrganizationMembership, OrganizationSeason, Team, UserProfile } from '../types/staff'
 import { isValidSeason } from '../utils/season'
 
 // Postgres uses snake_case; the application domain consistently uses camelCase.
@@ -13,11 +13,12 @@ export async function listRows<T>(table: string): Promise<T[]> {
   return (data ?? []).map(fromRow<T>)
 }
 export async function loadStaffContext() {
-  const [organizations, organizationSeasons, teams, groups, organizationMemberships, memberships, overrides] = await Promise.all([
+  const [organizations, organizationSeasons, teams, groups, organizationMemberships, memberships, overrides, demoViewerAccesses] = await Promise.all([
     listRows<Organization>('organizations'), listRows<OrganizationSeason>('organization_seasons'), listRows<Team>('teams'),
     listRows<Group>('groups'), listRows<OrganizationMembership>('organization_memberships'), listRows<GroupMembership>('group_memberships'), listRows<CollaboratorPermission>('collaborator_permissions'),
+    listRows<DemoViewerAccess>('demo_viewer_access'),
   ])
-  return { organizations, organizationSeasons, teams, groups, organizationMemberships, memberships, overrides }
+  return { organizations, organizationSeasons, teams, groups, organizationMemberships, memberships, overrides, demoViewerAccesses }
 }
 export async function bootstrapOrganization(name: string) {
   const { data, error } = await requireSupabase().rpc('bootstrap_organization', { p_name: name }).single()

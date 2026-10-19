@@ -11,9 +11,10 @@ export type Permission = typeof PERMISSIONS[number]
 export type Permissions = Record<Permission, boolean>
 export const NON_DELEGABLE: readonly Permission[] = ['staff.manage', 'group.settings', 'data.manage']
 const collaboratorDefaults: readonly Permission[] = ['players.view', 'attendance.view', 'training.view', 'matches.view', 'templates.view', 'notes.view', 'notes.create']
+const demoViewerPermissions: readonly Permission[] = ['players.view', 'attendance.view', 'training.view', 'matches.view', 'templates.view', 'notes.view', 'development.view']
 export function resolvePermissions({ role, overrides = [] }: { role?: StaffRole; overrides?: readonly { permission: string; enabled: boolean }[] }): Permissions {
   return Object.fromEntries(PERMISSIONS.map(permission => [permission,
-    role === 'admin' || role === 'coach' || (role === 'collaborator' && !NON_DELEGABLE.includes(permission) &&
+    role === 'admin' || role === 'coach' || (role === 'demo_viewer' && demoViewerPermissions.includes(permission)) || (role === 'collaborator' && !NON_DELEGABLE.includes(permission) &&
       (overrides.find(item => item.permission === permission)?.enabled ?? collaboratorDefaults.includes(permission))),
   ])) as Permissions
 }

@@ -1,0 +1,14 @@
+import { useEffect, useState } from 'react'
+import { CalendarDays, Target } from 'lucide-react'
+import { getOrganizationFamilyPublications, type FamilyPublication } from '../cloud/familyPublicationsRepository'
+import { weekStart } from '../utils/familyDiaryWeeks'
+import { FamilyPublicationSheet, type FamilyPublicationDraft } from './FamilyPublicationSheet'
+import { Badge, Button, LoadingState } from './ui'
+
+export function WeeklyObjectivesPanel({ organizationId, editable }: { organizationId: string; editable: boolean }) {
+  const [referenceDate, setReferenceDate] = useState(() => weekStart(new Date())); const [items, setItems] = useState<FamilyPublication[]>([]); const [loading, setLoading] = useState(true); const [open, setOpen] = useState(false)
+  const load = async () => { setLoading(true); try { const all = await getOrganizationFamilyPublications(organizationId); setItems(all.filter(item => item.contentType === 'objective' && weekStart(item.referenceDate) === referenceDate)) } finally { setLoading(false) } }
+  useEffect(() => { void load() }, [organizationId, referenceDate])
+  const publication = items[0]; const draft: FamilyPublicationDraft = { contentType: 'objective', referenceDate, title: 'Obiettivi della settimana', publicContent: '', label: 'Obiettivi settimanali per le famiglie' }
+  return <section className="weekly-objectives-panel" aria-labelledby="weekly-objectives-panel-title"><div className="weekly-objectives-panel-head"><div><p className="eyebrow">Area famiglie</p><h2 id="weekly-objectives-panel-title"><Target size={18} />Obiettivi settimanali</h2><p>Condivisi a livello di società: non sono separati per gruppo.</p></div>{editable && <Button size="sm" variant="secondary" onClick={() => setOpen(true)}>{publication ? 'Modifica obiettivi' : 'Crea obiettivi'}</Button>}</div><div className="weekly-objectives-panel-date"><CalendarDays size={16} /><label>Settimana di riferimento<input type="date" value={referenceDate} onChange={event => event.target.value && setReferenceDate(weekStart(event.target.value))} /></label></div>{loading ? <LoadingState label="Caricamento obiettivi…" /> : items.length > 1 ? <p className="weekly-objectives-panel-warning">Sono presenti più obiettivi per questa settimana. Apri la modifica per risolvere il conflitto.</p> : publication ? <article><div><Badge variant={publication.status === 'published' ? 'success' : 'neutral'}>{publication.status === 'published' ? 'Pubblicato' : 'Bozza'}</Badge><h3>{publication.title}</h3></div><p>{publication.publicContent}</p></article> : <p className="weekly-objectives-panel-empty">Nessun obiettivo creato per questa settimana.</p>}{open && <FamilyPublicationSheet organizationId={organizationId} draft={draft} onChanged={() => void load()} onClose={() => { setOpen(false); void load() }} />}</section>
+}

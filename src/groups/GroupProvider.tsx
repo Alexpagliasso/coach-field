@@ -6,7 +6,7 @@ import { loadStaffContext, type StaffContextData } from '../cloud/staffRepositor
 import { errorMessage } from '../lib/supabase'
 import { groupRole } from './access'
 import { GroupContext } from './groupContext'
-const empty: StaffContextData = { organizations: [], organizationSeasons: [], teams: [], groups: [], organizationMemberships: [], memberships: [], overrides: [] }
+const empty: StaffContextData = { organizations: [], organizationSeasons: [], teams: [], groups: [], organizationMemberships: [], memberships: [], overrides: [], demoViewerAccesses: [] }
 export function GroupProvider({ children }: { children: ReactNode }) {
   const { user, isAuthenticated } = useAuth()
   const [state, setState] = useState({ data: empty, owner: '', loading: false, error: '' })

@@ -47,7 +47,7 @@ export function MatchLivePanel({ match, editable, onMatchChanged }: Props) {
       setSnapshot(nextSnapshot); setReport(nextReport); setCallups(nextCallups); setStints(nextStints); setDisplayElapsed(nextSnapshot.elapsedSeconds)
       if (nextSnapshot.phase === 'completed') onMatchChanged?.({ ...match, status: 'completed', ourScore: nextReport.globalScore.ours, opponentScore: nextReport.globalScore.opponent })
       else if (nextSnapshot.phase !== 'ready') onMatchChanged?.({ ...match, status: 'live', ourScore: nextReport.globalScore.ours, opponentScore: nextReport.globalScore.opponent })
-    } catch (reason) { if (current === version.current) setError(`Live cloud non disponibile: ${errorMessage(reason)}`) } finally { if (current === version.current) setLoading(false) }
+    } catch (reason) { if (current === version.current) setError(`Modalità live non disponibile: ${errorMessage(reason)}`) } finally { if (current === version.current) setLoading(false) }
   }, [match, onMatchChanged])
   useEffect(() => { void load() }, [load])
   useEffect(() => {
@@ -86,7 +86,7 @@ export function MatchLivePanel({ match, editable, onMatchChanged }: Props) {
     const requestId = existingId ?? crypto.randomUUID()
     setSaving(true); setError(''); setRetry(undefined)
     try { await operation(requestId); await load(); return true } catch (reason) {
-      setError(`Operazione live non riuscita: ${errorMessage(reason)}. Lo stato è stato ricaricato dal cloud.`)
+      setError(`Operazione live non riuscita: ${errorMessage(reason)}. I dati della partita sono stati aggiornati.`)
       setRetry(() => () => { void mutate(operation, undefined, requestId) })
       await load(); return false
     } finally { setSaving(false) }

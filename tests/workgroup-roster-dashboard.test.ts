@@ -22,8 +22,8 @@ describe('Dashboard WorkGroup cloud roster', () => {
   })
 
   it('renders loading, empty, error/retry and cloud roster preview states', () => {
-    expect(dashboard).toContain('Rosa WorkGroup')
-    expect(dashboard).toContain('Caricamento rosa cloud')
+    expect(dashboard).toContain('Rosa del gruppo')
+    expect(dashboard).toContain('Caricamento rosa...')
     expect(dashboard).toContain('rosterError')
     expect(dashboard).toContain('>Riprova</Button>')
     expect(dashboard).toContain('<WorkGroupRosterPreview roster={roster}')

@@ -18,7 +18,7 @@ describe('PlayersPage profile synchronization', () => {
     expect(stars).toContain('Non valutato')
   })
   it('reloads the authorized WorkGroup roster after the profile closes without retaining stale rows', () => {
-    expect(page).toContain('if (!profilePlayerId && activeGroup) void refresh()')
+    expect(page).toContain('if (!profilePlayerId && rosterGroup) void refresh()')
     expect(page).toContain('if (current !== request.current) return')
   })
 })

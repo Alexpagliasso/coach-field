@@ -1,0 +1,29 @@
+import { useEffect, useState } from 'react'
+import { Eye, ShieldCheck } from 'lucide-react'
+import { getOrganizationFamilyPublications, saveFamilyPublication, type FamilyPublication, type FamilyPublicationType } from '../cloud/familyPublicationsRepository'
+import { weekStart } from '../utils/familyDiaryWeeks'
+import { DialogSheet } from './DialogSheet'
+import { Button, ErrorState, Field, Input, LoadingState, Textarea } from './ui'
+import { errorMessage } from '../lib/supabase'
+
+export type FamilyPublicationDraft = { contentType: FamilyPublicationType; referenceDate: string; title: string; publicContent: string; label: string }
+
+export function FamilyPublicationSheet({ organizationId, draft, onClose, onChanged }: { organizationId: string; draft: FamilyPublicationDraft; onClose: () => void; onChanged?: () => void }) {
+  const weeklyObjective = draft.contentType === 'objective'; const initialDate = weeklyObjective ? weekStart(draft.referenceDate) : draft.referenceDate
+  const [existing, setExisting] = useState<FamilyPublication>(); const [title, setTitle] = useState(draft.title); const [content, setContent] = useState(draft.publicContent); const [referenceDate, setReferenceDate] = useState(initialDate)
+  const [loading, setLoading] = useState(true); const [saving, setSaving] = useState(false); const [confirmed, setConfirmed] = useState(false); const [error, setError] = useState('')
+  useEffect(() => { let active = true; setLoading(true); setExisting(undefined); void getOrganizationFamilyPublications(organizationId).then(items => {
+    const matches = items.filter(item => item.contentType === draft.contentType && (weeklyObjective ? weekStart(item.referenceDate) === referenceDate : item.referenceDate === referenceDate))
+    if (matches.length > 1) throw new Error('Esistono più contenuti pubblici dello stesso tipo per questa data. Verificali prima di modificarne uno.')
+    if (active && matches[0]) { setExisting(matches[0]); setTitle(matches[0].title); setContent(matches[0].publicContent) }
+  }).catch(cause => active && setError(errorMessage(cause))).finally(() => active && setLoading(false)); return () => { active = false } }, [organizationId, draft.contentType, referenceDate, weeklyObjective])
+  const save = async (status: 'draft' | 'published') => {
+    if (!title.trim() || !content.trim()) { setError('Inserisci un titolo e un testo pubblico prima di salvare.'); return }
+    if (status === 'published' && !confirmed) { setError('Conferma di aver controllato che il testo non contenga dati personali o note riservate.'); return }
+    setSaving(true); setError('')
+    try { const next = await saveFamilyPublication({ id: existing?.id, organizationId, contentType: draft.contentType, referenceDate: weeklyObjective ? weekStart(referenceDate) : referenceDate, title, publicContent: content, status }); setExisting(next); onChanged?.() }
+    catch (cause) { setError(errorMessage(cause)) } finally { setSaving(false) }
+  }
+  const withdraw = async () => { if (!existing) return; setSaving(true); setError(''); try { setExisting(await saveFamilyPublication({ ...existing, referenceDate: weeklyObjective ? weekStart(referenceDate) : referenceDate, title, publicContent: content, status: 'draft' })); onChanged?.() } catch (cause) { setError(errorMessage(cause)) } finally { setSaving(false) } }
+  return <DialogSheet labelledBy="family-publication-title" onClose={onClose} busy={saving} className="add-player-sheet max-w-2xl"><div className="add-player-scroll grid gap-4"><header><p className="eyebrow">Area famiglie</p><h1 id="family-publication-title">{draft.label}</h1><p className="mt-2 text-sm text-app-muted">Il testo è autonomo: non vengono condivisi partecipanti, presenze, note staff o dati individuali.</p></header>{loading ? <LoadingState label="Caricamento contenuto…" /> : <>{weeklyObjective && <Field label="Settimana di riferimento" hint="La data viene salvata come lunedì della settimana selezionata."><Input type="date" value={referenceDate} onChange={event => { if (event.target.value) setReferenceDate(weekStart(event.target.value)) }} /></Field>}<Field label="Titolo pubblico"><Input value={title} maxLength={160} onChange={event => setTitle(event.target.value)} /></Field><Field label="Testo per le famiglie" hint="Rileggi il testo: non inserire nomi, dati personali o osservazioni riservate."><Textarea value={content} maxLength={4000} onChange={event => setContent(event.target.value)} /></Field><section className="rounded-xl border border-app-border bg-app-elevated p-3 text-sm"><div className="mb-2 flex items-center gap-2 font-semibold"><Eye size={16} />Anteprima</div><h2 className="font-bold">{title || 'Titolo'}</h2><p className="mt-1 whitespace-pre-wrap text-app-muted">{content || 'Il testo pubblico comparirà qui.'}</p></section><label className="flex items-start gap-2 text-sm text-app-muted"><input className="mt-1 size-4 accent-[var(--color-app-primary)]" type="checkbox" checked={confirmed} onChange={event => setConfirmed(event.target.checked)} /><span>Ho controllato che il contenuto sia adatto alla pubblicazione e non contenga dati personali o informazioni riservate.</span></label>{error && <ErrorState message={error} />}</>}<footer className="flex flex-wrap justify-end gap-2 border-t border-app-border pt-3"><Button variant="ghost" disabled={saving} onClick={onClose}>Chiudi</Button>{existing?.status === 'published' && <Button variant="secondary" disabled={saving} onClick={() => void withdraw()}>Ritira dalla pagina famiglie</Button>}<Button variant="secondary" loading={saving} disabled={loading} onClick={() => void save('draft')}>Salva bozza</Button><Button variant="primary" loading={saving} disabled={loading} onClick={() => void save('published')}><ShieldCheck size={16} />Pubblica</Button></footer></div></DialogSheet>
+}

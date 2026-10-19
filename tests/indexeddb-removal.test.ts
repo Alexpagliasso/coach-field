@@ -15,7 +15,7 @@ describe('cloud-only active application graph', () => {
   it('redirects retired sports routes without rendering legacy pages', () => {
     for (const page of ['GoalkeepersPage', 'NotesPage', 'PlayerDetailPage', 'TrainingSessionDetailPage', 'LocalDataGuard']) expect(app).not.toContain(page)
     expect(app).toContain('<LegacyGroupRedirect to="players" />')
-    expect(app).toContain('<LegacyGroupRedirect to="training" />')
+    expect(app).toContain('path="training/:id" element={<PermissionGuard permission="training.view"><TrainingPage /></PermissionGuard>}')
     expect(layout).not.toContain("to: '/goalkeepers'")
     expect(layout).not.toContain("to: '/notes'")
   })

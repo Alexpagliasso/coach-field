@@ -12,6 +12,7 @@ import { GroupProvider } from './groups/GroupProvider'
 import { ProtectedRoute, GroupAccessGuard, PermissionGuard } from './auth/Guards'
 import { LoginPage } from './pages/AccessPages'
 import { PublicHome } from './pages/PublicHome'
+import { FamiliesPage } from './pages/FamiliesPage'
 import { StaffPage } from './pages/StaffPage'
 import { AdminPage } from './pages/AdminPage'
 import { UiLabPage } from './pages/UiLabPage'
@@ -23,6 +24,7 @@ import { GroupSettingsPage } from './pages/GroupSettingsPage'
 import { GroupDashboardPage } from './pages/GroupDashboardPage'
 import { CalendarPage } from './pages/CalendarPage'
 import { ExerciseLibraryPage } from './pages/ExerciseLibraryPage'
+import { DemoWelcomePage } from './pages/DemoWelcomePage'
 import { HierarchyShell } from './components/HierarchyShell'
 import { Navigate, useParams } from 'react-router-dom'
 
@@ -34,6 +36,7 @@ function LegacyGroupRedirect({ to }: { to: string }) {
 function App() {
   return <BrowserRouter><AuthProvider><GroupProvider><Routes>
     <Route path="/" element={<PublicHome />} />
+    <Route path="/famiglie" element={<FamiliesPage />} />
     <Route path="/login" element={<LoginPage />} />
     <Route element={<ProtectedRoute />}>
       <Route element={<HierarchyShell />}>
@@ -43,6 +46,7 @@ function App() {
         <Route path="/app/organizations/:organizationId/seasons/:seasonId/teams/:teamId" element={<WorkGroupHubPage />} />
       </Route>
       <Route path="/app/ui-lab" element={<UiLabPage />} />
+      <Route path="/app/demo" element={<DemoWelcomePage />} />
       <Route path="/admin" element={<AdminPage />} />
       <Route path="/app/:groupId" element={<GroupAccessGuard />}>
         <Route element={<Layout />}>

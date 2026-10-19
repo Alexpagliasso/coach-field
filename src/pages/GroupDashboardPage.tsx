@@ -51,7 +51,7 @@ export function GroupDashboardPage() {
       if (current !== request.current) return
       setSessions(cloudSessions); setCounts(cloudCounts); setMatches(cloudMatches)
     } catch (cause) {
-      if (current === request.current) setError(cause instanceof Error ? cause.message : 'Impossibile caricare la dashboard cloud.')
+      if (current === request.current) setError(cause instanceof Error ? cause.message : 'Non siamo riusciti a caricare la dashboard.')
     } finally { if (current === request.current) setLoading(false) }
   }, [activeGroup?.id, today])
   useEffect(() => { void load() }, [load])
@@ -65,7 +65,7 @@ export function GroupDashboardPage() {
       if (current !== rosterRequest.current) return
       setRoster(nextRoster)
     } catch (cause) {
-      if (current === rosterRequest.current) setRosterError(cause instanceof Error ? cause.message : 'Impossibile caricare la rosa cloud.')
+      if (current === rosterRequest.current) setRosterError(cause instanceof Error ? cause.message : 'Non siamo riusciti a caricare la rosa.')
     } finally { if (current === rosterRequest.current) setRosterLoading(false) }
   }, [activeGroup?.id])
   useEffect(() => { void loadRoster() }, [loadRoster])
@@ -80,7 +80,7 @@ export function GroupDashboardPage() {
       if (current !== analyticsRequest.current) return
       setAttendanceTrend(attendance); setCallupDistribution(callups); setObjectiveTagTotals(aggregateTrainingObjectiveTags(objectiveAssociations))
     } catch (cause) {
-      if (current === analyticsRequest.current) setAnalyticsError(cause instanceof Error ? cause.message : 'Impossibile caricare le analisi cloud.')
+      if (current === analyticsRequest.current) setAnalyticsError(cause instanceof Error ? cause.message : 'Non siamo riusciti a caricare le analisi.')
     } finally { if (current === analyticsRequest.current) setAnalyticsLoading(false) }
   }, [activeGroup?.id, today])
   useEffect(() => { void loadAnalytics() }, [loadAnalytics])
@@ -102,21 +102,21 @@ export function GroupDashboardPage() {
   return <section className="page command-dashboard dashboard-v7">
     <header className="dashboard-v7-hero">
       <TacticalBackdrop className="dashboard-v7-tactical" />
-      <div className="dashboard-v7-hero-copy"><Badge variant="primary"><Sparkles size={13} /> Cabina di regia</Badge><p className="dashboard-v7-greeting">{greeting}, staff</p><h1>{activeGroup?.name}</h1><span>{organization?.name}{team ? ` · ${team.name}` : ''} · Pianificazione e campo, nello stesso WorkGroup.</span></div>
-      <div className="dashboard-v7-next" aria-label="Prossima attività"><span>Prossima attività</span>{nextActivity ? <><strong>{nextActivity.title}</strong><small>{scheduleLabel(nextActivity)}</small><Link to={destination(nextActivity)}>Apri dettaglio <ArrowRight size={16} /></Link></> : <><strong>Agenda libera</strong><small>Nessun impegno cloud in arrivo.</small><Link to="/training">Pianifica una seduta <ArrowRight size={16} /></Link></>}</div>
+      <div className="dashboard-v7-hero-copy"><Badge variant="primary"><Sparkles size={13} /> Cabina di regia</Badge><p className="dashboard-v7-greeting">{greeting}, staff</p><h1>{activeGroup?.name}</h1><span>{organization?.name}{team ? ` · ${team.name}` : ''} · Pianificazione e campo, nello stesso gruppo.</span></div>
+      <div className="dashboard-v7-next" aria-label="Prossima attività"><span>Prossima attività</span>{nextActivity ? <><strong>{nextActivity.title}</strong><small>{scheduleLabel(nextActivity)}</small><Link to={destination(nextActivity)}>Apri dettaglio <ArrowRight size={16} /></Link></> : <><strong>Agenda libera</strong><small>Nessun impegno in arrivo.</small><Link to="/training">Pianifica una seduta <ArrowRight size={16} /></Link></>}</div>
       <div className="dashboard-v7-field" aria-hidden="true"><i /><i /><i /></div>
     </header>
 
     {debug && <aside className="mb-4 rounded-xl border border-app-border bg-app-elevated p-3 text-xs" data-testid="training-debug"><strong>Diagnostica dashboard cloud</strong><dl><dt>Route</dt><dd>{window.location.pathname}</dd><dt>WorkGroup</dt><dd>{activeGroup?.id ?? '—'}</dd><dt>Fonti</dt><dd>Supabase · training_sessions, matches, group_player_assignments</dd><dt>Sedute / partite / rosa ricevute</dt><dd>{sessions.length} / {matches.length} / {roster.length}</dd><dt>Errore</dt><dd>{error || rosterError || 'nessuno'}</dd></dl></aside>}
     {error && <ErrorState message={error} action={<Button size="sm" onClick={() => void load()}>Riprova</Button>} />}
-    {loading ? <LoadingState label="Caricamento dashboard cloud..." /> : <div className="dashboard-v7-grid">
+    {loading ? <LoadingState label="Caricamento dashboard..." /> : <div className="dashboard-v7-grid">
       <DashboardPanel className="dashboard-v7-attendance" tone="accent"><DashboardSectionHeading eyebrow="Continuità" title="Presenze alle ultime sedute" />{analyticsLoading ? <LoadingState label="Caricamento presenze..." /> : analyticsError ? <ErrorState message={analyticsError} action={<Button size="sm" onClick={() => void loadAnalytics()}>Riprova</Button>} /> : <AttendanceTrend items={attendanceTrend} />}<p className="analytics-note">Percentuale = presenti / stati esplicitamente registrati. I non segnati non sono assenze.</p></DashboardPanel>
       <DashboardPanel className="dashboard-v7-results"><DashboardSectionHeading eyebrow="Competizione" title="Risultati recenti" /><MatchTrend matches={matches} /></DashboardPanel>
       <DashboardPanel className="dashboard-v7-callups"><DashboardSectionHeading eyebrow="Distribuzione" title="Convocazioni · 90 giorni" />{analyticsLoading ? <LoadingState label="Caricamento convocazioni..." /> : analyticsError ? <ErrorState message={analyticsError} action={<Button size="sm" onClick={() => void loadAnalytics()}>Riprova</Button>} /> : <CallupDistribution items={callupDistribution} />}<p className="analytics-note">Indicatore descrittivo, non un giudizio automatico sull’equità delle scelte.</p></DashboardPanel>
       <DashboardPanel className="dashboard-v7-objectives" tone="quiet"><DashboardSectionHeading eyebrow="Metodo" title="Obiettivi tecnici" />{analyticsLoading ? <LoadingState label="Caricamento obiettivi tecnici..." /> : analyticsError ? <ErrorState message={analyticsError} action={<Button size="sm" onClick={() => void loadAnalytics()}>Riprova</Button>} /> : <ObjectiveTagDistribution items={objectiveTagTotals} periodLabel="ultimi 90 giorni" />}</DashboardPanel>
       <DashboardPanel className="dashboard-v7-recent"><DashboardSectionHeading eyebrow="Registro" title="Attività recenti" action={<Link to="/training" className="dashboard-text-link">Archivio <ArrowRight size={15} /></Link>} />{recent.length ? <div className="dashboard-v7-feed">{recent.map(item => <Link key={`${item.type}-${item.id}`} to={destination(item)}><span className={`dashboard-feed-icon ${item.type}`}>{item.type === 'training' ? <Dumbbell size={16} /> : <Trophy size={16} />}</span><div><strong>{item.title}</strong><small>{scheduleLabel(item)} · {item.type === 'training' ? 'Allenamento completato' : 'Partita completata'}</small></div><ArrowRight size={16} /></Link>)}</div> : <div className="dashboard-v7-empty"><Mic2 size={20} /><p>Le ultime sedute e partite completate compariranno qui.</p></div>}</DashboardPanel>
-      <DashboardPanel className="dashboard-v7-summary" tone="quiet"><DashboardSectionHeading eyebrow="WorkGroup" title="Riepilogo gruppo" /><div className="dashboard-v7-stat-grid"><DashboardStatTile label="Giocatori" value={rosterLoading ? '—' : roster.length} detail="assegnati stabilmente" /><DashboardStatTile label="Allenamenti" value={counts.total} detail="sedute cloud" /><DashboardStatTile label="Completati" value={counts.completed} detail="storico allenamenti" /><DashboardStatTile label="Partite" value={matches.length} detail="record cloud" /></div></DashboardPanel>
-      <DashboardPanel className="dashboard-v7-roster"><DashboardSectionHeading eyebrow="Persone" title="Rosa WorkGroup" action={<Link to="/players" className="dashboard-text-link">Vedi tutti <ArrowRight size={15} /></Link>} />{rosterLoading ? <LoadingState label="Caricamento rosa cloud..." /> : rosterError ? <ErrorState message={rosterError} action={<Button size="sm" onClick={() => void loadRoster()}>Riprova</Button>} /> : <WorkGroupRosterPreview roster={roster} />}</DashboardPanel>
+      <DashboardPanel className="dashboard-v7-summary" tone="quiet"><DashboardSectionHeading eyebrow="Gruppo" title="Riepilogo gruppo" /><div className="dashboard-v7-stat-grid"><DashboardStatTile label="Giocatori" value={rosterLoading ? '—' : roster.length} detail="assegnati stabilmente" /><DashboardStatTile label="Allenamenti" value={counts.total} detail="sedute" /><DashboardStatTile label="Completati" value={counts.completed} detail="storico allenamenti" /><DashboardStatTile label="Partite" value={matches.length} detail="in archivio" /></div></DashboardPanel>
+      <DashboardPanel className="dashboard-v7-roster"><DashboardSectionHeading eyebrow="Persone" title="Rosa del gruppo" action={<Link to="/players" className="dashboard-text-link">Vedi tutti <ArrowRight size={15} /></Link>} />{rosterLoading ? <LoadingState label="Caricamento rosa..." /> : rosterError ? <ErrorState message={rosterError} action={<Button size="sm" onClick={() => void loadRoster()}>Riprova</Button>} /> : <WorkGroupRosterPreview roster={roster} />}</DashboardPanel>
     </div>}
   </section>
 }

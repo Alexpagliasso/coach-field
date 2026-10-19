@@ -32,7 +32,7 @@ describe('cloud dashboard and calendar flow', () => {
     expect(dashboard).toContain('getWorkGroupRoster(activeGroup.id)')
     expect(dashboard).toContain('getCloudMatches(activeGroup.id)')
     expect(dashboard).not.toContain('getMatches')
-    expect(dashboard).toContain('Rosa WorkGroup')
+    expect(dashboard).toContain('Rosa del gruppo')
     expect(calendar).toContain('getCloudTrainingSessionsInRange(activeGroup.id, monthStart, monthEnd)')
     expect(calendar).toContain('getCloudMatches(activeGroup.id, monthStart, monthEnd)')
     expect(calendar).not.toContain('getMatches')
