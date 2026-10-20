@@ -6,14 +6,14 @@ const repository = readFileSync('src/cloud/familyPublicationsRepository.ts', 'ut
 
 describe('family diary archive', () => {
   it('keeps weekly objectives above the training and match tabs', () => {
-    for (const label of ['Obiettivi della settimana', 'Allenamenti', 'Partite', 'Archivio', 'Carica altri']) expect(page).toContain(label)
+    for (const label of ['Obiettivi della settimana', 'Allenamenti', 'Partite', 'Archivio', 'Precedente', 'Successiva']) expect(page).toContain(label)
     expect(page).toContain("type Tab = 'training' | 'match_reflection'")
     expect(page).toContain('type="month"')
     expect(page).toContain('onTouchStart')
     expect(page).toContain('onTouchEnd')
   })
 
-  it('uses real server-side filtering, descending ordering, and progressive loading', () => {
+  it('uses real server-side filtering, descending ordering, and page look-ahead', () => {
     expect(repository).toContain("eq('status', 'published')")
     expect(repository).toContain(".in('content_type', filters.contentTypes)")
     expect(repository).toContain(".gte('reference_date'")

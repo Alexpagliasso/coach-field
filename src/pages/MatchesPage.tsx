@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowDownUp, CalendarDays, ChevronLeft, ChevronRight, Plus, Search, Trophy } from 'lucide-react'
 import { Link } from '../groups/navigation'
-import { useGroup } from '../groups/groupContext'
-import { getCloudMatches, type CloudMatch, type CloudMatchStatus } from '../cloud/matchCloudRepository'
+import { useGroup, usePermissions } from '../groups/groupContext'
+import { getCloudMatches, setCloudMatchHidden, type CloudMatch, type CloudMatchStatus } from '../cloud/matchCloudRepository'
 import { CloudMatchEditor } from '../components/CloudMatchEditor'
 import { PermissionAction } from '../components/PermissionAction'
 import { Badge, Button, Card, EmptyState, ErrorState, Input, LoadingState, Select } from '../components/ui'
@@ -21,21 +21,22 @@ function MatchArchiveCard({ match }: { match: CloudMatch }) {
 
 export function MatchesPage() {
   const { activeGroup } = useGroup()
+  const { isAdmin } = usePermissions()
   const [matches, setMatches] = useState<CloudMatch[]>([]), [loading, setLoading] = useState(true), [error, setError] = useState('')
-  const [query, setQuery] = useState(''), [status, setStatus] = useState<CloudMatchStatus | 'all'>('all'), [from, setFrom] = useState(''), [to, setTo] = useState(''), [sort, setSort] = useState<MatchArchiveSort>('recent'), [page, setPage] = useState(1), [editor, setEditor] = useState<CloudMatch>()
+  const [query, setQuery] = useState(''), [status, setStatus] = useState<CloudMatchStatus | 'all'>('all'), [from, setFrom] = useState(''), [to, setTo] = useState(''), [sort, setSort] = useState<MatchArchiveSort>('recent'), [page, setPage] = useState(1), [showHidden, setShowHidden] = useState(false), [editor, setEditor] = useState<CloudMatch>()
   const request = useRef(0), pageSize = 12
   const load = useCallback(async () => {
     if (!activeGroup) return
     const current = ++request.current
     setLoading(true); setError(''); setMatches([])
     try {
-      const result = await getCloudMatches(activeGroup.id)
+      const result = await getCloudMatches(activeGroup.id, undefined, undefined, showHidden ? 'hidden' : 'visible')
       if (current !== request.current) return
       setMatches(result)
     } catch (reason) {
       if (current === request.current) setError(reason instanceof Error ? reason.message : 'Non siamo riusciti a caricare le partite.')
     } finally { if (current === request.current) setLoading(false) }
-  }, [activeGroup?.id])
+  }, [activeGroup?.id, showHidden])
   useEffect(() => { setPage(1); void load() }, [load])
   const reset = (action: () => void) => { action(); setPage(1) }
   const today = new Date().toISOString().slice(0, 10)
@@ -43,13 +44,15 @@ export function MatchesPage() {
   const archive = useMemo(() => paginateMatchArchive(filtered, page, pageSize), [filtered, page])
   const next = useMemo(() => sortMatchArchive(matches.filter(match => match.matchDate >= today && (match.status === 'scheduled' || match.status === 'live')), 'upcoming', today)[0], [matches, today])
   const invalidRange = Boolean(from && to && from > to)
+  const changeVisibility = async (match: CloudMatch) => { if (!window.confirm(match.isHidden ? 'Ripristinare questa partita nell’archivio e nelle statistiche?' : 'Nascondere questa partita di test da archivio e statistiche?')) return; try { await setCloudMatchHidden(match.id, !match.isHidden); await load() } catch (reason) { setError(reason instanceof Error ? reason.message : 'Aggiornamento visibilità non riuscito.') } }
   return <section className="page matches-command-page match-archive-page">
     <header className="matches-archive-header"><div><span className="eyebrow">Match Center</span><h1>Partite</h1><p>{activeGroup?.name ?? 'Gruppo'} · archivio, convocazioni e risultati.</p></div><PermissionAction permission="matches.create"><Button variant="primary" onClick={() => setEditor({} as CloudMatch)}><Plus size={17} />Nuova partita</Button></PermissionAction></header>
     {next && <Link to={`/matches/${next.id}`} className="match-next-card"><div><span className="eyebrow">Prossima partita</span><strong>vs {next.opponent}</strong><small>{dateLabel(next)} · {next.homeAway === 'home' ? 'Casa' : 'Trasferta'}</small></div><Trophy aria-hidden="true" /></Link>}
     <section className="match-archive-controls" aria-label="Ricerca e filtri partite"><label className="search-field"><Search size={17} /><input value={query} onChange={event => reset(() => setQuery(event.target.value))} placeholder="Avversario o competizione" /></label><Select value={status} onChange={event => reset(() => setStatus(event.target.value as CloudMatchStatus | 'all'))} aria-label="Stato partita">{statuses.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Select><Select value={sort} onChange={event => reset(() => setSort(event.target.value as MatchArchiveSort))} aria-label="Ordina partite">{sorts.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Select><Input type="date" value={from} onChange={event => reset(() => setFrom(event.target.value))} aria-label="Da data" /><Input type="date" value={to} onChange={event => reset(() => setTo(event.target.value))} aria-label="A data" /><Button size="sm" variant="ghost" onClick={() => { setQuery(''); setStatus('all'); setFrom(''); setTo(''); setSort('recent'); setPage(1) }}><ArrowDownUp size={15} />Azzera</Button></section>
+    {isAdmin && <Button size="sm" variant={showHidden ? 'primary' : 'secondary'} onClick={() => setShowHidden(current => !current)}>{showHidden ? 'Torna all’archivio' : 'Partite nascoste'}</Button>}
     {invalidRange && <ErrorState message="La data iniziale deve precedere la data finale." />}
     {error && <ErrorState message={error} action={<Button size="sm" onClick={() => void load()}>Riprova</Button>} />}
-    {loading ? <LoadingState label="Caricamento partite..." /> : archive.total === 0 ? <EmptyState icon={Trophy} title="Nessuna partita" description="Modifica i filtri oppure crea la prima partita per questo gruppo." /> : <><div className="match-archive-summary"><span>{archive.total} partite</span><span>Pagina {archive.page} di {archive.pages}</span></div><section className="match-archive-list" aria-label="Archivio partite">{archive.matches.map(match => <MatchArchiveCard key={match.id} match={match} />)}</section><nav className="match-archive-pagination" aria-label="Paginazione partite"><span>{(archive.page - 1) * pageSize + 1}–{Math.min(archive.page * pageSize, archive.total)} di {archive.total}</span><div><Button size="sm" disabled={archive.page === 1} onClick={() => setPage(current => current - 1)}><ChevronLeft size={15} />Precedente</Button><Button size="sm" disabled={archive.page >= archive.pages} onClick={() => setPage(current => current + 1)}>Successiva<ChevronRight size={15} /></Button></div></nav></>}
+    {loading ? <LoadingState label="Caricamento partite..." /> : archive.total === 0 ? <EmptyState icon={Trophy} title={showHidden ? 'Nessuna partita nascosta' : 'Nessuna partita'} description={showHidden ? 'Le partite nascoste compariranno qui per poterle ripristinare.' : 'Modifica i filtri oppure crea la prima partita per questo gruppo.'} /> : <><div className="match-archive-summary"><span>{archive.total} partite</span><span>Pagina {archive.page} di {archive.pages}</span></div><section className="match-archive-list" aria-label="Archivio partite">{archive.matches.map(match => <div key={match.id}><MatchArchiveCard match={match} />{isAdmin && <Button size="sm" variant="ghost" onClick={() => void changeVisibility(match)}>{match.isHidden ? 'Ripristina partita' : 'Nascondi partita'}</Button>}</div>)}</section><nav className="match-archive-pagination" aria-label="Paginazione partite"><span>{(archive.page - 1) * pageSize + 1}–{Math.min(archive.page * pageSize, archive.total)} di {archive.total}</span><div><Button size="sm" disabled={archive.page === 1} onClick={() => setPage(current => current - 1)}><ChevronLeft size={15} />Precedente</Button><Button size="sm" disabled={archive.page >= archive.pages} onClick={() => setPage(current => current + 1)}>Successiva<ChevronRight size={15} /></Button></div></nav></>}
     {editor && activeGroup && <CloudMatchEditor match={editor.id ? editor : undefined} organizationId={activeGroup.organizationId} groupId={activeGroup.id} onClose={() => setEditor(undefined)} onSaved={() => { setEditor(undefined); void load() }} />}
   </section>
 }

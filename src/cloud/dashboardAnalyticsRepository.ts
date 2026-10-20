@@ -6,7 +6,7 @@ export type CallupDistributionPoint = { playerId: string; name: string; callups:
 /** Attendance is intentionally measured only against explicit marks: unmarked never means absent. */
 export async function getDashboardAttendanceTrend(groupId: string, limit = 8): Promise<AttendanceTrendPoint[]> {
   const client = requireSupabase()
-  const { data: sessions, error: sessionError } = await client.from('training_sessions').select('id,session_date,title').eq('group_id', groupId).eq('status', 'completed').order('session_date', { ascending: false }).limit(limit)
+  const { data: sessions, error: sessionError } = await client.from('training_sessions').select('id,session_date,title').eq('group_id', groupId).eq('is_hidden', false).eq('status', 'completed').order('session_date', { ascending: false }).limit(limit)
   if (sessionError) throw sessionError
   const ids = (sessions ?? []).map(row => String(row.id))
   if (!ids.length) return []
@@ -27,7 +27,7 @@ export async function getDashboardAttendanceTrend(groupId: string, limit = 8): P
 /** Call-ups are counted as registered choices; unavailable is displayed separately, never discarded. */
 export async function getDashboardCallupDistribution(groupId: string, from: string): Promise<CallupDistributionPoint[]> {
   const client = requireSupabase()
-  const { data: matches, error: matchError } = await client.from('matches').select('id').eq('group_id', groupId).gte('match_date', from)
+  const { data: matches, error: matchError } = await client.from('matches').select('id').eq('group_id', groupId).eq('is_hidden', false).gte('match_date', from)
   if (matchError) throw matchError
   const matchIds = (matches ?? []).map(row => String(row.id))
   if (!matchIds.length) return []

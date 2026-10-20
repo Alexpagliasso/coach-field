@@ -72,20 +72,21 @@ export type WorkGroupPlayerSummary = {
   matchesPlayed: number
 }
 
-export type PlayerMatchMetric = { playerId: string; matchStatus: 'scheduled' | 'live' | 'completed' | 'cancelled' | null }
+export type PlayerMatchMetric = { playerId: string; matchStatus: 'scheduled' | 'live' | 'completed' | 'cancelled' | null; matchHidden?: boolean }
 export type PlayerMatchTotals = { callups: number; matchesPlayed: number }
 
 /** A completed match is the current operational proxy for a player appearance. */
 export function calculatePlayerMatchTotals(items: PlayerMatchMetric[]): PlayerMatchTotals {
-  return { callups: items.length, matchesPlayed: items.filter(item => item.matchStatus === 'completed').length }
+  const visible = items.filter(item => !item.matchHidden)
+  return { callups: visible.length, matchesPlayed: visible.filter(item => item.matchStatus === 'completed').length }
 }
 
 export async function getPlayerMatchTotals(playerId: string): Promise<PlayerMatchTotals> {
-  const { data, error } = await requireSupabase().from('match_callups').select('player_id, match:matches(status)').eq('player_id', playerId)
+  const { data, error } = await requireSupabase().from('match_callups').select('player_id, match:matches(status,is_hidden)').eq('player_id', playerId)
   if (error) throw error
   return calculatePlayerMatchTotals((data ?? []).map(raw => {
-    const row = raw as { player_id: string; match?: { status?: PlayerMatchMetric['matchStatus'] } | null }
-    return { playerId: String(row.player_id), matchStatus: row.match?.status ?? null }
+    const row = raw as { player_id: string; match?: { status?: PlayerMatchMetric['matchStatus']; is_hidden?: boolean } | null }
+    return { playerId: String(row.player_id), matchStatus: row.match?.status ?? null, matchHidden: row.match?.is_hidden ?? false }
   }))
 }
 
@@ -196,8 +197,8 @@ export async function getWorkGroupPlayerSummaries(groupId: string, playerIds: st
   if (playerIds.length === 0) return summaries
   const client = requireSupabase()
   const [sessionsResult, matchesResult] = await Promise.all([
-    client.from('training_sessions').select('id').eq('group_id', groupId),
-    client.from('matches').select('id,status').eq('group_id', groupId),
+    client.from('training_sessions').select('id').eq('group_id', groupId).eq('is_hidden', false),
+    client.from('matches').select('id,status').eq('group_id', groupId).eq('is_hidden', false),
   ])
   if (sessionsResult.error) throw sessionsResult.error
   if (matchesResult.error) throw matchesResult.error

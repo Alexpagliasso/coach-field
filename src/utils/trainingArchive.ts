@@ -2,7 +2,7 @@ import type { CloudTrainingSession } from '../cloud/trainingCloudRepository'
 
 export type TrainingArchiveStatus = 'all' | 'planned' | 'completed'
 export type TrainingArchiveSort = 'recent' | 'oldest' | 'upcoming' | 'title'
-export type TrainingArchiveFilters = { query?: string; status?: TrainingArchiveStatus; theme?: string; from?: string; to?: string; today: string }
+export type TrainingArchiveFilters = { query?: string; status?: TrainingArchiveStatus; theme?: string; from?: string; to?: string; today: string; visibility?: 'visible' | 'hidden' }
 
 const collator = new Intl.Collator('it', { sensitivity: 'base', numeric: true })
 

@@ -13,7 +13,7 @@ import { ProtectedRoute, GroupAccessGuard, PermissionGuard } from './auth/Guards
 import { LoginPage } from './pages/AccessPages'
 import { PublicHome } from './pages/PublicHome'
 import { FamiliesPage } from './pages/FamiliesPage'
-import { StaffPage } from './pages/StaffPage'
+import { StaffUnavailablePage } from './pages/StaffUnavailablePage'
 import { AdminPage } from './pages/AdminPage'
 import { UiLabPage } from './pages/UiLabPage'
 import { OrganizationHubPage } from './pages/OrganizationHubPage'
@@ -37,6 +37,7 @@ function App() {
   return <BrowserRouter><AuthProvider><GroupProvider><Routes>
     <Route path="/" element={<PublicHome />} />
     <Route path="/famiglie" element={<FamiliesPage />} />
+    <Route path="/famiglie/:groupId" element={<FamiliesPage />} />
     <Route path="/login" element={<LoginPage />} />
     <Route element={<ProtectedRoute />}>
       <Route element={<HierarchyShell />}>
@@ -52,7 +53,7 @@ function App() {
         <Route element={<Layout />}>
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="settings" element={<PermissionGuard permission="group.settings"><GroupSettingsPage /></PermissionGuard>} />
-          <Route path="staff" element={<PermissionGuard permission="staff.view"><StaffPage /></PermissionGuard>} />
+          <Route path="staff" element={<StaffUnavailablePage />} />
           <Route path="dashboard" element={<PermissionGuard permission="training.view"><GroupDashboardPage /></PermissionGuard>} />
           <Route path="calendar" element={<PermissionGuard permission="training.view"><CalendarPage /></PermissionGuard>} />
           <Route path="today" element={<PermissionGuard permission="training.view"><TodayPage /></PermissionGuard>} />

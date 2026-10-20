@@ -86,7 +86,8 @@ export async function getPlayerAttendanceHistory(playerId: string, options: { pa
   const page = Math.max(1, options.page ?? 1)
   const pageSize = Math.min(50, Math.max(1, options.pageSize ?? 10))
   const { data, count, error } = await requireSupabase().from('training_session_attendance')
-    .select('*, session:training_sessions(id,session_date,title,group_id)', { count: 'exact' })
+    .select('*, session:training_sessions!inner(id,session_date,title,group_id,is_hidden)', { count: 'exact' })
+    .eq('session.is_hidden', false)
     .eq('player_id', playerId).order('created_at', { ascending: false })
     .range((page - 1) * pageSize, page * pageSize - 1)
   if (error) throw error

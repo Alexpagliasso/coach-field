@@ -19,7 +19,8 @@ describe('Match Center cloud flow', () => {
   })
 
   it('loads the complete authorized cloud archive before applying filters, sorting and pagination', () => {
-    expect(matches).toContain('getCloudMatches(activeGroup.id)')
+    expect(matches).toContain("showHidden ? 'hidden' : 'visible'")
+    expect(matches).toContain('getCloudMatches(activeGroup.id, undefined, undefined')
     expect(matches).toContain('matchesMatchArchive')
     expect(matches).toContain('sortMatchArchive')
     expect(matches).toContain('paginateMatchArchive')

@@ -8,6 +8,7 @@ export type CloudMatch = {
   id: string; organizationId: string; groupId: string; matchDate: string; startTime?: string | null
   opponent: string; homeAway: CloudMatchHomeAway; location?: string | null; competition?: string | null
   status: CloudMatchStatus; ourScore?: number | null; opponentScore?: number | null; coachNotes: string
+  isHidden: boolean
   matchFormat: 'seven_a_side'; periodCount: number; periodDurationMinutes: number; initialFormation: '2-3-1' | '3-2-1'
   createdBy: string; createdAt: string; updatedAt: string
 }
@@ -22,12 +23,14 @@ export type CloudMatchLineupEntry = {
 }
 export type CloudMatchLineupSaveEntry = Pick<CloudMatchLineupEntry, 'playerId' | 'slotId' | 'positionX' | 'positionY'>
 
-type MatchInput = Omit<CloudMatch, 'id' | 'createdBy' | 'createdAt' | 'updatedAt'> & { id?: string }
+type MatchInput = Omit<CloudMatch, 'id' | 'createdBy' | 'createdAt' | 'updatedAt' | 'isHidden'> & { id?: string; isHidden?: boolean }
 const toRow = (row: object) => Object.fromEntries(Object.entries(row).filter(([, value]) => value !== undefined).map(([key, value]) => [key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`), value]))
 
-export async function getCloudMatchPage(groupId: string, options: { page?: number; pageSize?: number; from?: string; to?: string; status?: CloudMatchStatus; query?: string; ascending?: boolean } = {}): Promise<CloudMatchPage> {
+export async function getCloudMatchPage(groupId: string, options: { page?: number; pageSize?: number; from?: string; to?: string; status?: CloudMatchStatus; query?: string; ascending?: boolean; visibility?: 'visible' | 'hidden' | 'all' } = {}): Promise<CloudMatchPage> {
   const page = Math.max(1, options.page ?? 1), pageSize = Math.min(100, Math.max(1, options.pageSize ?? 20))
   let request = requireSupabase().from('matches').select('*', { count: 'exact' }).eq('group_id', groupId)
+  if ((options.visibility ?? 'visible') === 'visible') request = request.eq('is_hidden', false)
+  if (options.visibility === 'hidden') request = request.eq('is_hidden', true)
   if (options.from) request = request.gte('match_date', options.from)
   if (options.to) request = request.lte('match_date', options.to)
   if (options.status) request = request.eq('status', options.status)
@@ -40,11 +43,11 @@ export async function getCloudMatchPage(groupId: string, options: { page?: numbe
   return { matches: (data ?? []).map(fromRow<CloudMatch>), total: count ?? 0 }
 }
 
-export async function getCloudMatches(groupId: string, from?: string, to?: string) {
-  const first = await getCloudMatchPage(groupId, { page: 1, pageSize: 100, from, to, ascending: true })
+export async function getCloudMatches(groupId: string, from?: string, to?: string, visibility: 'visible' | 'hidden' | 'all' = 'visible') {
+  const first = await getCloudMatchPage(groupId, { page: 1, pageSize: 100, from, to, ascending: true, visibility })
   const pages = Math.ceil(first.total / 100)
   if (pages <= 1) return first.matches
-  const rest = await Promise.all(Array.from({ length: pages - 1 }, (_, index) => getCloudMatchPage(groupId, { page: index + 2, pageSize: 100, from, to, ascending: true })))
+  const rest = await Promise.all(Array.from({ length: pages - 1 }, (_, index) => getCloudMatchPage(groupId, { page: index + 2, pageSize: 100, from, to, ascending: true, visibility })))
   return [...first.matches, ...rest.flatMap(page => page.matches)]
 }
 
@@ -70,6 +73,13 @@ export async function saveCloudMatch(input: MatchInput) {
 // future match history remain auditable.
 export async function cancelCloudMatch(matchId: string) {
   const { data, error } = await requireSupabase().from('matches').update({ status: 'cancelled', our_score: null, opponent_score: null }).eq('id', matchId).select('*').single()
+  if (error) throw error
+  return fromRow<CloudMatch>(data)
+}
+
+/** Test matches remain auditable, but only organization admins can change their visibility. */
+export async function setCloudMatchHidden(matchId: string, isHidden: boolean) {
+  const { data, error } = await requireSupabase().from('matches').update({ is_hidden: isHidden }).eq('id', matchId).select('*').single()
   if (error) throw error
   return fromRow<CloudMatch>(data)
 }
@@ -144,5 +154,6 @@ export async function getCloudPlayerMatchHistory(playerId: string, options: { pa
   const page = Math.max(1, options.page ?? 1), pageSize = Math.min(50, Math.max(1, options.pageSize ?? 10))
   const { data, count, error } = await requireSupabase().from('match_callups').select('*, match:matches(*)', { count: 'exact' }).eq('player_id', playerId).order('created_at', { ascending: false }).range((page - 1) * pageSize, page * pageSize - 1)
   if (error) throw error
-  return { items: (data ?? []).map(raw => { const record = raw as Record<string, unknown>; const { match, ...callup } = record; return { ...fromRow<CloudMatchCallup>(callup), match: match ? fromRow<CloudMatch>(match) : undefined } }), total: count ?? 0 }
+  const visible = (data ?? []).flatMap(raw => { const record = raw as Record<string, unknown>; const { match, ...callup } = record; const parsedMatch = match ? fromRow<CloudMatch>(match as object) : undefined; return parsedMatch?.isHidden ? [] : [{ ...fromRow<CloudMatchCallup>(callup), match: parsedMatch }] })
+  return { items: visible, total: count ?? 0 }
 }

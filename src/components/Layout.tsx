@@ -1,4 +1,4 @@
-import { useEffect, useState, type ComponentType } from 'react'
+import { useEffect, useRef, useState, type ComponentType } from 'react'
 import { Outlet, useLocation, useNavigate as useRouterNavigate } from 'react-router-dom'
 import {
   BarChart3, CalendarDays, ChevronDown, ChevronRight, ClipboardList, Dumbbell,
@@ -10,6 +10,7 @@ import { useGroup, usePermissions } from '../groups/groupContext'
 import { useAuth } from '../auth/authContext'
 import { APP_NAME } from '../brand'
 import { resolveGroupHierarchy } from '../groups/hierarchyNavigation'
+import type { Group } from '../types/staff'
 
 type NavItem = { to: string; label: string; icon: ComponentType<{ size?: number; className?: string }> }
 
@@ -36,10 +37,25 @@ function MobileMenu({ kind, categoryPath, categoryName, onClose }: { kind: 'acti
   const items: NavItem[] = kind === 'activity' ? activities : [
     ...overview.slice(0, 1),
     ...squad.slice(1),
-    ...(can('staff.view') ? [{ to: '/staff', label: 'Staff', icon: Users }] : []),
     ...(can('group.settings') ? [{ to: '/settings', label: 'Impostazioni', icon: Settings }] : []),
   ]
   return <div className="mobile-nav-overlay" role="presentation" onClick={onClose}><section className="mobile-nav-sheet" role="dialog" aria-modal="true" aria-label={kind === 'activity' ? 'Attività' : 'Altre destinazioni'} onClick={event => event.stopPropagation()}><div className="mobile-nav-sheet-head"><div><span className="eyebrow">Navigazione</span><h2>{kind === 'activity' ? 'Attività' : 'Altro'}</h2></div><button type="button" onClick={onClose} aria-label="Chiudi menu"><X size={21} /></button></div><div className="mobile-nav-grid">{items.map(({ to, label, icon: Icon }) => <NavLink key={to} to={to} onClick={onClose} className={({ isActive }) => `mobile-nav-destination ${isActive ? 'active' : ''}`}><Icon size={21} /><span>{label}</span><ChevronRight size={17} /></NavLink>)}</div>{categoryPath && <Link to={categoryPath} onClick={onClose} className="mobile-category-return"><Repeat2 size={19} /><span><small>Torna alla categoria</small><strong>{categoryName}</strong></span><ChevronRight size={18} /></Link>}</section></div>
+}
+
+function WorkGroupSwitcher({ activeGroup, groups, details, onSelect }: { activeGroup?: Group; groups: Group[]; details: (group: Group) => string; onSelect: (id: string) => void }) {
+  const [open, setOpen] = useState(false); const [focusIndex, setFocusIndex] = useState(0)
+  const root = useRef<HTMLDivElement>(null); const options = useRef<Array<HTMLButtonElement | null>>([])
+  const activeIndex = Math.max(0, groups.findIndex(group => group.id === activeGroup?.id))
+  useEffect(() => { const close = (event: MouseEvent) => { if (!root.current?.contains(event.target as Node)) setOpen(false) }; document.addEventListener('mousedown', close); return () => document.removeEventListener('mousedown', close) }, [])
+  const openAt = (index = activeIndex) => { setFocusIndex(index); setOpen(true); window.setTimeout(() => options.current[index]?.focus(), 0) }
+  const keyDown = (event: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
+    if (event.key === 'Escape') { event.preventDefault(); setOpen(false); return }
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp' || event.key === 'Home' || event.key === 'End') {
+      event.preventDefault(); const next = event.key === 'Home' ? 0 : event.key === 'End' ? groups.length - 1 : (index + (event.key === 'ArrowDown' ? 1 : -1) + groups.length) % groups.length
+      setFocusIndex(next); options.current[next]?.focus()
+    }
+  }
+  return <div className="workgroup-switcher" ref={root}><button type="button" className="workgroup-switcher-trigger" aria-haspopup="listbox" aria-expanded={open} onClick={() => open ? setOpen(false) : openAt()} onKeyDown={event => { if (event.key === 'ArrowDown') { event.preventDefault(); openAt() } }}><span><strong>{activeGroup?.name ?? 'Scegli WorkGroup'}</strong><small>{activeGroup ? details(activeGroup) : ''}</small></span><ChevronDown size={17} /></button>{open && <div className="workgroup-switcher-menu" role="listbox" aria-label="Cambia WorkGroup">{groups.map((group, index) => <button key={group.id} ref={element => { options.current[index] = element }} type="button" role="option" aria-selected={group.id === activeGroup?.id} tabIndex={index === focusIndex ? 0 : -1} onKeyDown={event => keyDown(event, index)} onClick={() => { setOpen(false); if (group.id !== activeGroup?.id) onSelect(group.id) }}><strong>{group.name}</strong><small>{details(group)}</small></button>)}</div>}</div>
 }
 
 export function Layout() {
@@ -63,12 +79,13 @@ export function Layout() {
     const groupSeason = data.organizationSeasons.find(seasonItem => seasonItem.id === groupTeam?.seasonId)
     return [group.name, groupTeam?.name, groupSeason?.name].filter(Boolean).join(' · ')
   }
+  const groupDetails = (group: typeof availableGroups[number]) => groupLabel(group).split(' · ').slice(1).join(' · ') || 'WorkGroup'
 
   return <div className={`app-command-shell ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
     <aside className={`app-sidebar ${sidebarCollapsed ? 'collapsed' : ''}`} aria-label="Navigazione workspace">
       <div className="app-sidebar-brand-row"><Link to="/app/groups" className="app-brand"><span>GP</span><strong>{APP_NAME}</strong></Link><button type="button" className="app-sidebar-toggle" onClick={() => setSidebarCollapsed(value => !value)} aria-label={sidebarCollapsed ? 'Espandi navigazione' : 'Riduci navigazione'} title={sidebarCollapsed ? 'Espandi navigazione' : 'Riduci navigazione'}>{sidebarCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}</button></div>
-      <label className="context-switcher"><span>WorkGroup attivo</span><div><select value={activeGroup?.id ?? ''} onChange={event => event.target.value && event.target.value !== activeGroup?.id && switchGroup(event.target.value)} aria-label="Cambia WorkGroup">{groupsInActiveOrganization.map(group => <option key={group.id} value={group.id}>{groupLabel(group)}</option>)}</select><ChevronDown size={16} /></div><small>{team?.name ?? organization?.name ?? 'Contesto operativo'}</small>{isDemoViewer && <BadgeDemo />}</label>
-      <nav className="app-sidebar-nav"><SideNavSection label="Overview" items={overview} collapsed={sidebarCollapsed} /><SideNavSection label="Attività" items={activities} collapsed={sidebarCollapsed} /><SideNavSection label="Squadra" items={squad} collapsed={sidebarCollapsed} /><section className="app-nav-section"><span>Gestione</span>{can('staff.view') && <NavLink to="/staff" title={sidebarCollapsed ? 'Staff' : undefined} aria-label={sidebarCollapsed ? 'Staff' : undefined} className={({ isActive }) => `app-nav-link ${isActive ? 'active' : ''}`}><Users size={18} /><b>Staff</b></NavLink>}{can('group.settings') && <NavLink to="/settings" title={sidebarCollapsed ? 'Impostazioni' : undefined} aria-label={sidebarCollapsed ? 'Impostazioni' : undefined} className={({ isActive }) => `app-nav-link ${isActive ? 'active' : ''}`}><Settings size={18} /><b>Impostazioni</b></NavLink>}{categoryPath && <Link to={categoryPath} title={sidebarCollapsed ? 'Torna alla categoria' : undefined} aria-label={sidebarCollapsed ? 'Torna alla categoria' : undefined} className="app-nav-link"><Repeat2 size={18} /><b>Torna alla categoria</b></Link>}</section></nav>
+      <section className="context-switcher"><span>WorkGroup attivo</span><WorkGroupSwitcher activeGroup={activeGroup} groups={groupsInActiveOrganization} details={groupDetails} onSelect={switchGroup} /><small>{team?.name ?? organization?.name ?? 'Contesto operativo'}</small>{isDemoViewer && <BadgeDemo />}</section>
+      <nav className="app-sidebar-nav"><SideNavSection label="Overview" items={overview} collapsed={sidebarCollapsed} /><SideNavSection label="Attività" items={activities} collapsed={sidebarCollapsed} /><SideNavSection label="Squadra" items={squad} collapsed={sidebarCollapsed} /><section className="app-nav-section"><span>Gestione</span><span className="app-nav-link app-nav-link-disabled" aria-disabled="true" title="Staff: prossimamente"><Users size={18} /><span><b>Staff</b><small>Prossimamente</small></span></span>{can('group.settings') && <NavLink to="/settings" title={sidebarCollapsed ? 'Impostazioni' : undefined} aria-label={sidebarCollapsed ? 'Impostazioni' : undefined} className={({ isActive }) => `app-nav-link ${isActive ? 'active' : ''}`}><Settings size={18} /><b>Impostazioni</b></NavLink>}{categoryPath && <Link to={categoryPath} title={sidebarCollapsed ? 'Torna alla categoria' : undefined} aria-label={sidebarCollapsed ? 'Torna alla categoria' : undefined} className="app-nav-link"><Repeat2 size={18} /><b>Torna alla categoria</b></Link>}</section></nav>
       <div className="app-sidebar-footer"><button type="button" onClick={() => setThemeOpen(true)}><Palette size={18} /><span>Tema</span></button><button type="button" onClick={() => void signOut()}><LogOut size={18} /><span>Esci</span></button><small>{profile?.email}</small></div>
     </aside>
 

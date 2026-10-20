@@ -35,8 +35,9 @@ export async function setTrainingSessionObjectiveTags(sessionId: string, tagIds:
 }
 
 export async function getWorkGroupTrainingObjectiveTagAssociations(groupId: string, options: { from?: string; to?: string } = {}): Promise<TrainingSessionObjectiveTag[]> {
-  let query = requireSupabase().from('training_session_objective_tags').select('training_session_id, tag:training_objective_tags(*), session:training_sessions!inner(group_id,session_date)')
+  let query = requireSupabase().from('training_session_objective_tags').select('training_session_id, tag:training_objective_tags(*), session:training_sessions!inner(group_id,session_date,is_hidden)')
   query = query.eq('session.group_id', groupId)
+  query = query.eq('session.is_hidden', false)
   if (options.from) query = query.gte('session.session_date', options.from)
   if (options.to) query = query.lte('session.session_date', options.to)
   const { data, error } = await query

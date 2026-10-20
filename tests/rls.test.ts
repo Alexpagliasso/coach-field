@@ -30,6 +30,7 @@ beforeAll(async () => {
   await db.exec(readFileSync('supabase/migrations/202610080014_cloud_training_attendance.sql', 'utf8'))
   await db.exec(readFileSync('supabase/migrations/202610090015_cloud_matches.sql', 'utf8'))
   await db.exec(readFileSync('supabase/migrations/202610100016_match_callup_candidates.sql', 'utf8'))
+  await db.exec(readFileSync('supabase/migrations/202610200028_training_session_visibility.sql', 'utf8'))
   await db.exec(`insert into auth.users values ('${ids.admin}','admin@test.local'),('${ids.coach}','coach@test.local'),('${ids.collaborator}','collaborator@test.local'),('${ids.outsider}','outsider@test.local');
     insert into organizations(id,name,slug) values ('${ids.org}','Club','club'),('${ids.otherOrg}','Other','other');
     insert into organization_memberships(organization_id,user_id) values ('${ids.org}','${ids.admin}');
@@ -185,6 +186,23 @@ describe('cloud training library RPC and integrity', () => {
     await db.exec(`insert into collaborator_permissions(membership_id,permission,enabled) values ('${ids.member}','training.edit',true) on conflict (membership_id,permission) do update set enabled=true`)
     await asUserSession(ids.collaborator, async () => { expect((await db.query(save(null, ids.a, "'[]'::jsonb", 'Collaborator allowed'))).rows).toHaveLength(1) })
     await asUserSession(ids.admin, async () => { expect((await db.query(save(null, ids.b, "'[]'::jsonb", 'Admin allowed'))).rows).toHaveLength(1) })
+  })
+})
+
+describe('training session visibility', () => {
+  const hiddenSession = '90000000-0000-0000-0000-000000000001'
+
+  it('allows only an organization admin to hide or restore a session', async () => {
+    await db.exec(`insert into training_sessions(id,organization_id,group_id,session_date,title,planned_duration_minutes,created_by)
+      values ('${hiddenSession}','${ids.org}','${ids.a}','2026-10-30','Seduta di prova',60,'${ids.admin}') on conflict (id) do nothing`)
+    await expect(asUser(ids.coach, `update training_sessions set is_hidden=true where id='${hiddenSession}'`)).rejects.toThrow('Only organization administrators can change training session visibility')
+    await expect(asUser(ids.collaborator, `update training_sessions set is_hidden=true where id='${hiddenSession}'`)).rejects.toThrow('Only organization administrators can change training session visibility')
+    await asUserSession(ids.admin, async () => {
+      await db.query(`update training_sessions set is_hidden=true where id='${hiddenSession}'`)
+      expect((await db.query(`select is_hidden from training_sessions where id='${hiddenSession}'`)).rows).toEqual([{ is_hidden: true }])
+      await db.query(`update training_sessions set is_hidden=false where id='${hiddenSession}'`)
+      expect((await db.query(`select is_hidden from training_sessions where id='${hiddenSession}'`)).rows).toEqual([{ is_hidden: false }])
+    })
   })
 })
 

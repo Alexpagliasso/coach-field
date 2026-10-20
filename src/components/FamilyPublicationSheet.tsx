@@ -6,14 +6,14 @@ import { DialogSheet } from './DialogSheet'
 import { Button, ErrorState, Field, Input, LoadingState, Textarea } from './ui'
 import { errorMessage } from '../lib/supabase'
 
-export type FamilyPublicationDraft = { contentType: FamilyPublicationType; referenceDate: string; title: string; publicContent: string; label: string }
+export type FamilyPublicationDraft = { contentType: FamilyPublicationType; referenceDate: string; title: string; publicContent: string; label: string; groupId?: string | null }
 
 export function FamilyPublicationSheet({ organizationId, draft, onClose, onChanged }: { organizationId: string; draft: FamilyPublicationDraft; onClose: () => void; onChanged?: () => void }) {
   const weeklyObjective = draft.contentType === 'objective'; const initialDate = weeklyObjective ? weekStart(draft.referenceDate) : draft.referenceDate
   const [existing, setExisting] = useState<FamilyPublication>(); const [title, setTitle] = useState(draft.title); const [content, setContent] = useState(draft.publicContent); const [referenceDate, setReferenceDate] = useState(initialDate)
   const [loading, setLoading] = useState(true); const [saving, setSaving] = useState(false); const [confirmed, setConfirmed] = useState(false); const [error, setError] = useState('')
   useEffect(() => { let active = true; setLoading(true); setExisting(undefined); void getOrganizationFamilyPublications(organizationId).then(items => {
-    const matches = items.filter(item => item.contentType === draft.contentType && (weeklyObjective ? weekStart(item.referenceDate) === referenceDate : item.referenceDate === referenceDate))
+    const matches = items.filter(item => item.contentType === draft.contentType && item.groupId === (draft.groupId ?? null) && (weeklyObjective ? weekStart(item.referenceDate) === referenceDate : item.referenceDate === referenceDate))
     if (matches.length > 1) throw new Error('Esistono più contenuti pubblici dello stesso tipo per questa data. Verificali prima di modificarne uno.')
     if (active && matches[0]) { setExisting(matches[0]); setTitle(matches[0].title); setContent(matches[0].publicContent) }
   }).catch(cause => active && setError(errorMessage(cause))).finally(() => active && setLoading(false)); return () => { active = false } }, [organizationId, draft.contentType, referenceDate, weeklyObjective])
@@ -21,7 +21,7 @@ export function FamilyPublicationSheet({ organizationId, draft, onClose, onChang
     if (!title.trim() || !content.trim()) { setError('Inserisci un titolo e un testo pubblico prima di salvare.'); return }
     if (status === 'published' && !confirmed) { setError('Conferma di aver controllato che il testo non contenga dati personali o note riservate.'); return }
     setSaving(true); setError('')
-    try { const next = await saveFamilyPublication({ id: existing?.id, organizationId, contentType: draft.contentType, referenceDate: weeklyObjective ? weekStart(referenceDate) : referenceDate, title, publicContent: content, status }); setExisting(next); onChanged?.() }
+    try { const next = await saveFamilyPublication({ id: existing?.id, organizationId, groupId: draft.groupId ?? null, contentType: draft.contentType, referenceDate: weeklyObjective ? weekStart(referenceDate) : referenceDate, title, publicContent: content, status }); setExisting(next); onChanged?.() }
     catch (cause) { setError(errorMessage(cause)) } finally { setSaving(false) }
   }
   const withdraw = async () => { if (!existing) return; setSaving(true); setError(''); try { setExisting(await saveFamilyPublication({ ...existing, referenceDate: weeklyObjective ? weekStart(referenceDate) : referenceDate, title, publicContent: content, status: 'draft' })); onChanged?.() } catch (cause) { setError(errorMessage(cause)) } finally { setSaving(false) } }

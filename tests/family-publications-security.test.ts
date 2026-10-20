@@ -16,7 +16,7 @@ describe('family publications boundary', () => {
     expect(migration).not.toContain('match_callups')
   })
   it('keeps the public query limited to public fields and publication controls admin-only', () => {
-    expect(repository).toContain("const publicFields = 'content_type,title,public_content,reference_date,published_at'")
+    expect(repository).toContain("const publicFields = 'content_type,title,public_content,reference_date,published_at,group_id'")
     expect(training).toContain('{isAdmin && <>')
     expect(match).toContain('{isAdmin && <Button')
   })
