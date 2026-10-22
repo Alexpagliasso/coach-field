@@ -131,10 +131,12 @@ h3 {
 
 #root {
   min-height: 100svh;
+  min-height: 100dvh;
 }
 
 .app-shell {
   min-height: 100svh;
+  min-height: 100dvh;
   max-width: 980px;
   margin: 0 auto;
 }
@@ -2792,4 +2794,41 @@ button:disabled { opacity: .5; cursor: not-allowed; }
   .calendar-toolbar { align-items: stretch; }.calendar-month-control { flex: 1 1 100%; }.calendar-today { flex: 0 0 auto; }.calendar-filters { width: 100%; overflow: visible; }.calendar-filters button { flex: 1 1 0; min-width: 0; padding-inline: .35rem; }
   .training-archive-controls { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }.training-archive-controls > :first-child, .training-archive-controls > :nth-child(5), .training-view-switch { grid-column: 1 / -1; }
   .matches-archive-header { align-items: stretch; }.matches-archive-header .gp-button { width: 100%; }.match-next-card { min-height: 0; }.match-archive-controls { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }.match-archive-controls > :first-child { grid-column: 1 / -1; }.match-archive-controls > :last-child { grid-column: 1 / -1; }.match-archive-card-main { grid-template-columns: minmax(0, 1fr) auto; gap: .45rem; }.match-archive-date { grid-column: 1 / -1; }.match-archive-title { grid-column: 1 / 2; }.match-archive-competition { grid-column: 1 / -1; }.match-archive-pagination { align-items: flex-start; flex-direction: column; }
+}
+
+/* iPhone/PWA resilience: final overrides intentionally follow legacy evolution layers. */
+.offline-notice { position: sticky; top: 0; z-index: 35; border-bottom: 1px solid color-mix(in srgb, var(--warning) 45%, var(--border)); background: color-mix(in srgb, var(--warning) 14%, var(--surface)); padding: .65rem max(1rem, env(safe-area-inset-left)); color: var(--text); font-size: .8rem; line-height: 1.4; }
+.offline-notice strong { margin-right: .25rem; }
+.training-next-session > :is(span, strong, small) { min-width: 0; overflow-wrap: anywhere; }
+.training-next-session > svg { position: relative; z-index: 1; flex: 0 0 auto; }
+.weekly-objectives-panel, .weekly-objectives-panel-head, .weekly-objectives-panel-head > div { min-width: 0; }
+.weekly-objectives-panel-head > div:last-child { max-width: 100%; }
+.training-archive-controls > *, .training-view-switch, .training-view-switch .gp-button { min-width: 0; }
+
+@media (max-width: 639px) {
+  .training-next-session { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: 'label icon' 'title icon' 'meta icon'; align-items: center; gap: .2rem .65rem; padding: .8rem; }
+  .training-next-session > span { grid-area: label; }
+  .training-next-session > strong { grid-area: title; line-height: 1.2; }
+  .training-next-session > small { grid-area: meta; line-height: 1.35; }
+  .training-next-session > svg { grid-area: icon; }
+  .weekly-objectives-panel-head { flex-direction: column; }
+  .weekly-objectives-panel-head > div:last-child { display: grid; width: 100%; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .weekly-objectives-panel-head > div:last-child .gp-button { min-width: 0; min-height: 44px; height: auto; padding: .55rem; white-space: normal; overflow-wrap: anywhere; }
+  .weekly-objectives-panel-date { align-items: flex-start; }
+  .weekly-objectives-panel-date label { align-items: stretch; flex-direction: column; }
+  .weekly-objectives-panel-date input { width: 100%; min-height: 44px; }
+  .training-archive-controls { grid-template-columns: minmax(0, 1fr); }
+  .training-archive-controls > :first-child, .training-archive-controls > :nth-child(5), .training-view-switch { grid-column: 1; }
+  .training-archive-controls :is(input, select), .training-archive-controls .search-field { width: 100%; min-height: 44px; }
+  .training-view-switch .gp-button { min-height: 44px; }
+  .field-mode-timer { position: sticky; top: 3.7rem; z-index: 1; box-shadow: var(--shadow-card); }
+  .field-mode-timer-actions { width: 100%; grid-template-columns: 3rem 3rem minmax(0, 1fr); align-items: center; }
+  .field-mode-timer-actions .gp-button:last-child { grid-column: auto; }
+  .field-mode-navigation .gp-button, .field-mode-note-actions .gp-button { min-height: 44px; }
+}
+
+@media (display-mode: standalone) {
+  html, body, #root, .app-command-shell { min-height: 100dvh; }
+  .app-context-header { padding-top: max(.65rem, env(safe-area-inset-top)); }
+  .mobile-command-nav { padding-bottom: max(.55rem, env(safe-area-inset-bottom)); }
 }

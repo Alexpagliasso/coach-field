@@ -12,7 +12,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg'],
+      includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
       manifest: {
         name: APP_NAME,
         short_name: APP_NAME,
@@ -20,9 +20,13 @@ export default defineConfig({
         lang: 'it',
         display: 'standalone',
         start_url: '/',
+        scope: '/',
         theme_color: '#6547e8',
         background_color: '#f6f7fb',
         icons: [
+          { src: '/pwa-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: '/pwa-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: '/pwa-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
           {
             src: '/favicon.svg',
             sizes: 'any',

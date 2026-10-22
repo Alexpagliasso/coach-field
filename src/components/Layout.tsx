@@ -62,6 +62,7 @@ export function Layout() {
   const [themeOpen, setThemeOpen] = useState(false)
   const [mobileMenu, setMobileMenu] = useState<'activity' | 'more'>()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem('growpitch:sidebar-collapsed') === 'true')
+  const [online, setOnline] = useState(() => navigator.onLine)
   const { activeGroup, data, availableGroups, switchGroup } = useGroup()
   const { can, isDemoViewer } = usePermissions()
   const { signOut, profile } = useAuth()
@@ -69,6 +70,12 @@ export function Layout() {
   const navigate = useRouterNavigate()
   useEffect(() => setMobileMenu(undefined), [location.pathname])
   useEffect(() => localStorage.setItem('growpitch:sidebar-collapsed', String(sidebarCollapsed)), [sidebarCollapsed])
+  useEffect(() => {
+    const updateConnection = () => setOnline(navigator.onLine)
+    window.addEventListener('online', updateConnection)
+    window.addEventListener('offline', updateConnection)
+    return () => { window.removeEventListener('online', updateConnection); window.removeEventListener('offline', updateConnection) }
+  }, [])
 
   const { organization, team, season, organizationPath, seasonPath, categoryPath } = resolveGroupHierarchy(data, activeGroup)
   const activityActive = /\/(training|matches)(\/|$)/.test(location.pathname)
@@ -90,6 +97,7 @@ export function Layout() {
     </aside>
 
     <div className="app-workspace">
+      {!online && <div className="offline-notice" role="status"><strong>Sei offline.</strong> Puoi consultare l’app già caricata; dati cloud, accesso e salvataggi potrebbero non essere disponibili.</div>}
       <header className="app-context-header"><div className="app-mobile-brand"><span>GP</span><strong>{APP_NAME}</strong></div><nav className="app-breadcrumbs" aria-label="Percorso"><Link to="/app/groups">Società</Link>{organization && <><ChevronRight /><Link to={organizationPath!}>{organization.name}</Link></>}{season && seasonPath && <><ChevronRight /><Link to={seasonPath}>{season.name}</Link></>}{team && categoryPath && <><ChevronRight /><Link to={categoryPath}>{team.name}</Link></>}{activeGroup && <><ChevronRight /><strong>{activeGroup.name}</strong></>}</nav><div className="app-header-actions">{isDemoViewer && <BadgeDemo compact />}<button type="button" onClick={() => setThemeOpen(true)} aria-label="Cambia tema"><Palette size={18} /></button><button type="button" onClick={() => navigate('/app/groups')} aria-label="Cambia contesto"><Repeat2 size={18} /></button></div></header>
       <main className="app-main app-command-main"><Outlet /></main>
     </div>

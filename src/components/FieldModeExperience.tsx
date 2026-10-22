@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronLeft, ChevronRight, Mic, Pause, Play, RotateCcw, X } from 'lucide-react'
 import type { CloudTrainingSession } from '../cloud/trainingCloudRepository'
 import { getTrainingFieldNotes, saveTrainingFieldNote, type TrainingFieldNote } from '../cloud/trainingFieldNotesRepository'
-import { createFieldTimer, pauseFieldTimer, resetFieldTimer, resumeFieldTimer, timerRemaining, type FieldTimer } from '../utils/fieldTimer'
+import { createFieldTimer, pauseFieldTimer, readFieldModeState, resetFieldTimer, resumeFieldTimer, timerRemaining, writeFieldModeState, type FieldTimer } from '../utils/fieldTimer'
 import { applySpeechResult, createSpeechTranscriptSession, type SpeechResultEvent, type SpeechTranscriptSession } from '../utils/speechTranscript'
 import { Badge, Button, EmptyState, ErrorState, Textarea } from './ui'
 import { DialogSheet } from './DialogSheet'
@@ -16,8 +16,9 @@ const format = (seconds: number) => `${String(Math.floor(seconds / 60)).padStart
 export function FieldModeExperience({ session, onClose }: { session: CloudTrainingSession; onClose: () => void }) {
   const { isDemoViewer } = usePermissions()
   const exercises = session.exercises ?? []
-  const [index, setIndex] = useState(0), exercise = exercises[index]
-  const [timer, setTimer] = useState<FieldTimer>(() => createFieldTimer(exercise?.durationMinutes ?? 1)); const [, setNow] = useState(Date.now())
+  const restored = useMemo(() => readFieldModeState(session.id, exercises.length), [session.id, exercises.length])
+  const [index, setIndex] = useState(restored?.exerciseIndex ?? 0), exercise = exercises[index]
+  const [timer, setTimer] = useState<FieldTimer>(() => restored?.timer ?? createFieldTimer(exercises[restored?.exerciseIndex ?? 0]?.durationMinutes ?? 1)); const [, setNow] = useState(0)
   const [notes, setNotes] = useState<TrainingFieldNote[]>([]), [notesLoading, setNotesLoading] = useState(true), [noteError, setNoteError] = useState(''), [draft, setDraft] = useState(''), [saving, setSaving] = useState(false), [recording, setRecording] = useState(false)
   const recognition = useRef<SpeechRecognitionLike | undefined>(undefined), dictationRun = useRef(0), transcript = useRef<SpeechTranscriptSession | undefined>(undefined)
   const speechAvailable = typeof window !== 'undefined' && Boolean(getSpeech())
@@ -29,6 +30,7 @@ export function FieldModeExperience({ session, onClose }: { session: CloudTraini
   }, [])
   const loadNotes = async () => { setNotesLoading(true); setNoteError(''); try { setNotes(await getTrainingFieldNotes(session.id)) } catch (cause) { setNoteError(cause instanceof Error ? cause.message : 'Le note campo richiedono la migration 021.') } finally { setNotesLoading(false) } }
   useEffect(() => { void loadNotes() }, [session.id])
+  useEffect(() => { writeFieldModeState(session.id, { exerciseIndex: index, timer }) }, [session.id, index, timer])
   const timerTitle = useMemo(() => timer.startedAt ? 'Timer attivo' : remaining === 0 ? 'Tempo scaduto' : 'Timer in pausa', [timer.startedAt, remaining])
   const chooseExercise = (next: number) => setIndex(Math.max(0, Math.min(exercises.length - 1, next)))
   const setExerciseTimer = () => { if (!isDemoViewer && exercise) setTimer(createFieldTimer(exercise.durationMinutes)) }
