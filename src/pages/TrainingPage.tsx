@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, CalendarDays, Check, ChevronLeft, ChevronRight, ClipboardList, Copy, Dumbbell, Grid2X2, List, Pencil, Plus, Search, Star, Trash2, X } from 'lucide-react'
+import { ArrowLeft, CalendarDays, Check, ChevronLeft, ChevronRight, ClipboardList, Copy, Download, Dumbbell, Grid2X2, List, Pencil, Plus, Search, Star, Trash2, X } from 'lucide-react'
 import { PermissionAction } from '../components/PermissionAction'
 import { useGroup, usePermissions } from '../groups/groupContext'
 import { duplicateCloudTrainingSession, getCloudTrainingArchive, getCloudTrainingSession, getCloudTrainingSessionCounts, getCloudTrainingSessionPage, getExerciseFavoriteIds, getExerciseLibrary, getRecentExerciseIds, saveCloudTrainingSession, saveExercise, setCloudTrainingSessionHidden, setExerciseFavorite, type CloudTrainingSession, type ExerciseLibraryItem, type TrainingSessionExercise } from '../cloud/trainingCloudRepository'
@@ -15,6 +15,7 @@ import { WeeklyObjectivesPanel } from '../components/WeeklyObjectivesPanel'
 import { errorMessage } from '../lib/supabase'
 import { getOrganizationTrainingObjectiveTags, getTrainingSessionObjectiveTagIds, setTrainingSessionObjectiveTags, type TrainingObjectiveTag } from '../cloud/trainingObjectiveTagsRepository'
 import { EXERCISE_CATEGORIES, EXERCISE_OBJECTIVES, exerciseCategoryLabel, filterExerciseLibrary } from '../utils/exerciseTaxonomy'
+import { downloadTrainingJson, exportSessionsJson } from '../utils/growpitchTrainingJson'
 
 type DraftExercise = Omit<TrainingSessionExercise, 'id' | 'position'>
 type Editor = { session?: CloudTrainingSession; exercises: DraftExercise[] }
@@ -53,7 +54,7 @@ export function TrainingPage() {
   if (editor) return <TrainingEditor editor={editor} library={library} groupId={activeGroup.id} organizationId={activeGroup.organizationId} onExerciseCreated={item => setLibrary(current => [...current, item].sort((a, b) => a.name.localeCompare(b.name)))} onClose={() => setEditor(undefined)} onSaved={async () => { setEditor(undefined); await load() }} onError={setError} />
   if (sessionId) return <TrainingSessionDetail sessionId={sessionId} groupId={activeGroup.id} routeGroupId={groupId ?? activeGroup.id} editable={can('training.edit')} onBack={() => navigate(`/app/${groupId ?? activeGroup.id}/training`)} onEdit={session => setEditor(draftFrom(session))} onDuplicate={duplicate} onComplete={markCompleted} />
   const pages = Math.max(1, Math.ceil(total / 12))
-  return <section className="page training-command-page training-hub training-archive"><header className="training-hub-header"><div><span className="eyebrow">Archivio allenamenti · {activeGroup.name}</span><h1>Allenamenti</h1><p>Cerca, riordina e consulta tutte le sedute della stagione.</p></div><PermissionAction permission="training.edit"><Button variant="primary" disabled={busy} onClick={() => setEditor(emptySession())}><Plus size={18} />Nuova seduta</Button></PermissionAction></header>
+  return <section className="page training-command-page training-hub training-archive"><header className="training-hub-header"><div><span className="eyebrow">Archivio allenamenti · {activeGroup.name}</span><h1>Allenamenti</h1><p>Cerca, riordina e consulta tutte le sedute della stagione.</p></div><div className="flex flex-wrap gap-2"><PermissionAction permission="training.edit"><Button variant="primary" disabled={busy} onClick={() => setEditor(emptySession())}><Plus size={18} />Nuova seduta</Button></PermissionAction><Button onClick={() => downloadTrainingJson(exportSessionsJson(sessions), 'growpitch-sessions.json')} disabled={!sessions.length}><Download size={17} />Esporta pagina JSON</Button></div></header>
     <WeeklyObjectivesPanel organizationId={activeGroup.organizationId} groupId={activeGroup.id} editable={isAdmin} />
     {isAdmin && <div className="training-visibility-filter"><Select value={visibility} onChange={event => reset(() => setVisibility(event.target.value as 'visible' | 'hidden'))}><option value="visible">Allenamenti visibili</option><option value="hidden">Allenamenti nascosti</option></Select></div>}
     {nextSession && <button type="button" className="training-next-session" onClick={() => navigate(`/app/${groupId ?? activeGroup.id}/training/${nextSession.id}`)}><span>Prossima seduta</span><strong>{nextSession.title}</strong><small>{labelDate(nextSession.sessionDate)}{nextSession.startTime ? ` · ${nextSession.startTime.slice(0, 5)}` : ''} · {nextSession.plannedDurationMinutes} min</small><Dumbbell size={22} /></button>}
