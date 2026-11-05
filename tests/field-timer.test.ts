@@ -2,6 +2,10 @@ import { describe, expect, it } from 'vitest'
 import { createFieldTimer, pauseFieldTimer, resetFieldTimer, resumeFieldTimer, timerRemaining } from '../src/utils/fieldTimer'
 
 describe('field timer', () => {
+  it.each([5, 15, 25, 45])('sets %i minutes as exact seconds', minutes => {
+    expect(createFieldTimer(minutes)).toEqual({ durationSeconds: minutes * 60, remainingSeconds: minutes * 60 })
+  })
+
   it('derives remaining time from timestamps instead of interval ticks', () => {
     const running = resumeFieldTimer(createFieldTimer(10), 1_000)
     expect(timerRemaining(running, 61_000)).toBe(540)
