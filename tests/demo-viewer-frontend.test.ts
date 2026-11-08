@@ -26,7 +26,8 @@ describe('Demo Viewer frontend', () => {
 
   it('does not expose write controls in Field Mode, attendance, or player profiles', () => {
     expect(fieldMode).toContain('disabled={isDemoViewer}')
-    expect(fieldMode).toContain('isDemoViewer || !draft.trim()')
+    expect(fieldMode).toContain("const notesEditable = can('training.edit')")
+    expect(fieldMode).toContain('!notesEditable || !draft.trim()')
     expect(attendance).toContain("const editable = can('attendance.edit')")
     expect(attendance).toContain('{editable && <div className="sticky bottom-0')
     expect(profile).toContain('readonly={isDemoViewer}')

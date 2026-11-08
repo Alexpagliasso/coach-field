@@ -27,6 +27,7 @@ import { ExerciseLibraryPage } from './pages/ExerciseLibraryPage'
 import { DemoWelcomePage } from './pages/DemoWelcomePage'
 import { HierarchyShell } from './components/HierarchyShell'
 import { Navigate, useParams } from 'react-router-dom'
+import { StaffLinkAcceptancePage } from './pages/StaffLinkAcceptancePage'
 
 function LegacyGroupRedirect({ to }: { to: string }) {
   const { groupId } = useParams()
@@ -48,6 +49,7 @@ function App() {
       </Route>
       <Route path="/app/ui-lab" element={<UiLabPage />} />
       <Route path="/app/demo" element={<DemoWelcomePage />} />
+      <Route path="/app/staff-link" element={<StaffLinkAcceptancePage />} />
       <Route path="/admin" element={<AdminPage />} />
       <Route path="/app/:groupId" element={<GroupAccessGuard />}>
         <Route element={<Layout />}>

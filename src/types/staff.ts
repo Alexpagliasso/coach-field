@@ -8,3 +8,5 @@ export type OrganizationMembership = { id: string; organizationId: string; userI
 export type GroupMembership = { id: string; organizationId: string; groupId: string; userId: string; role: 'coach' | 'collaborator'; active: boolean; createdAt: string; updatedAt: string }
 export type CollaboratorPermission = { id: string; membershipId: string; permission: string; enabled: boolean; createdAt: string; updatedAt: string }
 export type DemoViewerAccess = { userId: string; organizationId: string; role: 'demo_viewer'; active: boolean; createdAt: string; updatedAt: string }
+export type OrganizationStaffPerson = { id: string; organizationId: string; firstName: string; lastName: string; intendedRole: 'coach' | 'collaborator'; linkedUserId?: string | null; createdBy: string; createdAt: string; updatedAt: string }
+export type OrganizationStaffGroupAssignment = { id: string; organizationId: string; staffPersonId: string; groupId: string; intendedRole: 'coach' | 'collaborator'; createdBy: string; createdAt: string; updatedAt: string }

@@ -39,6 +39,12 @@ describe('group access', () => {
     expect(groupRole(data, 'u', { ...group, active: false })).toBeUndefined()
     expect(groupRole({ ...data, memberships: [{ ...data.memberships[0], active: false }] }, 'u', group)).toBeUndefined()
   })
+  it('keeps different roles for the same account isolated by WorkGroup', () => {
+    const groupB = { ...group, id: 'B' }
+    const mixed = { ...data, groups: [group, groupB], memberships: [data.memberships[0], { ...data.memberships[0], id: 'm2', groupId: 'B', role: 'collaborator' as const }] }
+    expect(groupRole(mixed, 'u', group)).toBe('coach')
+    expect(groupRole(mixed, 'u', groupB)).toBe('collaborator')
+  })
   it('admin accesses organization groups without group membership, including inactive groups', () => {
     const adminData = { ...data, memberships: [], organizationMemberships: [{ id: 'a', organizationId: 'org', userId: 'a', role: 'admin' as const, active: true }] }
     expect(groupRole(adminData, 'a', { ...group, active: false })).toBe('admin')

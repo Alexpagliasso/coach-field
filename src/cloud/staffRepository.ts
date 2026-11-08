@@ -1,5 +1,5 @@
 import { requireSupabase } from '../lib/supabase'
-import type { CollaboratorPermission, DemoViewerAccess, Group, GroupMembership, Organization, OrganizationMembership, OrganizationSeason, Team, UserProfile } from '../types/staff'
+import type { CollaboratorPermission, DemoViewerAccess, Group, GroupMembership, Organization, OrganizationMembership, OrganizationSeason, OrganizationStaffGroupAssignment, OrganizationStaffPerson, Team, UserProfile } from '../types/staff'
 import { isValidSeason } from '../utils/season'
 
 // Postgres uses snake_case; the application domain consistently uses camelCase.
@@ -72,6 +72,48 @@ export async function createTeam(input: Pick<Team, 'organizationId' | 'seasonId'
   if (error) throw error
   return fromRow<Team>(data)
 }
+export async function listOrganizationStaffPeople(organizationId: string) {
+  const { data, error } = await requireSupabase().from('organization_staff_people').select('*').eq('organization_id', organizationId).order('last_name').order('first_name')
+  if (error) throw error
+  return (data ?? []).map(fromRow<OrganizationStaffPerson>)
+}
+export async function saveOrganizationStaffPerson(input: Pick<OrganizationStaffPerson, 'organizationId' | 'firstName' | 'lastName' | 'intendedRole'> & { id?: string }) {
+  const payload = toRow({ organizationId: input.organizationId, firstName: input.firstName.trim(), lastName: input.lastName.trim(), intendedRole: input.intendedRole })
+  const query = input.id
+    ? requireSupabase().from('organization_staff_people').update(payload).eq('id', input.id).eq('organization_id', input.organizationId)
+    : requireSupabase().from('organization_staff_people').insert(payload)
+  const { data, error } = await query.select('*').single()
+  if (error) throw error
+  return fromRow<OrganizationStaffPerson>(data)
+}
+export async function listOrganizationStaffGroupAssignments(organizationId: string) {
+  const { data, error } = await requireSupabase().from('organization_staff_group_assignments').select('*').eq('organization_id', organizationId).order('created_at')
+  if (error) throw error
+  return (data ?? []).map(fromRow<OrganizationStaffGroupAssignment>)
+}
+export async function saveOrganizationStaffGroupAssignment(input: Pick<OrganizationStaffGroupAssignment, 'organizationId' | 'staffPersonId' | 'groupId' | 'intendedRole'> & { id?: string }) {
+  const { data, error } = await requireSupabase().rpc('save_staff_group_assignment', { p_id: input.id ?? null, p_organization_id: input.organizationId, p_staff_person_id: input.staffPersonId, p_group_id: input.groupId, p_role: input.intendedRole }).single()
+  if (error) throw error
+  return fromRow<OrganizationStaffGroupAssignment>(data)
+}
+export async function deleteOrganizationStaffGroupAssignment(input: Pick<OrganizationStaffGroupAssignment, 'id' | 'organizationId' | 'staffPersonId'>) {
+  const { error } = await requireSupabase().rpc('delete_staff_group_assignment', { p_id: input.id, p_organization_id: input.organizationId, p_staff_person_id: input.staffPersonId })
+  if (error) throw error
+}
+export async function createStaffAccountLinkInvitation(organizationId: string, staffPersonId: string) {
+  const { data, error } = await requireSupabase().rpc('create_staff_account_link_invitation', { p_organization_id: organizationId, p_staff_person_id: staffPersonId })
+  if (error) throw error
+  return String(data)
+}
+export async function acceptStaffAccountLink(token: string) {
+  const { data, error } = await requireSupabase().rpc('accept_staff_account_link', { p_token: token })
+  if (error) throw error
+  return String(data)
+}
+export async function revokeStaffAccountLink(organizationId: string, staffPersonId: string) {
+  const { error } = await requireSupabase().rpc('revoke_staff_account_link', { p_organization_id: organizationId, p_staff_person_id: staffPersonId })
+  if (error) throw error
+}
 export type StaffContextData = Awaited<ReturnType<typeof loadStaffContext>>
 export async function getProfile(id: string) {
   const { data, error } = await requireSupabase().from('profiles').select('*').eq('id', id).maybeSingle()
@@ -86,6 +128,31 @@ export async function saveGroup(group: Partial<Group> & Pick<Group, 'organizatio
     : requireSupabase().from('groups').insert(row)
   const { error } = await query
   if (error) throw error
+}
+export type GroupDependencyAudit = {
+  groupId: string; organizationId: string; groupName: string; legacySeason?: string | null
+  teamId?: string | null; teamName?: string | null; seasonId?: string | null; seasonName?: string | null; active: boolean
+  staffMemberships: number; playerMemberships: number; playerAssignments: number; trainingSessions: number
+  matches: number; familyPublications: number; sourceMatchCallups: number; canDelete: boolean
+}
+export async function getOrganizationGroupDependencyAudit(organizationId: string) {
+  const { data, error } = await requireSupabase().rpc('get_organization_group_dependency_audit', { p_organization_id: organizationId })
+  if (error) throw error
+  return (data ?? []).map(fromRow<GroupDependencyAudit>)
+}
+export async function getCurrentUserSuperadminStatus() {
+  const { data, error } = await requireSupabase().rpc('current_user_is_superadmin')
+  if (error) throw error
+  return data === true
+}
+export async function deleteEmptyOrganizationGroup(input: { organizationId: string; groupId: string; confirmationName: string }) {
+  const { data, error } = await requireSupabase().rpc('delete_empty_organization_group', {
+    p_organization_id: input.organizationId,
+    p_group_id: input.groupId,
+    p_confirmation_name: input.confirmationName,
+  })
+  if (error) throw error
+  return String(data)
 }
 export async function assignStaff(group: Group, email: string, role: 'coach' | 'collaborator') {
   const { error } = await requireSupabase().rpc('assign_group_staff', { target_group: group.id, target_email: email.trim(), target_role: role })
