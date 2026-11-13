@@ -42,14 +42,15 @@ describe('Match Center cloud flow', () => {
     expect(callups).not.toContain('getMatches')
   })
 
-  it('mounts an atomic, tap-first initial lineup editor instead of the former placeholder', () => {
+  it('mounts independent, persistent period lineup planning instead of the former placeholder', () => {
     expect(detail).toContain('MatchLineupPanel')
     expect(detail).not.toContain('Formazione non ancora disponibile')
-    for (const operation of ['getCloudMatchInitialLineup', 'saveCloudMatchInitialLineup']) expect(repository).toContain(operation)
+    for (const operation of ['getCloudMatchPeriodLineups', 'saveCloudMatchPeriodLineup']) expect(repository).toContain(operation)
     expect(lineup).toContain('slotsFor(formation)')
     expect(lineup).toContain("callup.status === 'called' || callup.status === 'confirmed'")
-    expect(lineup).toContain('Salva formazione')
-    expect(lineup).toContain('Bozza salvata')
+    expect(lineup).toContain('Formazioni per tempo')
+    expect(lineup).toContain('Tempi previsti per giocatore')
+    expect(lineup).toContain('copyFrom')
   })
 
   it('mounts the mobile live console with authoritative cloud recovery, goals, substitutions and final report', () => {
@@ -59,6 +60,8 @@ describe('Match Center cloud flow', () => {
     expect(live).toContain('Riprova operazione')
     expect(live).toContain('FIGC consolidato')
     expect(live).toContain('Report finale')
+    expect(live).toContain('applyCloudMatchPeriodLineup')
+    expect(live).toContain('Applica formazione prevista')
     expect(live).not.toContain('localStorage')
     expect(live).not.toContain('indexedDB')
   })

@@ -9,7 +9,7 @@ const id = {
   match: 'f0000000-0000-0000-0000-000000000001', historic: 'f0000000-0000-0000-0000-000000000002', otherMatch: 'f0000000-0000-0000-0000-000000000003', created: 'f0000000-0000-0000-0000-000000000004', live: 'f0000000-0000-0000-0000-000000000005',
 }
 let db: PGlite
-const migrations = ['202609230001_v5a_foundation.sql', '202609250001_v5a_group_admin_rls_hotfix.sql', '202610060001_v6_2a_organization_bootstrap.sql', '202610070001_player_cloud_foundation.sql', '202610070002_atomic_player_import.sql', '202610070003_team_workgroup_foundation.sql', '202610070004_organization_seasons_foundation.sql', '202610070005_team_membership_group_assignment_foundation.sql', '202610080006_fix_organization_season_returning_rls.sql', '202610080007_fix_team_returning_rls.sql', '202610080008_team_roster_player_access_and_create.sql', '202610080009_atomic_workgroup_player_assignment.sql', '202610080010_safe_player_lifecycle.sql', '202610080011_workgroup_roster_cloud_access.sql', '202610080012_batch_workgroup_roster_assignment.sql', '202610080013_cloud_training_library.sql', '202610080014_cloud_training_attendance.sql', '202610090015_cloud_matches.sql', '202610100016_match_callup_candidates.sql', '202610170022_match_configuration_and_lineups.sql', '202610180023_match_live_engine.sql']
+const migrations = ['202609230001_v5a_foundation.sql', '202609250001_v5a_group_admin_rls_hotfix.sql', '202610060001_v6_2a_organization_bootstrap.sql', '202610070001_player_cloud_foundation.sql', '202610070002_atomic_player_import.sql', '202610070003_team_workgroup_foundation.sql', '202610070004_organization_seasons_foundation.sql', '202610070005_team_membership_group_assignment_foundation.sql', '202610080006_fix_organization_season_returning_rls.sql', '202610080007_fix_team_returning_rls.sql', '202610080008_team_roster_player_access_and_create.sql', '202610080009_atomic_workgroup_player_assignment.sql', '202610080010_safe_player_lifecycle.sql', '202610080011_workgroup_roster_cloud_access.sql', '202610080012_batch_workgroup_roster_assignment.sql', '202610080013_cloud_training_library.sql', '202610080014_cloud_training_attendance.sql', '202610090015_cloud_matches.sql', '202610100016_match_callup_candidates.sql', '202610170022_match_configuration_and_lineups.sql', '202610180023_match_live_engine.sql', '202611130033_match_period_lineups.sql']
 async function asUser(user: string, sql: string) { await db.exec("begin; set local role authenticated; select set_config('request.jwt.claim.sub','" + user + "',true)"); try { return await db.query(sql) } finally { await db.exec('rollback') } }
 async function session<T>(user: string, run: () => Promise<T>) { await db.exec("begin; set local role authenticated; select set_config('request.jwt.claim.sub','" + user + "',true)"); try { return await run() } finally { await db.exec('rollback') } }
 const matchRow = (matchId = id.match, groupId = id.group, orgId = id.org, createdBy = id.admin) => `insert into matches(id,organization_id,group_id,match_date,opponent,home_away,created_by) values ('${matchId}','${orgId}','${groupId}','2026-11-01','Rivali','home','${createdBy}')`
@@ -237,5 +237,24 @@ describe('cloud matches and call-ups', () => {
       expect((await db.query(`select initial_formation from matches where id='${id.created}'`)).rows).toEqual([{ initial_formation: '2-3-1' }])
       expect((await db.query(`select slot_id from match_initial_lineup_entries where match_id='${id.created}' order by slot_id`)).rows).toEqual([{ slot_id: 'goalkeeper' }, { slot_id: 'midfielder-center' }])
     })
+  })
+
+  it('persists independent period plans and applies the confirmed next-period lineup', async () => {
+    await session(id.coach, async () => {
+      await db.query(matchRow(id.created, id.group, id.org, id.coach))
+      const players = [id.lineup1,id.lineup2,id.lineup3,id.lineup4,id.lineup5,id.lineup6,id.lineup7]
+      for (const player of [...players,id.guest]) await db.query(`insert into match_callups(match_id,organization_id,player_id,status) values ('${id.created}','${id.org}','${player}','confirmed')`)
+      const slots = ['goalkeeper','defender-left','defender-center','defender-right','midfielder-left','midfielder-right','forward']
+      const first = players.map((player,index)=>({playerId:player,slotId:slots[index],positionX:50,positionY:index*10+10}))
+      const second = [id.guest,...players.slice(1)].map((player,index)=>({playerId:player,slotId:slots[index],positionX:50,positionY:index*10+10}))
+      await db.query(`select save_match_period_lineup('${id.created}',1::smallint,'3-2-1','${JSON.stringify(first)}'::jsonb)`)
+      await db.query(`select save_match_period_lineup('${id.created}',2::smallint,'3-2-1','${JSON.stringify(second)}'::jsonb)`)
+      expect((await db.query(`select period_number,count(*)::int as players from match_period_lineup_entries where match_id='${id.created}' group by period_number order by period_number`)).rows).toEqual([{period_number:1,players:7},{period_number:2,players:7}])
+      await db.query(`select start_match_live('${id.created}','30000000-0000-0000-0000-000000000001')`)
+      await db.query(`select finish_match_period('${id.created}','30000000-0000-0000-0000-000000000002')`)
+      await db.query(`select apply_match_period_lineup('${id.created}',2::smallint)`)
+      expect((await db.query(`select player_id from match_live_active_players where match_id='${id.created}' and slot_id='goalkeeper'`)).rows).toEqual([{player_id:id.guest}])
+    })
+    await expect(asUser(id.outsider, `select save_match_period_lineup('${id.match}',1::smallint,'3-2-1','[]'::jsonb)`)).rejects.toThrow('Permission denied')
   })
 })

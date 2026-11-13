@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AlertTriangle, ArrowRightLeft, Check, Clock3, Goal, Pause, Play, RotateCcw, Trophy, Undo2, Users } from 'lucide-react'
-import type { CloudMatch, CloudMatchCallup } from '../cloud/matchCloudRepository'
-import { getCloudMatchCallups } from '../cloud/matchCloudRepository'
+import type { CloudMatch, CloudMatchCallup, CloudMatchPeriodLineup } from '../cloud/matchCloudRepository'
+import { getCloudMatchCallups, getCloudMatchPeriodLineups } from '../cloud/matchCloudRepository'
 import {
-  completeCloudMatchLive, finishCloudMatchPeriod, getCloudMatchLiveReport, getCloudMatchLiveSnapshot, getCloudMatchPlayerStints,
+  applyCloudMatchPeriodLineup, completeCloudMatchLive, finishCloudMatchPeriod, getCloudMatchLiveReport, getCloudMatchLiveSnapshot, getCloudMatchPlayerStints,
   pauseCloudMatchLive, recordCloudMatchGoal, resumeCloudMatchLive, startCloudMatchLive,
   startCloudNextMatchPeriod, substituteCloudMatchPlayer, voidCloudMatchGoal,
   type MatchLiveEvent, type MatchLiveReport, type MatchLiveSnapshot, type MatchPlayerStint,
@@ -33,6 +33,7 @@ const eventLabel = (event: MatchLiveEvent, names: Map<string, string>) => {
 export function MatchLivePanel({ match, editable, onMatchChanged }: Props) {
   const [snapshot, setSnapshot] = useState<MatchLiveSnapshot>(), [report, setReport] = useState<MatchLiveReport>(), [stints, setStints] = useState<MatchPlayerStint[]>([]), [displayElapsed, setDisplayElapsed] = useState(0)
   const [callups, setCallups] = useState<CloudMatchCallup[]>([]), [loading, setLoading] = useState(true), [saving, setSaving] = useState(false), [error, setError] = useState('')
+  const [plannedLineups, setPlannedLineups] = useState<CloudMatchPeriodLineup[]>([])
   const [sheet, setSheet] = useState<Sheet>(), [scorerId, setScorerId] = useState<string | undefined>(), [jersey, setJersey] = useState(''), [outId, setOutId] = useState<string | undefined>(), [inId, setInId] = useState<string | undefined>()
   const [retry, setRetry] = useState<(() => void) | undefined>()
   const [sortByMinutes, setSortByMinutes] = useState(false)
@@ -41,10 +42,10 @@ export function MatchLivePanel({ match, editable, onMatchChanged }: Props) {
     const current = ++version.current
     setLoading(true); setError('')
     try {
-      const [nextSnapshot, nextReport, nextCallups, nextStints] = await Promise.all([getCloudMatchLiveSnapshot(match.id), getCloudMatchLiveReport(match.id), getCloudMatchCallups(match.id), getCloudMatchPlayerStints(match.id)])
+      const [nextSnapshot, nextReport, nextCallups, nextStints, nextPlans] = await Promise.all([getCloudMatchLiveSnapshot(match.id), getCloudMatchLiveReport(match.id), getCloudMatchCallups(match.id), getCloudMatchPlayerStints(match.id), getCloudMatchPeriodLineups(match.id)])
       if (current !== version.current) return
       clockAnchor.current = { elapsed: nextSnapshot.elapsedSeconds, sampledAt: Date.now(), phase: nextSnapshot.phase }
-      setSnapshot(nextSnapshot); setReport(nextReport); setCallups(nextCallups); setStints(nextStints); setDisplayElapsed(nextSnapshot.elapsedSeconds)
+      setSnapshot(nextSnapshot); setReport(nextReport); setCallups(nextCallups); setStints(nextStints); setPlannedLineups(nextPlans); setDisplayElapsed(nextSnapshot.elapsedSeconds)
       if (nextSnapshot.phase === 'completed') onMatchChanged?.({ ...match, status: 'completed', ourScore: nextReport.globalScore.ours, opponentScore: nextReport.globalScore.opponent })
       else if (nextSnapshot.phase !== 'ready') onMatchChanged?.({ ...match, status: 'live', ourScore: nextReport.globalScore.ours, opponentScore: nextReport.globalScore.opponent })
     } catch (reason) { if (current === version.current) setError(`Modalità live non disponibile: ${errorMessage(reason)}`) } finally { if (current === version.current) setLoading(false) }
@@ -80,6 +81,9 @@ export function MatchLivePanel({ match, editable, onMatchChanged }: Props) {
   const playerMinutes = snapshot ? calculateMatchPlayerMinutes(eligible.map(item => item.playerId), stints, { ...snapshot, elapsedSeconds: displayElapsed }) : []
   const rotationRows = [...playerMinutes].sort((a, b) => sortByMinutes ? a.totalSeconds - b.totalSeconds || a.playerId.localeCompare(b.playerId) : Number(b.active) - Number(a.active) || a.totalSeconds - b.totalSeconds || a.playerId.localeCompare(b.playerId))
   const canAct = editable && !saving && snapshot?.phase !== 'completed' && match.status !== 'cancelled'
+  const plannedPeriod = snapshot?.phase === 'interval' ? snapshot.currentPeriod + 1 : snapshot?.currentPeriod || 1
+  const plannedLineup = plannedLineups.find(item => item.periodNumber === plannedPeriod)
+  const plannedApplied = Boolean(plannedLineup && plannedLineup.entries.length === active.length && plannedLineup.entries.every(entry => active.some(item => item.playerId === entry.playerId && item.slotId === entry.slotId)))
 
   const mutate = async (operation: (requestId: ReturnType<typeof crypto.randomUUID>) => Promise<unknown>, confirmation?: string, existingId?: ReturnType<typeof crypto.randomUUID>) => {
     if (!canAct || (confirmation && !window.confirm(confirmation))) return
@@ -101,6 +105,13 @@ export function MatchLivePanel({ match, editable, onMatchChanged }: Props) {
   const submitSubstitution = async () => {
     if (!outId || !inId) { setError('Seleziona chi esce e chi entra.'); return }
     if (await mutate(id => substituteCloudMatchPlayer(match.id, outId, inId, id))) closeSheet()
+  }
+  const applyPlanned = async () => {
+    if (!plannedLineup || !canAct || !window.confirm(`Applicare la formazione pianificata per il ${plannedLineup.periodNumber}° tempo? La formazione effettiva corrente verrà sostituita.`)) return
+    setSaving(true); setError('')
+    try { await applyCloudMatchPeriodLineup(match.id, plannedLineup.periodNumber); await load() }
+    catch (reason) { setError(`Applicazione formazione non riuscita: ${errorMessage(reason)}`) }
+    finally { setSaving(false) }
   }
 
   if (loading && !snapshot) return <LoadingState label="Caricamento Match Live…" />
@@ -126,6 +137,8 @@ export function MatchLivePanel({ match, editable, onMatchChanged }: Props) {
     </header>
 
     <section className="grid grid-cols-2 gap-2 sm:grid-cols-4" aria-label="Punteggi"><article className="rounded-xl border border-app-border bg-app-elevated p-3"><small className="text-app-muted">Tempo corrente</small><strong className="mt-1 block text-lg tabular-nums">{currentPeriod ? `${currentPeriod.ours} – ${currentPeriod.opponent}` : '—'}</strong></article><article className="rounded-xl border border-app-border bg-app-elevated p-3"><small className="text-app-muted">FIGC consolidato</small><strong className="mt-1 block text-lg tabular-nums">{report.figcScore.ours} – {report.figcScore.opponent}</strong></article><article className="col-span-2 rounded-xl border border-app-border bg-app-elevated p-3"><small className="text-app-muted">Tempi</small><p className="mt-1 flex flex-wrap gap-1">{report.periods.map(period => <span key={period.period} className={`rounded-md px-1.5 py-0.5 text-xs font-bold ${period.completed ? 'bg-app-primary/10 text-app-primary' : 'bg-app-surface text-app-muted'}`}>{period.period}° {period.ours}–{period.opponent}{period.completed ? ` · ${period.figcOurs}-${period.figcOpponent}` : ''}</span>)}</p></article></section>
+
+    {snapshot.phase === 'interval' && snapshot.currentPeriod < match.periodCount && <section className="rounded-xl border border-app-primary/30 bg-app-primary/5 p-3"><div className="flex flex-wrap items-center justify-between gap-2"><div><p className="eyebrow">Pianificazione · {plannedPeriod}° tempo</p><strong>{plannedLineup ? `${plannedLineup.formation} · ${plannedLineup.entries.length}/7 titolari` : 'Nessuna formazione pianificata'}</strong><small className="block text-app-muted">La formazione effettiva resta separata finché non confermi.</small></div>{editable && plannedLineup?.entries.length === 7 && <Button variant={plannedApplied ? 'secondary' : 'primary'} disabled={saving || plannedApplied} onClick={() => void applyPlanned()}>{plannedApplied ? 'Già applicata' : 'Applica formazione prevista'}</Button>}</div></section>}
 
     {editable && snapshot.phase !== 'ready' && snapshot.phase !== 'completed' && <section className="grid grid-cols-2 gap-2"><Button className="min-h-14" variant="success" disabled={!canAct || snapshot.phase === 'interval'} onClick={() => setSheet('our-goal')}><Goal size={20} />+ Gol nostro</Button><Button className="min-h-14" variant="secondary" disabled={!canAct || snapshot.phase === 'interval'} onClick={() => setSheet('opponent-goal')}><Goal size={20} />+ Gol avversario</Button></section>}
     <section className="flex flex-wrap gap-2" aria-label="Controlli partita">{controls}</section>

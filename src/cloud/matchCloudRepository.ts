@@ -22,6 +22,7 @@ export type CloudMatchLineupEntry = {
   createdAt: string; updatedAt: string; player?: CloudPlayer
 }
 export type CloudMatchLineupSaveEntry = Pick<CloudMatchLineupEntry, 'playerId' | 'slotId' | 'positionX' | 'positionY'>
+export type CloudMatchPeriodLineup = { matchId: string; periodNumber: number; formation: CloudMatch['initialFormation']; updatedAt: string; entries: CloudMatchLineupSaveEntry[] }
 
 type MatchInput = Omit<CloudMatch, 'id' | 'createdBy' | 'createdAt' | 'updatedAt' | 'isHidden'> & { id?: string; isHidden?: boolean }
 const toRow = (row: object) => Object.fromEntries(Object.entries(row).filter(([, value]) => value !== undefined).map(([key, value]) => [key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`), value]))
@@ -119,6 +120,21 @@ export async function saveCloudMatchInitialLineup(matchId: string, entries: Clou
   const { data, error } = await requireSupabase().rpc('save_match_initial_lineup', params)
   if (error) throw error
   return String(data)
+}
+
+export async function getCloudMatchPeriodLineups(matchId: string): Promise<CloudMatchPeriodLineup[]> {
+  const [{ data: plans, error: plansError }, { data: entries, error: entriesError }] = await Promise.all([
+    requireSupabase().from('match_period_lineups').select('*').eq('match_id', matchId).order('period_number'),
+    requireSupabase().from('match_period_lineup_entries').select('*').eq('match_id', matchId).order('period_number').order('slot_id'),
+  ])
+  if (plansError) throw plansError
+  if (entriesError) throw entriesError
+  return (plans ?? []).map(row => ({ ...fromRow<Omit<CloudMatchPeriodLineup, 'entries'>>(row), entries: (entries ?? []).filter(entry => entry.period_number === row.period_number).map(entry => fromRow<CloudMatchLineupSaveEntry>(entry)) }))
+}
+
+export async function saveCloudMatchPeriodLineup(matchId: string, periodNumber: number, formation: CloudMatch['initialFormation'], entries: CloudMatchLineupSaveEntry[]) {
+  const { error } = await requireSupabase().rpc('save_match_period_lineup', { p_match_id: matchId, p_period_number: periodNumber, p_formation: formation, p_entries: entries })
+  if (error) throw error
 }
 
 /**
