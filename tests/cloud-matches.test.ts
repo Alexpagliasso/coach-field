@@ -246,10 +246,12 @@ describe('cloud matches and call-ups', () => {
       for (const player of [...players,id.guest]) await db.query(`insert into match_callups(match_id,organization_id,player_id,status) values ('${id.created}','${id.org}','${player}','confirmed')`)
       const slots = ['goalkeeper','defender-left','defender-center','defender-right','midfielder-left','midfielder-right','forward']
       const first = players.map((player,index)=>({playerId:player,slotId:slots[index],positionX:50,positionY:index*10+10}))
-      const second = [id.guest,...players.slice(1)].map((player,index)=>({playerId:player,slotId:slots[index],positionX:50,positionY:index*10+10}))
+      const secondSlots = ['goalkeeper','defender-left','defender-right','midfielder-left','midfielder-center','midfielder-right','forward']
+      const second = [id.guest,...players.slice(1)].map((player,index)=>({playerId:player,slotId:secondSlots[index],positionX:50,positionY:index*10+10}))
       await db.query(`select save_match_period_lineup('${id.created}',1::smallint,'3-2-1','${JSON.stringify(first)}'::jsonb)`)
-      await db.query(`select save_match_period_lineup('${id.created}',2::smallint,'3-2-1','${JSON.stringify(second)}'::jsonb)`)
+      await db.query(`select save_match_period_lineup('${id.created}',2::smallint,'2-3-1','${JSON.stringify(second)}'::jsonb)`)
       expect((await db.query(`select period_number,count(*)::int as players from match_period_lineup_entries where match_id='${id.created}' group by period_number order by period_number`)).rows).toEqual([{period_number:1,players:7},{period_number:2,players:7}])
+      expect((await db.query(`select period_number,formation from match_period_lineups where match_id='${id.created}' order by period_number`)).rows).toEqual([{period_number:1,formation:'3-2-1'},{period_number:2,formation:'2-3-1'}])
       await db.query(`select start_match_live('${id.created}','30000000-0000-0000-0000-000000000001')`)
       await db.query(`select finish_match_period('${id.created}','30000000-0000-0000-0000-000000000002')`)
       await db.query(`select apply_match_period_lineup('${id.created}',2::smallint)`)
