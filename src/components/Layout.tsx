@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ComponentType } from 'react'
 import { Outlet, useLocation, useNavigate as useRouterNavigate } from 'react-router-dom'
 import {
   BarChart3, CalendarDays, ChevronDown, ChevronRight, ClipboardList, Dumbbell,
-  Home, LogOut, Menu, Palette, PanelLeftClose, PanelLeftOpen, Repeat2, Settings, Trophy, Users, X,
+  ArrowRight, Home, LogOut, Menu, Palette, PanelLeftClose, PanelLeftOpen, Repeat2, Settings, Trophy, Users, X,
 } from 'lucide-react'
 import { NavLink, Link } from '../groups/navigation'
 import { ThemeSelectorSheet } from './ThemeSelectorSheet'
@@ -11,6 +11,7 @@ import { useAuth } from '../auth/authContext'
 import { APP_NAME } from '../brand'
 import { resolveGroupHierarchy } from '../groups/hierarchyNavigation'
 import type { Group } from '../types/staff'
+import { getLiveCloudMatch, type CloudMatch } from '../cloud/matchCloudRepository'
 
 type NavItem = { to: string; label: string; icon: ComponentType<{ size?: number; className?: string }> }
 
@@ -33,10 +34,11 @@ function SideNavSection({ label, items, collapsed }: { label: string; items: Nav
 }
 
 function MobileMenu({ kind, categoryPath, categoryName, onClose }: { kind: 'activity' | 'more'; categoryPath?: string; categoryName?: string; onClose: () => void }) {
-  const { can } = usePermissions()
+  const { can, isAdmin } = usePermissions()
   const items: NavItem[] = kind === 'activity' ? activities : [
     ...overview.slice(0, 1),
     ...squad.slice(1),
+    ...(isAdmin ? [{ to: '/staff', label: 'Staff', icon: Users }] : []),
     ...(can('group.settings') ? [{ to: '/settings', label: 'Impostazioni', icon: Settings }] : []),
   ]
   return <div className="mobile-nav-overlay" role="presentation" onClick={onClose}><section className="mobile-nav-sheet" role="dialog" aria-modal="true" aria-label={kind === 'activity' ? 'Attività' : 'Altre destinazioni'} onClick={event => event.stopPropagation()}><div className="mobile-nav-sheet-head"><div><span className="eyebrow">Navigazione</span><h2>{kind === 'activity' ? 'Attività' : 'Altro'}</h2></div><button type="button" onClick={onClose} aria-label="Chiudi menu"><X size={21} /></button></div><div className="mobile-nav-grid">{items.map(({ to, label, icon: Icon }) => <NavLink key={to} to={to} onClick={onClose} className={({ isActive }) => `mobile-nav-destination ${isActive ? 'active' : ''}`}><Icon size={21} /><span>{label}</span><ChevronRight size={17} /></NavLink>)}</div>{categoryPath && <Link to={categoryPath} onClick={onClose} className="mobile-category-return"><Repeat2 size={19} /><span><small>Torna alla categoria</small><strong>{categoryName}</strong></span><ChevronRight size={18} /></Link>}</section></div>
@@ -63,8 +65,9 @@ export function Layout() {
   const [mobileMenu, setMobileMenu] = useState<'activity' | 'more'>()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem('growpitch:sidebar-collapsed') === 'true')
   const [online, setOnline] = useState(() => navigator.onLine)
+  const [liveMatch, setLiveMatch] = useState<CloudMatch>()
   const { activeGroup, data, availableGroups, switchGroup } = useGroup()
-  const { can, isDemoViewer } = usePermissions()
+  const { can, isAdmin, isDemoViewer } = usePermissions()
   const { signOut, profile } = useAuth()
   const location = useLocation()
   const navigate = useRouterNavigate()
@@ -76,6 +79,19 @@ export function Layout() {
     window.addEventListener('offline', updateConnection)
     return () => { window.removeEventListener('online', updateConnection); window.removeEventListener('offline', updateConnection) }
   }, [])
+  useEffect(() => {
+    let active = true
+    const loadLiveMatch = async () => {
+      if (!activeGroup) { if (active) setLiveMatch(undefined); return }
+      try { const match = await getLiveCloudMatch(activeGroup.id); if (active) setLiveMatch(match) }
+      catch { if (active) setLiveMatch(undefined) }
+    }
+    void loadLiveMatch()
+    const interval = window.setInterval(() => void loadLiveMatch(), 15_000)
+    const visible = () => { if (document.visibilityState === 'visible') void loadLiveMatch() }
+    document.addEventListener('visibilitychange', visible)
+    return () => { active = false; window.clearInterval(interval); document.removeEventListener('visibilitychange', visible) }
+  }, [activeGroup?.id, location.pathname])
 
   const { organization, team, season, organizationPath, seasonPath, categoryPath } = resolveGroupHierarchy(data, activeGroup)
   const activityActive = /\/(training|matches)(\/|$)/.test(location.pathname)
@@ -92,13 +108,14 @@ export function Layout() {
     <aside className={`app-sidebar ${sidebarCollapsed ? 'collapsed' : ''}`} aria-label="Navigazione workspace">
       <div className="app-sidebar-brand-row"><Link to="/app/groups" className="app-brand"><span>GP</span><strong>{APP_NAME}</strong></Link><button type="button" className="app-sidebar-toggle" onClick={() => setSidebarCollapsed(value => !value)} aria-label={sidebarCollapsed ? 'Espandi navigazione' : 'Riduci navigazione'} title={sidebarCollapsed ? 'Espandi navigazione' : 'Riduci navigazione'}>{sidebarCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}</button></div>
       <section className="context-switcher"><span>WorkGroup attivo</span><WorkGroupSwitcher activeGroup={activeGroup} groups={groupsInActiveOrganization} details={groupDetails} onSelect={switchGroup} /><small>{team?.name ?? organization?.name ?? 'Contesto operativo'}</small>{isDemoViewer && <BadgeDemo />}</section>
-      <nav className="app-sidebar-nav"><SideNavSection label="Overview" items={overview} collapsed={sidebarCollapsed} /><SideNavSection label="Attività" items={activities} collapsed={sidebarCollapsed} /><SideNavSection label="Squadra" items={squad} collapsed={sidebarCollapsed} /><section className="app-nav-section"><span>Gestione</span><span className="app-nav-link app-nav-link-disabled" aria-disabled="true" title="Staff: prossimamente"><Users size={18} /><span><b>Staff</b><small>Prossimamente</small></span></span>{can('group.settings') && <NavLink to="/settings" title={sidebarCollapsed ? 'Impostazioni' : undefined} aria-label={sidebarCollapsed ? 'Impostazioni' : undefined} className={({ isActive }) => `app-nav-link ${isActive ? 'active' : ''}`}><Settings size={18} /><b>Impostazioni</b></NavLink>}{categoryPath && <Link to={categoryPath} title={sidebarCollapsed ? 'Torna alla categoria' : undefined} aria-label={sidebarCollapsed ? 'Torna alla categoria' : undefined} className="app-nav-link"><Repeat2 size={18} /><b>Torna alla categoria</b></Link>}</section></nav>
+      <nav className="app-sidebar-nav"><SideNavSection label="Overview" items={overview} collapsed={sidebarCollapsed} /><SideNavSection label="Attività" items={activities} collapsed={sidebarCollapsed} /><SideNavSection label="Squadra" items={squad} collapsed={sidebarCollapsed} /><section className="app-nav-section"><span>Gestione</span>{isAdmin && <NavLink to="/staff" title={sidebarCollapsed ? 'Staff' : undefined} aria-label={sidebarCollapsed ? 'Staff' : undefined} className={({ isActive }) => `app-nav-link ${isActive ? 'active' : ''}`}><Users size={18} /><b>Staff</b></NavLink>}{can('group.settings') && <NavLink to="/settings" title={sidebarCollapsed ? 'Impostazioni' : undefined} aria-label={sidebarCollapsed ? 'Impostazioni' : undefined} className={({ isActive }) => `app-nav-link ${isActive ? 'active' : ''}`}><Settings size={18} /><b>Impostazioni</b></NavLink>}{categoryPath && <Link to={categoryPath} title={sidebarCollapsed ? 'Torna alla categoria' : undefined} aria-label={sidebarCollapsed ? 'Torna alla categoria' : undefined} className="app-nav-link"><Repeat2 size={18} /><b>Torna alla categoria</b></Link>}</section></nav>
       <div className="app-sidebar-footer"><button type="button" onClick={() => setThemeOpen(true)}><Palette size={18} /><span>Tema</span></button><button type="button" onClick={() => void signOut()}><LogOut size={18} /><span>Esci</span></button><small>{profile?.email}</small></div>
     </aside>
 
     <div className="app-workspace">
       {!online && <div className="offline-notice" role="status"><strong>Sei offline.</strong> Puoi consultare l’app già caricata; dati cloud, accesso e salvataggi potrebbero non essere disponibili.</div>}
       <header className="app-context-header"><div className="app-mobile-brand"><span>GP</span><strong>{APP_NAME}</strong></div><nav className="app-breadcrumbs" aria-label="Percorso"><Link to="/app/groups">Società</Link>{organization && <><ChevronRight /><Link to={organizationPath!}>{organization.name}</Link></>}{season && seasonPath && <><ChevronRight /><Link to={seasonPath}>{season.name}</Link></>}{team && categoryPath && <><ChevronRight /><Link to={categoryPath}>{team.name}</Link></>}{activeGroup && <><ChevronRight /><strong>{activeGroup.name}</strong></>}</nav><div className="app-header-actions">{isDemoViewer && <BadgeDemo compact />}<button type="button" onClick={() => setThemeOpen(true)} aria-label="Cambia tema"><Palette size={18} /></button><button type="button" onClick={() => navigate('/app/groups')} aria-label="Cambia contesto"><Repeat2 size={18} /></button></div></header>
+      {liveMatch && <Link to={`/matches/${liveMatch.id}?tab=live`} className="matchday-resume" aria-label={`Riprendi la partita contro ${liveMatch.opponent}`}><span><i aria-hidden="true" /><small>Partita in corso</small><strong>vs {liveMatch.opponent}</strong></span><b>Riprendi <ArrowRight size={16} /></b></Link>}
       <main className="app-main app-command-main"><Outlet /></main>
     </div>
 

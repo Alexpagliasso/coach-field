@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useSearchParams, useParams } from 'react-router-dom'
 import { Link } from '../groups/navigation'
 import { useGroup, usePermissions } from '../groups/groupContext'
 import { cancelCloudMatch, getCloudMatch, getCloudMatchCallups, type CloudMatch } from '../cloud/matchCloudRepository'
@@ -15,10 +15,12 @@ const statusLabel = (status: CloudMatch['status']) => status === 'scheduled' ? '
 
 export function MatchDetailPage() {
   const { id } = useParams(); const { activeGroup } = useGroup(); const { can, isAdmin } = usePermissions()
-  const [match, setMatch] = useState<CloudMatch>(), [callupCount, setCallupCount] = useState(0), [loading, setLoading] = useState(true), [error, setError] = useState(''), [tab, setTab] = useState<Tab>('summary'), [editing, setEditing] = useState(false), [cancelling, setCancelling] = useState(false), [familyPublication, setFamilyPublication] = useState<FamilyPublicationDraft>()
+  const [searchParams] = useSearchParams()
+  const [match, setMatch] = useState<CloudMatch>(), [callupCount, setCallupCount] = useState(0), [loading, setLoading] = useState(true), [error, setError] = useState(''), [tab, setTab] = useState<Tab>(() => searchParams.get('tab') === 'live' ? 'live' : 'summary'), [editing, setEditing] = useState(false), [cancelling, setCancelling] = useState(false), [familyPublication, setFamilyPublication] = useState<FamilyPublicationDraft>()
   const sequence = useRef(0)
   const load = useCallback(async () => { if (!id || !activeGroup) return; const current = ++sequence.current; setLoading(true); setError(''); try { const next = await getCloudMatch(id, activeGroup.id); const callups = next ? await getCloudMatchCallups(next.id) : []; if (current !== sequence.current) return; setMatch(next); setCallupCount(callups.length) } catch (reason) { if (current === sequence.current) setError(reason instanceof Error ? reason.message : 'Non siamo riusciti a caricare la partita.') } finally { if (current === sequence.current) setLoading(false) } }, [activeGroup?.id, id])
   useEffect(() => { void load() }, [load])
+  useEffect(() => { if (searchParams.get('tab') === 'live') setTab('live') }, [searchParams])
   const cancel = async () => { if (!match || !window.confirm('Annullare questa partita? Convocazioni e storico resteranno disponibili.')) return; setCancelling(true); try { const next = await cancelCloudMatch(match.id); setMatch(next) } catch (reason) { setError(reason instanceof Error ? reason.message : 'Annullamento non riuscito.') } finally { setCancelling(false) } }
   if (loading) return <section className="page"><LoadingState label="Caricamento partita..." /></section>
   if (error) return <section className="page"><ErrorState message={error} action={<Button onClick={() => void load()}>Riprova</Button>} /></section>

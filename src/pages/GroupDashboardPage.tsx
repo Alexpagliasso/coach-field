@@ -13,6 +13,7 @@ import { aggregateTrainingObjectiveTags, getWorkGroupTrainingObjectiveTagAssocia
 import { TacticalBackdrop } from '../components/TacticalBackdrop'
 import { localDateKey } from '../utils/calendar'
 import { WorkGroupRosterPreview } from '../components/WorkGroupRosterPreview'
+import { MatchdayCard } from '../components/MatchdayCard'
 
 type AgendaItem = { type: 'training' | 'match'; date: string; title: string; id: string; time?: string; objective?: string; duration?: number; exerciseCount?: number }
 const emptyCounts: TrainingSessionCounts = { total: 0, planned: 0, completed: 0 }
@@ -96,6 +97,9 @@ export function GroupDashboardPage() {
     ...matches.filter(item => item.status === 'completed').map(item => ({ type: 'match' as const, date: item.matchDate, title: `vs ${item.opponent}`, id: item.id, time: item.startTime ?? undefined })),
   ].sort((a, b) => (b.date + (b.time ?? '')).localeCompare(a.date + (a.time ?? ''))).slice(0, 4), [matches, sessions])
   const nextActivity = upcoming[0]
+  const todayMatch = useMemo(() => matches
+    .filter(item => item.matchDate === today && (item.status === 'scheduled' || item.status === 'live'))
+    .sort((left, right) => Number(right.status === 'live') - Number(left.status === 'live') || (left.startTime ?? '').localeCompare(right.startTime ?? ''))[0], [matches, today])
   const hour = new Date().getHours()
   const greeting = hour < 12 ? 'Buongiorno' : hour < 18 ? 'Buon pomeriggio' : 'Buonasera'
 
@@ -106,6 +110,8 @@ export function GroupDashboardPage() {
       <div className="dashboard-v7-next" aria-label="Prossima attività"><span>Prossima attività</span>{nextActivity ? <><strong>{nextActivity.title}</strong><small>{scheduleLabel(nextActivity)}</small><Link to={destination(nextActivity)}>Apri dettaglio <ArrowRight size={16} /></Link></> : <><strong>Agenda libera</strong><small>Nessun impegno in arrivo.</small><Link to="/training">Pianifica una seduta <ArrowRight size={16} /></Link></>}</div>
       <div className="dashboard-v7-field" aria-hidden="true"><i /><i /><i /></div>
     </header>
+
+    {!loading && todayMatch && <MatchdayCard match={todayMatch} />}
 
     {debug && <aside className="mb-4 rounded-xl border border-app-border bg-app-elevated p-3 text-xs" data-testid="training-debug"><strong>Diagnostica dashboard cloud</strong><dl><dt>Route</dt><dd>{window.location.pathname}</dd><dt>WorkGroup</dt><dd>{activeGroup?.id ?? '—'}</dd><dt>Fonti</dt><dd>Supabase · training_sessions, matches, group_player_assignments</dd><dt>Sedute / partite / rosa ricevute</dt><dd>{sessions.length} / {matches.length} / {roster.length}</dd><dt>Errore</dt><dd>{error || rosterError || 'nessuno'}</dd></dl></aside>}
     {error && <ErrorState message={error} action={<Button size="sm" onClick={() => void load()}>Riprova</Button>} />}

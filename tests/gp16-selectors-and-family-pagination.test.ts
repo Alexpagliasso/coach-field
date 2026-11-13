@@ -24,11 +24,10 @@ describe('GP-16B selectors, archive pagination and Staff availability', () => {
     expect(families).toContain('disabled={!archiveHasMore || archiveLoading}')
   })
 
-  it('keeps Staff visible but unavailable without a navigable sidebar link', () => {
-    expect(layout).toContain('app-nav-link app-nav-link-disabled')
-    expect(layout).toContain('aria-disabled="true"')
-    expect(layout).toContain('Prossimamente')
-    expect(layout).not.toContain("{ to: '/staff', label: 'Staff', icon: Users }")
+  it('links Staff only for authorized administrators on desktop and mobile', () => {
+    expect(layout).toContain("isAdmin ? [{ to: '/staff', label: 'Staff', icon: Users }]")
+    expect(layout).toContain('{isAdmin && <NavLink to="/staff"')
+    expect(layout).not.toContain('Staff: prossimamente')
     expect(app).toContain('<Route path="staff" element={<StaffUnavailablePage />} />')
   })
 })

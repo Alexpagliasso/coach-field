@@ -30,10 +30,15 @@ describe('TodayPage cloud sessions', () => {
     expect(source).toContain('onClick={()=>setSelected(session)}')
   })
 
-  it('renders a clear empty state with a Training Hub link', () => {
+  it('renders a clear empty state with a Training Hub link when the whole day is empty', () => {
     expect(firstTodaySession([])).toBeUndefined()
-    expect(source).toContain('Nessun allenamento oggi')
+    expect(source).toContain('Nessuna attività oggi')
     expect(source).toContain('to="/training"')
+  })
+
+  it('loads matches for the same local date and reuses the Matchday card', () => {
+    expect(source).toContain('getCloudMatches(activeGroup.id,today,today)')
+    expect(source).toContain('<MatchdayCard key={match.id} match={match}/>')
   })
 
   it('keeps completed sessions visible and labels their status', () => {

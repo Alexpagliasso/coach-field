@@ -51,6 +51,11 @@ export async function getCloudMatches(groupId: string, from?: string, to?: strin
   return [...first.matches, ...rest.flatMap(page => page.matches)]
 }
 
+export async function getLiveCloudMatch(groupId: string) {
+  const page = await getCloudMatchPage(groupId, { pageSize: 1, status: 'live', ascending: false })
+  return page.matches[0]
+}
+
 export async function getCloudMatch(matchId: string, groupId?: string) {
   let request = requireSupabase().from('matches').select('*').eq('id', matchId)
   if (groupId) request = request.eq('group_id', groupId)
