@@ -16,7 +16,8 @@ export type FamilyPublication = {
 }
 
 export type PublishedFamilyPublication = Pick<FamilyPublication, 'contentType' | 'title' | 'publicContent' | 'referenceDate' | 'publishedAt' | 'groupId'>
-export type PublishedFamilyPublicationFilters = { contentTypes?: FamilyPublicationType[]; month?: string; from?: string; to?: string; search?: string; groupId?: string | null; publicGroupId?: string }
+export type FamilyPublicPath = { seasonSlug: string; categorySlug: string; groupSlug: string }
+export type PublishedFamilyPublicationFilters = { contentTypes?: FamilyPublicationType[]; month?: string; from?: string; to?: string; search?: string; groupId?: string | null; publicGroupId?: string; publicPath?: FamilyPublicPath }
 export type PublishedFamilyPublicationPage = { items: PublishedFamilyPublication[]; hasMore: boolean }
 
 type PublicationRow = {
@@ -36,6 +37,18 @@ const searchTerm = (value: string) => value.replace(/[,%_().]/g, ' ').trim()
 export async function getPublishedFamilyPublicationPage(filters: PublishedFamilyPublicationFilters = {}, page = 0, pageSize = 12): Promise<PublishedFamilyPublicationPage> {
   const limit = Math.min(100, Math.max(1, pageSize + 1))
   const term = searchTerm(filters.search ?? '')
+  if (filters.publicPath) {
+    const { seasonSlug, categorySlug, groupSlug } = filters.publicPath
+    const { data, error } = await requireSupabase().rpc('get_family_publications_for_path', {
+      p_season_slug: seasonSlug, p_category_slug: categorySlug, p_group_slug: groupSlug,
+      p_content_types: filters.contentTypes ?? null, p_from: filters.month ? `${filters.month}-01` : filters.from ?? null,
+      p_to: filters.month ? nextMonth(filters.month) : filters.to ?? null, p_search: term || null,
+      p_limit: limit, p_offset: page * pageSize,
+    })
+    if (error) throw new Error(errorMessage(error))
+    const items = (data ?? []).map(publicationFromRpc)
+    return { items: items.slice(0, pageSize), hasMore: items.length > pageSize }
+  }
   if (filters.publicGroupId) {
     const { data, error } = await requireSupabase().rpc('get_family_publications_for_group', {
       p_group_id: filters.publicGroupId, p_content_types: filters.contentTypes ?? null,
@@ -44,7 +57,7 @@ export async function getPublishedFamilyPublicationPage(filters: PublishedFamily
       p_search: term || null, p_limit: limit, p_offset: page * pageSize,
     })
     if (error) throw new Error(errorMessage(error))
-    const items = (data ?? []).map((row: Record<string, unknown>) => ({ contentType: row.content_type as FamilyPublicationType, title: row.title as string, publicContent: row.public_content as string, referenceDate: row.reference_date as string, publishedAt: row.published_at as string | null, groupId: row.group_id as string | null }))
+    const items = (data ?? []).map(publicationFromRpc)
     return { items: items.slice(0, pageSize), hasMore: items.length > pageSize }
   }
   let query = requireSupabase().from('family_publications').select(publicFields).eq('status', 'published')
@@ -68,6 +81,28 @@ export async function getPublishedFamilyPublicationPage(filters: PublishedFamily
   return { items: items.slice(0, pageSize), hasMore: items.length > pageSize }
 }
 
+const publicationFromRpc = (row: Record<string, unknown>): PublishedFamilyPublication => ({ contentType: row.content_type as FamilyPublicationType, title: row.title as string, publicContent: row.public_content as string, referenceDate: row.reference_date as string, publishedAt: row.published_at as string | null, groupId: row.group_id as string | null })
+
+export async function ensureFamilyPublicRoute(groupId: string): Promise<string> {
+  const { data, error } = await requireSupabase().rpc('ensure_family_public_route', { p_group_id: groupId })
+  if (error) throw new Error(errorMessage(error)); return String(data)
+}
+
+export async function getFamilyPublicRoute(groupId: string): Promise<string | undefined> {
+  const { data, error } = await requireSupabase().rpc('get_family_public_route', { p_group_id: groupId })
+  if (error) throw new Error(errorMessage(error)); return data ? String(data) : undefined
+}
+
+/** Authenticated dashboard preview, strictly scoped to one active WorkGroup. */
+export async function getLatestPublishedFamilyPublications(groupId: string, limit = 2): Promise<PublishedFamilyPublication[]> {
+  const safeLimit = Math.min(2, Math.max(1, limit))
+  const { data, error } = await requireSupabase().from('family_publications').select(publicFields)
+    .eq('status', 'published').eq('group_id', groupId)
+    .order('published_at', { ascending: false, nullsFirst: false }).limit(safeLimit)
+  if (error) throw new Error(errorMessage(error))
+  return (data ?? []).map(row => publicationFromRpc(row as Record<string, unknown>))
+}
+
 export async function getOrganizationFamilyPublications(organizationId: string): Promise<FamilyPublication[]> {
   const { data, error } = await requireSupabase().from('family_publications').select('*')
     .eq('organization_id', organizationId).order('reference_date', { ascending: false })
@@ -77,6 +112,7 @@ export async function getOrganizationFamilyPublications(organizationId: string):
 
 export async function saveFamilyPublication(input: Omit<FamilyPublication, 'id' | 'publishedAt'> & { id?: string }): Promise<FamilyPublication> {
   const client = requireSupabase()
+  if (input.groupId) await ensureFamilyPublicRoute(input.groupId)
   const payload = {
     organization_id: input.organizationId, group_id: input.groupId, content_type: input.contentType, title: input.title.trim(),
     public_content: input.publicContent.trim(), reference_date: input.referenceDate, status: input.status,

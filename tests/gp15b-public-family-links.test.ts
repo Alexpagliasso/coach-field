@@ -21,7 +21,7 @@ describe('GP-15B public WorkGroup family links', () => {
   })
 
   it('offers a clipboard action with a Safari-compatible fallback', () => {
-    expect(weekly).toContain('`/famiglie/${groupId}`')
+    expect(weekly).toContain('ensureFamilyPublicRoute(groupId)')
     expect(weekly).toContain('navigator.clipboard?.writeText')
     expect(weekly).toContain("document.execCommand('copy')")
   })

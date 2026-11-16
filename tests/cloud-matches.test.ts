@@ -9,7 +9,7 @@ const id = {
   match: 'f0000000-0000-0000-0000-000000000001', historic: 'f0000000-0000-0000-0000-000000000002', otherMatch: 'f0000000-0000-0000-0000-000000000003', created: 'f0000000-0000-0000-0000-000000000004', live: 'f0000000-0000-0000-0000-000000000005',
 }
 let db: PGlite
-const migrations = ['202609230001_v5a_foundation.sql', '202609250001_v5a_group_admin_rls_hotfix.sql', '202610060001_v6_2a_organization_bootstrap.sql', '202610070001_player_cloud_foundation.sql', '202610070002_atomic_player_import.sql', '202610070003_team_workgroup_foundation.sql', '202610070004_organization_seasons_foundation.sql', '202610070005_team_membership_group_assignment_foundation.sql', '202610080006_fix_organization_season_returning_rls.sql', '202610080007_fix_team_returning_rls.sql', '202610080008_team_roster_player_access_and_create.sql', '202610080009_atomic_workgroup_player_assignment.sql', '202610080010_safe_player_lifecycle.sql', '202610080011_workgroup_roster_cloud_access.sql', '202610080012_batch_workgroup_roster_assignment.sql', '202610080013_cloud_training_library.sql', '202610080014_cloud_training_attendance.sql', '202610090015_cloud_matches.sql', '202610100016_match_callup_candidates.sql', '202610170022_match_configuration_and_lineups.sql', '202610180023_match_live_engine.sql', '202611130033_match_period_lineups.sql']
+const migrations = ['202609230001_v5a_foundation.sql', '202609250001_v5a_group_admin_rls_hotfix.sql', '202610060001_v6_2a_organization_bootstrap.sql', '202610070001_player_cloud_foundation.sql', '202610070002_atomic_player_import.sql', '202610070003_team_workgroup_foundation.sql', '202610070004_organization_seasons_foundation.sql', '202610070005_team_membership_group_assignment_foundation.sql', '202610080006_fix_organization_season_returning_rls.sql', '202610080007_fix_team_returning_rls.sql', '202610080008_team_roster_player_access_and_create.sql', '202610080009_atomic_workgroup_player_assignment.sql', '202610080010_safe_player_lifecycle.sql', '202610080011_workgroup_roster_cloud_access.sql', '202610080012_batch_workgroup_roster_assignment.sql', '202610080013_cloud_training_library.sql', '202610080014_cloud_training_attendance.sql', '202610090015_cloud_matches.sql', '202610100016_match_callup_candidates.sql', '202610170022_match_configuration_and_lineups.sql', '202610180023_match_live_engine.sql', '202611130033_match_period_lineups.sql', '202611160034_match_live_substitution_undo.sql']
 async function asUser(user: string, sql: string) { await db.exec("begin; set local role authenticated; select set_config('request.jwt.claim.sub','" + user + "',true)"); try { return await db.query(sql) } finally { await db.exec('rollback') } }
 async function session<T>(user: string, run: () => Promise<T>) { await db.exec("begin; set local role authenticated; select set_config('request.jwt.claim.sub','" + user + "',true)"); try { return await run() } finally { await db.exec('rollback') } }
 const matchRow = (matchId = id.match, groupId = id.group, orgId = id.org, createdBy = id.admin) => `insert into matches(id,organization_id,group_id,match_date,opponent,home_away,created_by) values ('${matchId}','${orgId}','${groupId}','2026-11-01','Rivali','home','${createdBy}')`
@@ -192,7 +192,13 @@ describe('cloud matches and call-ups', () => {
       await db.query(`select pause_match_live('${id.live}','10000000-0000-0000-0000-000000000002')`)
       await db.query(`select resume_match_live('${id.live}','10000000-0000-0000-0000-000000000003')`)
       await db.query(`select substitute_match_live_player('${id.live}','${id.lineup6}','${id.guest}','10000000-0000-0000-0000-000000000004')`)
-      await db.query(`select substitute_match_live_player('${id.live}','${id.guest}','${id.lineup6}','10000000-0000-0000-0000-000000000005')`)
+      await db.query(`select substitute_match_live_player('${id.live}','${id.lineup6}','${id.guest}','10000000-0000-0000-0000-000000000004')`)
+      expect((await db.query(`select get_last_undoable_match_substitution('${id.live}') as id`)).rows[0].id).toBeTruthy()
+      await db.query(`select undo_last_match_live_substitution('${id.live}','10000000-0000-0000-0000-000000000005')`)
+      await db.query(`select undo_last_match_live_substitution('${id.live}','10000000-0000-0000-0000-000000000005')`)
+      expect((await db.query(`select get_last_undoable_match_substitution('${id.live}') as id`)).rows).toEqual([{ id: null }])
+      expect((await db.query(`select player_id from match_live_active_players where match_id='${id.live}' and slot_id='midfielder-right'`)).rows).toEqual([{ player_id: id.lineup6 }])
+      expect((await db.query(`select count(*)::int as count from match_live_events where match_id='${id.live}' and event_type='substitution'`)).rows).toEqual([{ count: 2 }])
       await db.query(`select record_match_live_goal('${id.live}','opponent',null::uuid,9::smallint,'10000000-0000-0000-0000-000000000006')`)
       await db.query(`select record_match_live_goal('${id.live}','ours','${id.lineup1}',null::smallint,'10000000-0000-0000-0000-000000000030')`)
       await db.query(`select void_match_live_goal('${id.live}', (select id from match_live_events where match_id='${id.live}' and request_id='10000000-0000-0000-0000-000000000030'), '10000000-0000-0000-0000-000000000031')`)
@@ -211,6 +217,7 @@ describe('cloud matches and call-ups', () => {
       const report = await db.query(`select get_match_live_report('${id.live}') as report`)
       expect((report.rows[0].report as { figcScore: { ours: number; opponent: number } }).figcScore).toEqual({ ours: 1, opponent: 4 })
     })
+    await expect(asUser(id.outsider, `select get_last_undoable_match_substitution('${id.live}')`)).rejects.toThrow('Permission denied')
   })
 
   it('refuses to start a live match with an incomplete lineup without creating live state', async () => {

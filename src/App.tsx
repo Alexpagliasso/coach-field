@@ -12,7 +12,7 @@ import { GroupProvider } from './groups/GroupProvider'
 import { ProtectedRoute, GroupAccessGuard, PermissionGuard } from './auth/Guards'
 import { LoginPage } from './pages/AccessPages'
 import { PublicHome } from './pages/PublicHome'
-import { FamiliesPage } from './pages/FamiliesPage'
+import { FamiliesPage, LegacyFamiliesRedirect } from './pages/FamiliesPage'
 import { StaffUnavailablePage } from './pages/StaffUnavailablePage'
 import { AdminPage } from './pages/AdminPage'
 import { UiLabPage } from './pages/UiLabPage'
@@ -38,7 +38,8 @@ function App() {
   return <BrowserRouter><AuthProvider><GroupProvider><Routes>
     <Route path="/" element={<PublicHome />} />
     <Route path="/famiglie" element={<FamiliesPage />} />
-    <Route path="/famiglie/:groupId" element={<FamiliesPage />} />
+    <Route path="/famiglie/:groupId" element={<LegacyFamiliesRedirect />} />
+    <Route path="/:seasonSlug/:categorySlug/:groupSlug" element={<FamiliesPage />} />
     <Route path="/login" element={<LoginPage />} />
     <Route element={<ProtectedRoute />}>
       <Route element={<HierarchyShell />}>

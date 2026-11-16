@@ -55,7 +55,7 @@ describe('Match Center cloud flow', () => {
 
   it('mounts the mobile live console with authoritative cloud recovery, goals, substitutions and final report', () => {
     expect(detail).toContain('MatchLivePanel')
-    for (const operation of ['getCloudMatchLiveSnapshot', 'getCloudMatchLiveReport', 'startCloudMatchLive', 'pauseCloudMatchLive', 'finishCloudMatchPeriod', 'substituteCloudMatchPlayer', 'recordCloudMatchGoal', 'voidCloudMatchGoal', 'completeCloudMatchLive']) expect(live).toContain(operation)
+    for (const operation of ['getCloudMatchLiveSnapshot', 'getCloudMatchLiveReport', 'startCloudMatchLive', 'pauseCloudMatchLive', 'finishCloudMatchPeriod', 'substituteCloudMatchPlayer', 'undoLastCloudMatchSubstitution', 'getLastUndoableCloudMatchSubstitution', 'recordCloudMatchGoal', 'voidCloudMatchGoal', 'completeCloudMatchLive']) expect(live).toContain(operation)
     expect(live).toContain('document.visibilityState')
     expect(live).toContain('Riprova operazione')
     expect(live).toContain('FIGC consolidato')

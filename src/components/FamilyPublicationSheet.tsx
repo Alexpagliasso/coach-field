@@ -16,7 +16,7 @@ export function FamilyPublicationSheet({ organizationId, draft, onClose, onChang
     const matches = items.filter(item => item.contentType === draft.contentType && item.groupId === (draft.groupId ?? null) && (weeklyObjective ? weekStart(item.referenceDate) === referenceDate : item.referenceDate === referenceDate))
     if (matches.length > 1) throw new Error('Esistono più contenuti pubblici dello stesso tipo per questa data. Verificali prima di modificarne uno.')
     if (active && matches[0]) { setExisting(matches[0]); setTitle(matches[0].title); setContent(matches[0].publicContent) }
-  }).catch(cause => active && setError(errorMessage(cause))).finally(() => active && setLoading(false)); return () => { active = false } }, [organizationId, draft.contentType, referenceDate, weeklyObjective])
+  }).catch(cause => active && setError(errorMessage(cause))).finally(() => active && setLoading(false)); return () => { active = false } }, [organizationId, draft.contentType, draft.groupId, referenceDate, weeklyObjective])
   const save = async (status: 'draft' | 'published') => {
     if (!title.trim() || !content.trim()) { setError('Inserisci un titolo e un testo pubblico prima di salvare.'); return }
     if (status === 'published' && !confirmed) { setError('Conferma di aver controllato che il testo non contenga dati personali o note riservate.'); return }

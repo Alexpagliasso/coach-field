@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const rpc = vi.fn()
 vi.mock('../src/lib/supabase', () => ({ requireSupabase: () => ({ rpc }) }))
 
-import { getCloudMatchLiveReport, getCloudMatchLiveSnapshot, recordCloudMatchGoal, startCloudMatchLive, substituteCloudMatchPlayer, voidCloudMatchGoal } from '../src/cloud/matchLiveRepository'
+import { getCloudMatchLiveReport, getCloudMatchLiveSnapshot, getLastUndoableCloudMatchSubstitution, recordCloudMatchGoal, startCloudMatchLive, substituteCloudMatchPlayer, undoLastCloudMatchSubstitution, voidCloudMatchGoal } from '../src/cloud/matchLiveRepository'
 
 describe('match live cloud repository', () => {
   beforeEach(() => { rpc.mockReset(); rpc.mockResolvedValue({ data: undefined, error: null }) })
@@ -30,7 +30,12 @@ describe('match live cloud repository', () => {
     expect((await getCloudMatchLiveReport('match-1')).figcScore).toEqual({ ours: 0, opponent: 0 })
     await substituteCloudMatchPlayer('match-1', 'out', 'in', '10000000-0000-0000-0000-000000000004')
     await voidCloudMatchGoal('match-1', 'goal-1', '10000000-0000-0000-0000-000000000005')
+    await undoLastCloudMatchSubstitution('match-1', '10000000-0000-0000-0000-000000000006')
+    rpc.mockResolvedValueOnce({ data: 'event-1', error: null })
+    expect(await getLastUndoableCloudMatchSubstitution('match-1')).toBe('event-1')
     expect(rpc).toHaveBeenCalledWith('substitute_match_live_player', expect.objectContaining({ p_player_out_id: 'out', p_player_in_id: 'in' }))
     expect(rpc).toHaveBeenCalledWith('void_match_live_goal', expect.objectContaining({ p_goal_event_id: 'goal-1' }))
+    expect(rpc).toHaveBeenCalledWith('undo_last_match_live_substitution', expect.objectContaining({ p_match_id: 'match-1' }))
+    expect(rpc).toHaveBeenCalledWith('get_last_undoable_match_substitution', { p_match_id: 'match-1' })
   })
 })

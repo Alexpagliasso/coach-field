@@ -23,8 +23,8 @@ describe('GP-15 match visibility and WorkGroup objectives', () => {
     expect(migrationSql).toContain('references public.groups(id, organization_id)')
     expect(weekly).toContain('item.groupId === groupId')
     expect(weekly).toContain("groupId, referenceDate")
-    expect(families).toContain('groupId: groupScope')
-    expect(families).toContain('Percorso {index + 1}')
+    expect(families).toContain('publicPath')
+    expect(families).toContain('Apri il link pubblico condiviso dal tuo WorkGroup')
   })
 
   it('does not broaden anonymous reading beyond published family content', () => {

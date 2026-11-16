@@ -16,7 +16,8 @@ const statusLabel = (status: CloudMatch['status']) => status === 'scheduled' ? '
 export function MatchDetailPage() {
   const { id } = useParams(); const { activeGroup } = useGroup(); const { can, isAdmin } = usePermissions()
   const [searchParams] = useSearchParams()
-  const [match, setMatch] = useState<CloudMatch>(), [callupCount, setCallupCount] = useState(0), [loading, setLoading] = useState(true), [error, setError] = useState(''), [tab, setTab] = useState<Tab>(() => searchParams.get('tab') === 'live' ? 'live' : 'summary'), [editing, setEditing] = useState(false), [cancelling, setCancelling] = useState(false), [familyPublication, setFamilyPublication] = useState<FamilyPublicationDraft>()
+  const [match, setMatch] = useState<CloudMatch>(), [callupCount, setCallupCount] = useState(0), [loading, setLoading] = useState(true), [error, setError] = useState(''), [tab, setTab] = useState<Tab>(() => searchParams.get('tab') === 'live' ? 'live' : 'summary'), [editing, setEditing] = useState(false), [cancelling, setCancelling] = useState(false), [familyPublication, setFamilyPublicationState] = useState<FamilyPublicationDraft>()
+  const setFamilyPublication = (draft?: FamilyPublicationDraft) => setFamilyPublicationState(draft && match ? { ...draft, groupId: match.groupId } : undefined)
   const sequence = useRef(0)
   const load = useCallback(async () => { if (!id || !activeGroup) return; const current = ++sequence.current; setLoading(true); setError(''); try { const next = await getCloudMatch(id, activeGroup.id); const callups = next ? await getCloudMatchCallups(next.id) : []; if (current !== sequence.current) return; setMatch(next); setCallupCount(callups.length) } catch (reason) { if (current === sequence.current) setError(reason instanceof Error ? reason.message : 'Non siamo riusciti a caricare la partita.') } finally { if (current === sequence.current) setLoading(false) } }, [activeGroup?.id, id])
   useEffect(() => { void load() }, [load])
