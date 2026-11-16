@@ -6,7 +6,7 @@ export function pauseFieldTimer(timer: FieldTimer, now = Date.now()): FieldTimer
 export function resumeFieldTimer(timer: FieldTimer, now = Date.now()): FieldTimer { const remainingSeconds = timerRemaining(timer, now); return remainingSeconds > 0 ? { ...timer, remainingSeconds, startedAt: now } : { ...timer, remainingSeconds: 0, startedAt: undefined } }
 export function resetFieldTimer(timer: FieldTimer): FieldTimer { return { durationSeconds: timer.durationSeconds, remainingSeconds: timer.durationSeconds } }
 
-export type PersistedFieldMode = { exerciseIndex: number; timer: FieldTimer }
+export type PersistedFieldMode = { exerciseIndex: number; timer: FieldTimer; exerciseTimers?: Record<number, FieldTimer> }
 
 export function readFieldModeState(sessionId: string, exerciseCount: number): PersistedFieldMode | undefined {
   try {
@@ -15,10 +15,20 @@ export function readFieldModeState(sessionId: string, exerciseCount: number): Pe
     const value = JSON.parse(raw) as PersistedFieldMode
     if (!Number.isInteger(value.exerciseIndex) || value.exerciseIndex < 0 || value.exerciseIndex >= exerciseCount) return undefined
     if (!Number.isFinite(value.timer?.durationSeconds) || !Number.isFinite(value.timer?.remainingSeconds)) return undefined
-    return { exerciseIndex: value.exerciseIndex, timer: { ...value.timer, durationSeconds: Math.max(1, value.timer.durationSeconds), remainingSeconds: Math.max(0, value.timer.remainingSeconds) } }
+    const normalize = (timer: FieldTimer): FieldTimer => ({ ...timer, durationSeconds: Math.max(1, timer.durationSeconds), remainingSeconds: Math.max(0, timer.remainingSeconds) })
+    const exerciseTimers = Object.fromEntries(Object.entries(value.exerciseTimers ?? {}).filter(([key, timer]) => Number(key) >= 0 && Number(key) < exerciseCount && Number.isFinite(timer?.durationSeconds) && Number.isFinite(timer?.remainingSeconds)).map(([key, timer]) => [Number(key), normalize(timer)]))
+    return { exerciseIndex: value.exerciseIndex, timer: normalize(value.timer), exerciseTimers }
   } catch { return undefined }
 }
 
 export function writeFieldModeState(sessionId: string, value: PersistedFieldMode) {
   try { sessionStorage.setItem(`growpitch:field-mode:${sessionId}`, JSON.stringify(value)) } catch { /* Storage limits must not block Field Mode. */ }
+}
+
+export function readFieldNoteDraft(sessionId: string) {
+  try { return sessionStorage.getItem(`growpitch:field-note-draft:${sessionId}`) ?? '' } catch { return '' }
+}
+
+export function writeFieldNoteDraft(sessionId: string, value: string) {
+  try { const key = `growpitch:field-note-draft:${sessionId}`; if (value) sessionStorage.setItem(key, value); else sessionStorage.removeItem(key) } catch { /* Draft recovery must not block Field Mode. */ }
 }

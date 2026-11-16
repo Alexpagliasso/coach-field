@@ -3066,6 +3066,53 @@ body { background: var(--bg); color: var(--text-primary); }
   .match-archive-live { min-height:44px; }
 }
 
+/* GP-UX-05 — mobile-first Field Mode. */
+.field-mode-sheet { width:min(100%,72rem); max-width:72rem; max-height:100dvh; border-color:var(--border); background:var(--surface); }
+.field-mode-scroll { display:flex; min-width:0; flex-direction:column; gap:1rem; overscroll-behavior:contain; }
+.field-mode-header { order:-3; min-width:0; border-bottom:1px solid var(--border); background:var(--surface); padding-bottom:.75rem; }
+.field-mode-header>div { min-width:0; }
+.field-mode-header h1 { overflow:hidden; font-family:var(--font-editorial); font-size:clamp(1.45rem,5vw,2.25rem); font-weight:600; letter-spacing:-.035em; text-overflow:ellipsis; white-space:nowrap; }
+.field-mode-header small { display:block; margin-top:.2rem; color:var(--text-secondary); font-size:.72rem; font-weight:700; }
+.field-mode-timer { order:-2; border-color:color-mix(in srgb,var(--primary) 38%,var(--border)); border-radius:var(--radius-card); background:color-mix(in srgb,var(--surface) 91%,var(--primary-soft)); box-shadow:var(--shadow-card); }
+.field-mode-timer.is-finished { border-color:var(--warning); background:color-mix(in srgb,var(--warning) 14%,var(--surface)); }
+.field-mode-timer strong { font-family:var(--font-sans); font-size:clamp(3.25rem,14vw,6.5rem); font-weight:700; letter-spacing:-.075em; }
+.field-mode-timer-actions { display:grid; grid-template-columns:3.25rem 3.25rem minmax(0,1fr); align-items:center; gap:.5rem; }
+.field-mode-timer-actions .gp-button { min-height:48px; }
+.field-mode-exercise { order:-1; border:1px solid var(--border); border-radius:var(--radius-card); background:var(--surface); padding:1rem; box-shadow:var(--shadow-card); }
+.field-mode-exercise h2 { margin-top:.75rem; font-family:var(--font-editorial); font-size:clamp(1.65rem,6vw,2.65rem); font-weight:600; letter-spacing:-.035em; line-height:1.05; }
+.field-mode-objective { margin-top:.4rem; color:var(--primary); font-size:.9rem; font-weight:750; }
+.field-mode-instructions { margin-top:.8rem; border-top:1px solid var(--border); padding-top:.7rem; }
+.field-mode-instructions summary { min-height:2.75rem; cursor:pointer; color:var(--text-secondary); font-size:.78rem; font-weight:800; line-height:2.75rem; }
+.field-mode-instructions .field-mode-description { color:var(--text-secondary); font-size:.9rem; line-height:1.6; }
+.field-mode-navigation { order:0; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.6rem; }
+.field-mode-navigation .gp-button { min-width:0; min-height:48px; }
+.field-mode-notes { border:1px solid var(--border); border-radius:var(--radius-card); background:var(--surface); padding:1rem; box-shadow:var(--shadow-card); }
+.field-mode-note-scope { display:flex; width:max-content; max-width:100%; gap:.25rem; border:1px solid var(--border); border-radius:var(--radius-control); background:var(--surface-raised); padding:.2rem; }
+.field-mode-note-scope .gp-button { min-height:40px; }
+.field-mode-draft-status { color:var(--text-muted); font-size:.68rem; line-height:1.4; }
+.field-mode-note-list article { border-color:var(--border); border-radius:var(--radius-control); background:var(--surface-raised); }
+
+@media (min-width:768px) {
+  .field-mode-scroll { display:grid; grid-template-columns:minmax(0,1.15fr) minmax(19rem,.85fr); align-items:start; gap:1rem; }
+  .field-mode-header { grid-column:1/-1; }
+  .field-mode-exercise { grid-column:1; grid-row:2/span 2; }
+  .field-mode-timer { grid-column:2; grid-row:2; }
+  .field-mode-navigation { grid-column:2; grid-row:3; }
+  .field-mode-notes { grid-column:1/-1; }
+}
+@media (max-width:767px) {
+  .field-mode-sheet { width:100%; height:100dvh; max-height:100dvh; border:0; border-radius:0; }
+  .field-mode-scroll { min-height:100dvh; overflow-x:hidden; padding:max(.75rem,env(safe-area-inset-top)) max(.75rem,env(safe-area-inset-right)) calc(var(--mobile-nav-height) + env(safe-area-inset-bottom) + .75rem) max(.75rem,env(safe-area-inset-left)); }
+  .field-mode-header { position:sticky; top:calc(-1 * max(.75rem,env(safe-area-inset-top))); z-index:4; padding-top:max(.75rem,env(safe-area-inset-top)); }
+  .field-mode-timer { position:relative; z-index:1; align-items:stretch; flex-direction:column; padding:.85rem; }
+  .field-mode-timer-actions { width:100%; }
+  .field-mode-timer-actions .gp-button:last-child { min-width:0; white-space:normal; }
+  .field-mode-exercise { padding:.85rem; }
+  .field-mode-navigation { position:sticky; bottom:calc(var(--mobile-nav-height) + env(safe-area-inset-bottom)); z-index:3; border:1px solid var(--border); border-radius:var(--radius-card); background:color-mix(in srgb,var(--surface) 96%,transparent); padding:.5rem; box-shadow:var(--shadow-elevated); backdrop-filter:blur(12px); }
+  .field-mode-note-scope { display:grid; width:100%; grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .field-mode-notes textarea { min-height:7rem; font-size:16px; }
+}
+
 /* GP-UX-04 — player directory and profile. */
 .players-command-page>.page-header { overflow:visible; border:0; border-bottom:1px solid var(--border); border-radius:0; background:transparent; padding:0 0 1.25rem; box-shadow:none; }
 .players-command-page>.page-header::before,.players-command-page>.page-header::after { display:none; }
