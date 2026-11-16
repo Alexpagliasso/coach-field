@@ -1,6 +1,7 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { Layout } from './components/Layout'
 import { MatchDetailPage } from './pages/MatchDetailPage'
+import { MatchLivePage } from './pages/MatchLivePage'
 import { MatchesPage } from './pages/MatchesPage'
 import { PlayersPage } from './pages/PlayersPage'
 import { TodayPage } from './pages/TodayPage'
@@ -70,6 +71,7 @@ function App() {
           <Route path="training/:id" element={<PermissionGuard permission="training.view"><TrainingPage /></PermissionGuard>} />
           <Route path="matches" element={<PermissionGuard permission="matches.view"><MatchesPage /></PermissionGuard>} />
           <Route path="matches/:id" element={<PermissionGuard permission="matches.view"><MatchDetailPage /></PermissionGuard>} />
+          <Route path="matches/:id/live" element={<PermissionGuard permission="matches.view"><MatchLivePage /></PermissionGuard>} />
         </Route>
       </Route>
     </Route>

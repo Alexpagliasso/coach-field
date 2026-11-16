@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { createFieldTimer, pauseFieldTimer, readFieldModeState, readFieldNoteDraft, resetFieldTimer, resumeFieldTimer, timerRemaining, writeFieldModeState, writeFieldNoteDraft } from '../src/utils/fieldTimer'
+import { createFieldTimer, pauseFieldTimer, readFieldModeState, readFieldNoteDraft, resetFieldTimer, resizeFieldTimer, resumeFieldTimer, timerRemaining, writeFieldModeState, writeFieldNoteDraft } from '../src/utils/fieldTimer'
 
 describe('field timer', () => {
   afterEach(() => vi.unstubAllGlobals())
@@ -33,5 +33,18 @@ describe('field timer', () => {
     expect(readFieldNoteDraft('session')).toBe('Nota rapida')
     writeFieldNoteDraft('session', '')
     expect(readFieldNoteDraft('session')).toBe('')
+  })
+  it('changes a paused duration while preserving elapsed time and reset uses the chosen duration', () => {
+    const paused = pauseFieldTimer(resumeFieldTimer(createFieldTimer(10), 1_000), 121_000)
+    const longer = resizeFieldTimer(paused, 15, 121_000)
+    expect(longer).toEqual({ durationSeconds: 900, remainingSeconds: 780, startedAt: undefined })
+    expect(resetFieldTimer(longer)).toEqual({ durationSeconds: 900, remainingSeconds: 900 })
+    expect(resizeFieldTimer(paused, 1, 121_000)).toEqual({ durationSeconds: 60, remainingSeconds: 0, startedAt: undefined })
+  })
+  it('keeps a running resized timer timestamp-based', () => {
+    const running = resumeFieldTimer(createFieldTimer(10), 1_000)
+    const resized = resizeFieldTimer(running, 15, 121_000)
+    expect(resized).toEqual({ durationSeconds: 900, remainingSeconds: 780, startedAt: 121_000 })
+    expect(timerRemaining(resized, 181_000)).toBe(720)
   })
 })

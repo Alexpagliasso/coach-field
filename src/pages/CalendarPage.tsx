@@ -9,6 +9,7 @@ import { localDateKey, mondayFirstOffset } from '../utils/calendar'
 
 type CalendarFilter = 'all' | 'training' | 'match'
 type Event = { id: string; date: string; time?: string; type: 'training' | 'match'; title: string; to: string }
+export const sortAgendaEventsNewestFirst = (items: Event[]) => [...items].sort((a, b) => (b.date + (b.time ?? '')).localeCompare(a.date + (a.time ?? '')) || a.type.localeCompare(b.type) || a.id.localeCompare(b.id))
 const monthBounds = (month: Date) => {
   const year = month.getFullYear(); const number = String(month.getMonth() + 1).padStart(2, '0')
   return { from: `${year}-${number}-01`, to: `${year}-${number}-${String(new Date(year, month.getMonth() + 1, 0).getDate()).padStart(2, '0')}` }
@@ -45,11 +46,12 @@ export function CalendarPage() {
     const first = new Date(month.getFullYear(), month.getMonth(), 1); const last = new Date(month.getFullYear(), month.getMonth() + 1, 0)
     return [...Array.from({ length: mondayFirstOffset(first) }, () => null), ...Array.from({ length: last.getDate() }, (_, index) => new Date(month.getFullYear(), month.getMonth(), index + 1))]
   }, [month])
-  const agenda = useMemo<Event[]>(() => [
+  const calendarEvents = useMemo<Event[]>(() => [
     ...(filter !== 'match' ? sessions.map(item => ({ id: item.id, date: item.sessionDate, time: item.startTime ?? undefined, type: 'training' as const, title: item.title, to: `/training?session=${item.id}` })) : []),
     ...(filter !== 'training' ? matches.map(item => ({ id: item.id, date: item.matchDate, time: item.startTime ?? undefined, type: 'match' as const, title: `vs ${item.opponent}`, to: `/matches/${item.id}` })) : []),
   ].sort((a, b) => (a.date + (a.time ?? '')).localeCompare(b.date + (b.time ?? ''))), [filter, matches, sessions])
-  const eventsFor = (key: string) => agenda.filter(item => item.date === key)
+  const agenda = useMemo(() => sortAgendaEventsNewestFirst(calendarEvents), [calendarEvents])
+  const eventsFor = (key: string) => calendarEvents.filter(item => item.date === key)
   const title = month.toLocaleDateString('it-IT', { month: 'long', year: 'numeric' })
   return <section className={`page calendar-command-page view-${view}`}>
     <header className="page-header"><span className="eyebrow">{activeGroup?.name} · Agenda cloud</span><h1>Calendario</h1><p>Allenamenti e partite cloud del WorkGroup, organizzati nel tempo.</p></header>

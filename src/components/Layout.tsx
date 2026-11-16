@@ -11,7 +11,7 @@ import { useAuth } from '../auth/authContext'
 import { APP_NAME } from '../brand'
 import { resolveGroupHierarchy } from '../groups/hierarchyNavigation'
 import type { Group } from '../types/staff'
-import { getLiveCloudMatch, type CloudMatch } from '../cloud/matchCloudRepository'
+import { getCloudMatchPage, type CloudMatch } from '../cloud/matchCloudRepository'
 
 type NavItem = { to: string; label: string; icon: ComponentType<{ size?: number; className?: string }> }
 
@@ -83,14 +83,25 @@ export function Layout() {
     let active = true
     const loadLiveMatch = async () => {
       if (!activeGroup) { if (active) setLiveMatch(undefined); return }
-      try { const match = await getLiveCloudMatch(activeGroup.id); if (active) setLiveMatch(match) }
+      try {
+        const page = await getCloudMatchPage(activeGroup.id, { pageSize: 2, status: 'live', ascending: false })
+        const match = page.matches.length === 1 ? page.matches[0] : undefined
+        if (!active) return
+        setLiveMatch(match)
+        if (!match) { sessionStorage.removeItem('growpitch:live-dismissed'); return }
+        const explicitlyDismissed = sessionStorage.getItem('growpitch:live-dismissed') === match.id
+        const resumableEntry = location.pathname.endsWith('/dashboard') || location.pathname === `/app/${activeGroup.id}/matches/${match.id}`
+        if (resumableEntry && !explicitlyDismissed) navigate(`/app/${activeGroup.id}/matches/${match.id}/live`, { replace: true })
+      }
       catch { if (active) setLiveMatch(undefined) }
     }
     void loadLiveMatch()
     const interval = window.setInterval(() => void loadLiveMatch(), 15_000)
     const visible = () => { if (document.visibilityState === 'visible') void loadLiveMatch() }
+    const restore = () => void loadLiveMatch()
     document.addEventListener('visibilitychange', visible)
-    return () => { active = false; window.clearInterval(interval); document.removeEventListener('visibilitychange', visible) }
+    window.addEventListener('pageshow', restore)
+    return () => { active = false; window.clearInterval(interval); document.removeEventListener('visibilitychange', visible); window.removeEventListener('pageshow', restore) }
   }, [activeGroup?.id, location.pathname])
 
   const { organization, team, season, organizationPath, seasonPath, categoryPath } = resolveGroupHierarchy(data, activeGroup)
@@ -115,7 +126,7 @@ export function Layout() {
     <div className="app-workspace">
       {!online && <div className="offline-notice" role="status"><strong>Sei offline.</strong> Puoi consultare l’app già caricata; dati cloud, accesso e salvataggi potrebbero non essere disponibili.</div>}
       <header className="app-context-header"><div className="app-mobile-brand"><span>GP</span><strong>{APP_NAME}</strong></div><nav className="app-breadcrumbs" aria-label="Percorso"><Link to="/app/groups">Società</Link>{organization && <><ChevronRight /><Link to={organizationPath!}>{organization.name}</Link></>}{season && seasonPath && <><ChevronRight /><Link to={seasonPath}>{season.name}</Link></>}{team && categoryPath && <><ChevronRight /><Link to={categoryPath}>{team.name}</Link></>}{activeGroup && <><ChevronRight /><strong>{activeGroup.name}</strong></>}</nav><div className="app-header-actions">{isDemoViewer && <BadgeDemo compact />}<button type="button" onClick={() => setThemeOpen(true)} aria-label="Cambia tema"><Palette size={18} /></button><button type="button" onClick={() => navigate('/app/groups')} aria-label="Cambia contesto"><Repeat2 size={18} /></button></div></header>
-      {liveMatch && <Link to={`/matches/${liveMatch.id}?tab=live`} className="matchday-resume" aria-label={`Riprendi la partita contro ${liveMatch.opponent}`}><span><i aria-hidden="true" /><small>Partita in corso</small><strong>vs {liveMatch.opponent}</strong></span><b>Riprendi <ArrowRight size={16} /></b></Link>}
+      {liveMatch && !location.pathname.endsWith('/live') && <Link to={`/matches/${liveMatch.id}/live`} className="matchday-resume" aria-label={`Riprendi la partita contro ${liveMatch.opponent}`}><span><i aria-hidden="true" /><small>Partita in corso</small><strong>vs {liveMatch.opponent}</strong></span><b>Riprendi <ArrowRight size={16} /></b></Link>}
       <main className="app-main app-command-main"><Outlet /></main>
     </div>
 

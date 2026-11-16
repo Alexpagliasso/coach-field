@@ -1,0 +1,55 @@
+import { expect, test } from '@playwright/test'
+
+for (const viewport of [{ width: 375, height: 812 }, { width: 390, height: 844 }, { width: 430, height: 932 }, { width: 1280, height: 900 }, { width: 1440, height: 960 }]) {
+  test(`real Field Mode dialog owns scroll at ${viewport.width}px`, async ({ page }, testInfo) => {
+    await page.setViewportSize(viewport)
+    await page.goto('/tests/browser/fixtures/dialog-sheet.html')
+    await page.evaluate(() => window.scrollTo(0, 700))
+    await page.locator('#open').evaluate((element: HTMLButtonElement) => element.click())
+    await expect(page.locator('[role="dialog"]')).toBeVisible()
+    expect(await page.evaluate(() => document.body.style.position)).toBe('fixed')
+    expect(await page.evaluate(() => document.documentElement.style.overflow)).toBe('hidden')
+    const scroll = page.locator('.field-mode-scroll')
+    await page.screenshot({ path: testInfo.outputPath(`field-mode-${viewport.width}-top.png`), fullPage: false })
+    await scroll.evaluate(element => { element.scrollTop = element.scrollHeight / 2 })
+    await page.screenshot({ path: testInfo.outputPath(`field-mode-${viewport.width}-middle.png`), fullPage: false })
+    await scroll.evaluate(element => { element.scrollTop = element.scrollHeight })
+    expect(await scroll.evaluate(element => element.scrollTop)).toBeGreaterThan(0)
+    await page.locator('#notes').focus()
+    expect(await page.evaluate(() => document.body.style.position)).toBe('fixed')
+
+    const clock = await page.locator('.field-mode-timer strong').boundingBox()
+    const actions = await page.locator('.field-mode-timer-actions').boundingBox()
+    const duration = await page.locator('.field-mode-duration').boundingBox()
+    expect((clock?.y ?? 0) + (clock?.height ?? 0)).toBeLessThanOrEqual(actions?.y ?? 0)
+    expect((actions?.y ?? 0) + (actions?.height ?? 0)).toBeLessThanOrEqual(duration?.y ?? 0)
+    if (viewport.width >= 1280) {
+      const main = await page.locator('.field-mode-main').boundingBox()
+      const navigation = await page.locator('.field-mode-navigation').boundingBox()
+      const notes = await page.locator('.field-mode-notes').boundingBox()
+      const timer = await page.locator('.field-mode-timer').boundingBox()
+      const exercise = await page.locator('.field-mode-exercise').boundingBox()
+      expect((main?.y ?? 0) + (main?.height ?? 0)).toBeLessThanOrEqual(navigation?.y ?? 0)
+      expect((navigation?.y ?? 0) + (navigation?.height ?? 0)).toBeLessThanOrEqual(notes?.y ?? 0)
+      expect((exercise?.y ?? 0) + (exercise?.height ?? 0)).toBeLessThanOrEqual(notes?.y ?? 0)
+      expect((timer?.x ?? 0) + (timer?.width ?? 0)).toBeLessThan(exercise?.x ?? 0)
+      expect(exercise?.width ?? 0).toBeGreaterThan((timer?.width ?? 0) * 1.45)
+      const presetButtons = await page.locator('.field-mode-duration .gp-button').all()
+      const first = await presetButtons[0].boundingBox(), last = await presetButtons.at(-1)!.boundingBox()
+      expect(last?.x ?? 0).toBeGreaterThan(first?.x ?? 0)
+    }
+    await page.screenshot({ path: testInfo.outputPath(`field-mode-${viewport.width}-bottom.png`), fullPage: false })
+    await page.locator('#close').click()
+    await expect(page.locator('[role="dialog"]')).toHaveCount(0)
+    expect(await page.evaluate(() => document.body.style.position)).toBe('')
+    expect(await page.evaluate(() => window.scrollY)).toBe(700)
+  })
+}
+
+test('Escape closes Field Mode and restores focus', async ({ page }) => {
+  await page.goto('/tests/browser/fixtures/dialog-sheet.html')
+  await page.locator('#open').click()
+  await page.keyboard.press('Escape')
+  await expect(page.locator('[role="dialog"]')).toHaveCount(0)
+  await expect(page.locator('#open')).toBeFocused()
+})

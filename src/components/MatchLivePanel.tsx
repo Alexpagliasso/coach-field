@@ -39,6 +39,7 @@ export function MatchLivePanel({ match, editable, onMatchChanged }: Props) {
   const [notice, setNotice] = useState('')
   const [retry, setRetry] = useState<(() => void) | undefined>()
   const [sortByMinutes, setSortByMinutes] = useState(false)
+  const [intervalConfirmed, setIntervalConfirmed] = useState(false)
   const version = useRef(0), clockAnchor = useRef({ elapsed: 0, sampledAt: 0, phase: 'ready' as MatchLiveSnapshot['phase'] })
   const load = useCallback(async () => {
     const current = ++version.current
@@ -70,6 +71,7 @@ export function MatchLivePanel({ match, editable, onMatchChanged }: Props) {
     document.addEventListener('visibilitychange', visible)
     return () => { window.clearInterval(id); document.removeEventListener('visibilitychange', visible) }
   }, [snapshot?.phase, load])
+  useEffect(() => { if (snapshot?.phase === 'interval') setIntervalConfirmed(false) }, [snapshot?.currentPeriod, snapshot?.phase])
 
   const byId = useMemo(() => new Map(callups.filter(item => item.player).map(item => [item.playerId, `${item.player!.firstName} ${item.player!.lastName}`])), [callups])
   const active = snapshot?.activePlayers ?? []
@@ -110,10 +112,10 @@ export function MatchLivePanel({ match, editable, onMatchChanged }: Props) {
     if (await mutate(id => recordCloudMatchGoal(match.id, sheet === 'our-goal' ? 'ours' : 'opponent', sheet === 'our-goal' ? { scorerPlayerId: scorerId } : { opponentJerseyNumber: number }, id))) closeSheet()
   }
   const quickSubstitution = async (playerInId: string) => {
-    if (!outId || !canAct || snapshot?.phase === 'interval') return
+    if (!outId || !canAct) return
     const playerOutId = outId
     if (await mutate(id => substituteCloudMatchPlayer(match.id, playerOutId, playerInId, id))) {
-      setOutId(undefined)
+      setOutId(undefined); if (snapshot?.phase === 'interval') setIntervalConfirmed(false)
       setNotice(`Cambio registrato: ${byId.get(playerOutId) ?? 'giocatore'} → ${byId.get(playerInId) ?? 'giocatore'}.`)
     }
   }
@@ -124,10 +126,11 @@ export function MatchLivePanel({ match, editable, onMatchChanged }: Props) {
   const applyPlanned = async () => {
     if (!plannedLineup || !canAct || !window.confirm(`Applicare la formazione pianificata per il ${plannedLineup.periodNumber}° tempo? La formazione effettiva corrente verrà sostituita.`)) return
     setSaving(true); setError('')
-    try { await applyCloudMatchPeriodLineup(match.id, plannedLineup.periodNumber); await load() }
+    try { await applyCloudMatchPeriodLineup(match.id, plannedLineup.periodNumber); setIntervalConfirmed(false); await load() }
     catch (reason) { setError(`Applicazione formazione non riuscita: ${errorMessage(reason)}`) }
     finally { setSaving(false) }
   }
+  const prepareManualLineup = () => { setIntervalConfirmed(false); setOutId(undefined); setNotice('Modifica la formazione effettiva: tocca un titolare e poi chi entra dalla panchina.') }
 
   if (loading && !snapshot) return <LoadingState label="Caricamento Match Live…" />
   if (!snapshot || !report) return <ErrorState message={error || 'Impossibile caricare il Match Live.'} action={<Button onClick={() => void load()}>Riprova</Button>} />
@@ -138,19 +141,26 @@ export function MatchLivePanel({ match, editable, onMatchChanged }: Props) {
       : snapshot.phase === 'paused'
         ? <><Button variant="primary" disabled={!canAct} onClick={() => void mutate(id => resumeCloudMatchLive(match.id, id))}><Play size={18} />Riprendi</Button><Button variant="danger" disabled={!canAct} onClick={() => void mutate(id => finishCloudMatchPeriod(match.id, id), 'Terminare il tempo corrente?')}><Clock3 size={18} />Termina tempo</Button></>
         : snapshot.phase === 'interval' && snapshot.currentPeriod < match.periodCount
-          ? <Button variant="primary" disabled={!canAct} onClick={() => void mutate(id => startCloudNextMatchPeriod(match.id, id), `Avviare il ${snapshot.currentPeriod + 1}° tempo?`)}><Play size={18} />Avvia {snapshot.currentPeriod + 1}° tempo</Button>
+          ? <Button variant="primary" disabled={!canAct || !intervalConfirmed} onClick={() => void mutate(id => startCloudNextMatchPeriod(match.id, id), `Avviare il ${snapshot.currentPeriod + 1}° tempo con la formazione effettiva confermata?`)}><Play size={18} />Avvia {snapshot.currentPeriod + 1}° tempo</Button>
           : snapshot.phase === 'interval'
             ? <Button variant="success" disabled={!canAct} onClick={() => void mutate(id => completeCloudMatchLive(match.id, id), 'Concludere definitivamente la partita?')}><Check size={18} />Concludi partita</Button>
             : null
 
-  return <section className="grid gap-4 pb-[max(1rem,env(safe-area-inset-bottom))]" aria-label="Match Live">
+  return <section className="match-live-panel grid gap-4 pb-[max(1rem,env(safe-area-inset-bottom))]" aria-label="Match Live">
     {error && <ErrorState message={error} action={<div className="flex gap-2"><Button size="sm" onClick={() => void load()}><RotateCcw size={15} />Ricarica</Button>{retry && <Button size="sm" variant="primary" onClick={retry}>Riprova operazione</Button>}</div>} />}
     {notice && <p role="status" className="rounded-xl border border-app-success/40 bg-app-success/10 p-3 text-sm font-bold text-app-success">{notice}</p>}
+    {snapshot.phase === 'interval' && snapshot.currentPeriod < match.periodCount && <section className="match-live-interval-actions" aria-label="Preparazione tempo successivo">
+      <div><p className="eyebrow">Intervallo · prepara il {snapshot.currentPeriod + 1}° tempo</p><h2>Formazione effettiva</h2><small>I cambi effettuati ora non aggiungono minuti e non modificano la formazione pianificata.</small></div>
+      <div className="match-live-interval-options"><Button size="sm" variant="secondary" disabled={!canAct} onClick={() => { setOutId(undefined); setIntervalConfirmed(true); setNotice('Formazione effettiva mantenuta e confermata.') }}>Mantieni attuale</Button><Button size="sm" variant="secondary" disabled={!canAct} onClick={prepareManualLineup}>Modifica manualmente</Button></div>
+      <div className="match-live-interval-picker"><div><strong>In campo</strong>{active.map(item => <Button key={item.playerId} size="sm" variant={outId === item.playerId ? 'danger' : 'secondary'} disabled={!canAct} aria-pressed={outId === item.playerId} onClick={() => { setIntervalConfirmed(false); setOutId(outId === item.playerId ? undefined : item.playerId) }}>{byId.get(item.playerId)}</Button>)}</div><div><strong>Panchina</strong>{bench.map(item => <Button key={item.playerId} size="sm" variant={outId ? 'primary' : 'ghost'} disabled={!canAct || !outId} onClick={() => void quickSubstitution(item.playerId)}>{byId.get(item.playerId)}</Button>)}</div></div>
+      <Button variant={intervalConfirmed ? 'success' : 'primary'} disabled={!canAct || intervalConfirmed} onClick={() => { setOutId(undefined); setIntervalConfirmed(true); setNotice(`Formazione effettiva confermata per il ${snapshot.currentPeriod + 1}° tempo.`) }}>{intervalConfirmed ? 'Formazione confermata' : 'Conferma formazione effettiva'}</Button>
+    </section>}
     <header className="sticky top-0 z-20 overflow-hidden rounded-[1.5rem] border border-app-primary/30 bg-[linear-gradient(135deg,rgba(89,64,255,.98),rgba(41,159,255,.86))] p-4 text-white shadow-[var(--shadow-card)] sm:p-5">
       <div className="flex items-start justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[.16em] text-white/75">Match Live · {match.homeAway === 'home' ? 'Casa' : 'Trasferta'}</p><h2 className="mt-1 text-lg font-bold">GrowPitch <span className="text-white/70">vs</span> {match.opponent}</h2></div><Badge variant={snapshot.phase === 'completed' ? 'success' : snapshot.phase === 'running' ? 'primary' : 'neutral'}>{phaseLabel(snapshot.phase)}</Badge></div>
       <div className="mt-5 grid grid-cols-[1fr_auto_1fr] items-center gap-3 text-center"><strong className="text-5xl font-black tabular-nums sm:text-6xl">{report.globalScore.ours}</strong><span className="text-2xl font-bold text-white/65">—</span><strong className="text-5xl font-black tabular-nums sm:text-6xl">{report.globalScore.opponent}</strong></div>
       <div className="mt-5 grid grid-cols-3 items-end gap-2 text-center"><div><small className="block text-[10px] font-bold uppercase tracking-wide text-white/65">Trascorso</small><strong className="text-2xl tabular-nums sm:text-3xl">{formatTime(displayElapsed)}</strong></div><div><small className="block text-[10px] font-bold uppercase tracking-wide text-white/65">Rimanente</small><strong className={`text-2xl tabular-nums sm:text-3xl ${excess ? 'text-app-coral' : ''}`}>{excess ? `+${formatTime(excess)}` : formatTime(remaining)}</strong></div><div><small className="block text-[10px] font-bold uppercase tracking-wide text-white/65">Periodo</small><strong className="text-lg tabular-nums sm:text-xl">{snapshot.currentPeriod ? `${snapshot.currentPeriod}°/${match.periodCount}` : `0/${match.periodCount}`}</strong></div></div><div className="mt-3 h-2 overflow-hidden rounded-full bg-white/25" aria-label="Avanzamento del tempo"><div className={`h-full rounded-full transition-[width] duration-1000 ${excess ? 'bg-app-coral' : 'bg-white'}`} style={{ width: `${progress}%` }} /></div><p className="mt-2 text-center text-xs font-semibold text-white/85">Durata prevista {formatTime(expected)}{excess && <span className="ml-2 inline-flex items-center gap-1 text-app-coral"><AlertTriangle size={13} />Tempo eccedente</span>}</p>
     </header>
+    <section className="match-live-dock" aria-label="Comandi Live persistenti"><div><span>{report.globalScore.ours}–{report.globalScore.opponent}</span><strong>{formatTime(displayElapsed)}</strong><small>{snapshot.currentPeriod ? `${snapshot.currentPeriod}°/${match.periodCount}` : `0/${match.periodCount}`}</small></div>{editable && snapshot.phase !== 'ready' && snapshot.phase !== 'completed' && <div><Button size="sm" variant="success" disabled={!canAct || snapshot.phase === 'interval' || saving} onClick={() => setSheet('our-goal')}><Goal size={17} />Gol nostro</Button><Button size="sm" variant="secondary" disabled={!canAct || snapshot.phase === 'interval' || saving} onClick={() => setSheet('opponent-goal')}><Goal size={17} />Gol avversario</Button></div>}</section>
 
     <section className="grid grid-cols-2 gap-2 sm:grid-cols-4" aria-label="Punteggi"><article className="rounded-xl border border-app-border bg-app-elevated p-3"><small className="text-app-muted">Tempo corrente</small><strong className="mt-1 block text-lg tabular-nums">{currentPeriod ? `${currentPeriod.ours} – ${currentPeriod.opponent}` : '—'}</strong></article><article className="rounded-xl border border-app-border bg-app-elevated p-3"><small className="text-app-muted">FIGC consolidato</small><strong className="mt-1 block text-lg tabular-nums">{report.figcScore.ours} – {report.figcScore.opponent}</strong></article><article className="col-span-2 rounded-xl border border-app-border bg-app-elevated p-3"><small className="text-app-muted">Tempi</small><p className="mt-1 flex flex-wrap gap-1">{report.periods.map(period => <span key={period.period} className={`rounded-md px-1.5 py-0.5 text-xs font-bold ${period.completed ? 'bg-app-primary/10 text-app-primary' : 'bg-app-surface text-app-muted'}`}>{period.period}° {period.ours}–{period.opponent}{period.completed ? ` · ${period.figcOurs}-${period.figcOpponent}` : ''}</span>)}</p></article></section>
 

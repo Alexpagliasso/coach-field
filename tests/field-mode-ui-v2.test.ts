@@ -11,6 +11,9 @@ describe('GP-UX-05 Field Mode', () => {
     expect(fieldMode).toContain('timerRemaining(timer)')
     expect(fieldMode).toContain('pauseFieldTimer(current)')
     expect(fieldMode).toContain('exerciseTimers')
+    expect(fieldMode).toContain('resizeFieldTimer')
+    expect(fieldMode).toContain('Originale {exercise.durationMinutes} min · scelta {chosenMinutes} min')
+    expect(fieldMode).toContain('Metti in pausa per modificare la durata.')
   })
   it('protects drafts and distinguishes exercise from general session notes', () => {
     expect(fieldMode).toContain('readFieldNoteDraft(session.id)')

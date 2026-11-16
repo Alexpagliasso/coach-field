@@ -5,6 +5,12 @@ export function timerRemaining(timer: FieldTimer, now = Date.now()) { return tim
 export function pauseFieldTimer(timer: FieldTimer, now = Date.now()): FieldTimer { return { ...timer, remainingSeconds: timerRemaining(timer, now), startedAt: undefined } }
 export function resumeFieldTimer(timer: FieldTimer, now = Date.now()): FieldTimer { const remainingSeconds = timerRemaining(timer, now); return remainingSeconds > 0 ? { ...timer, remainingSeconds, startedAt: now } : { ...timer, remainingSeconds: 0, startedAt: undefined } }
 export function resetFieldTimer(timer: FieldTimer): FieldTimer { return { durationSeconds: timer.durationSeconds, remainingSeconds: timer.durationSeconds } }
+export function resizeFieldTimer(timer: FieldTimer, durationMinutes: number, now = Date.now()): FieldTimer {
+  const durationSeconds = Math.max(60, Math.round(durationMinutes * 60))
+  const elapsedSeconds = Math.max(0, timer.durationSeconds - timerRemaining(timer, now))
+  const remainingSeconds = Math.max(0, durationSeconds - elapsedSeconds)
+  return { durationSeconds, remainingSeconds, startedAt: timer.startedAt && remainingSeconds > 0 ? now : undefined }
+}
 
 export type PersistedFieldMode = { exerciseIndex: number; timer: FieldTimer; exerciseTimers?: Record<number, FieldTimer> }
 
