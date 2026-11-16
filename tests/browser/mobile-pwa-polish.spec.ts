@@ -15,7 +15,7 @@ for (const viewport of [{ width: 375, height: 812 }, { width: 390, height: 844 }
     await page.addStyleTag({ url: 'http://127.0.0.1:4173/src/styles/themes.css' })
     await page.addStyleTag({ url: 'http://127.0.0.1:4173/src/index.css' })
 
-    for (const theme of ['light', 'pitch', 'electric', 'purple']) {
+    for (const theme of ['sage', 'lavender', 'sand', 'midnight']) {
       await page.evaluate(value => { document.documentElement.dataset.theme = value }, theme)
       expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(viewport.width)
       for (const selector of ['.training-next-session', '.weekly-objectives-panel', '.training-archive-controls', '.field-mode-sheet']) {

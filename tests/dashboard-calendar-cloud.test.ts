@@ -58,12 +58,12 @@ describe('cloud dashboard and calendar flow', () => {
   })
 
   it('organizes the authenticated cloud data as an analytical bento dashboard without duplicate navigation', () => {
-    for (const label of ['Cabina di regia', 'Prossima attività', 'Presenze alle ultime sedute', 'Risultati recenti', 'Convocazioni', 'Riepilogo gruppo']) expect(dashboard).toContain(label)
+    for (const label of ['Dashboard WorkGroup', 'Prossima attività', 'Presenze alle ultime sedute', 'Gol nelle ultime partite concluse', 'Prossimi appuntamenti', 'Convocazioni', 'Riepilogo gruppo']) expect(dashboard).toContain(label)
     expect(dashboard).not.toContain('Azioni rapide')
     expect(dashboard).not.toContain('Prossimi impegni')
     expect(dashboard).toContain('DashboardPanel')
     expect(dashboard).toContain('DashboardStatTile')
-    expect(dashboard).toContain('TacticalBackdrop')
+    expect(dashboard).not.toContain('TacticalBackdrop')
     expect(dashboard).toContain('getDashboardAttendanceTrend')
     expect(dashboard).toContain('getDashboardCallupDistribution')
     expect(dashboard).toContain("item.status === 'completed'")

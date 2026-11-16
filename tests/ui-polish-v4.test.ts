@@ -12,9 +12,9 @@ describe('UI Polish V4', () => {
     expect(ui).toContain("size-10 p-0")
     expect(ui).toContain("gp-control min-h-10")
     expect(ui).toContain("padding?: 'sm' | 'md' | 'lg'")
-    expect(theme).toContain('--radius-control: 10px')
-    expect(theme).toContain('--radius-card: 14px')
-    expect(theme).toContain('--radius-panel: 18px')
+    expect(theme).toContain('--radius-control:11px')
+    expect(theme).toContain('--radius-card:16px')
+    expect(theme).toContain('--radius-panel:22px')
   })
 
   it('keeps Training Hub cards compact and changes to three columns only on wide desktop', () => {

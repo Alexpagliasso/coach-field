@@ -16,7 +16,7 @@ const dateLabel = (match: CloudMatch) => `${new Date(`${match.matchDate}T12:00:0
 
 function MatchArchiveCard({ match }: { match: CloudMatch }) {
   const tone = match.status === 'completed' ? 'success' : match.status === 'cancelled' ? 'danger' : match.status === 'live' ? 'warning' : 'primary'
-  return <Link to={`/matches/${match.id}`} className="match-archive-card"><Card padding="sm"><div className="match-archive-card-main"><div className="match-archive-date"><CalendarDays size={16} /><span>{dateLabel(match)}</span></div><Badge variant={tone}>{match.status === 'completed' ? score(match) : labelStatus(match.status)}</Badge><div className="match-archive-title"><strong>vs {match.opponent}</strong><small>{match.homeAway === 'home' ? 'Casa' : 'Trasferta'}{match.location ? ` · ${match.location}` : ''}</small></div>{match.competition && <span className="match-archive-competition">{match.competition}</span>}</div></Card></Link>
+  return <Card padding="sm" className="match-archive-card"><Link to={`/matches/${match.id}`} className="match-archive-card-main"><div className="match-archive-date"><CalendarDays size={16} /><span>{dateLabel(match)}</span></div><Badge variant={tone}>{match.status === 'completed' ? score(match) : labelStatus(match.status)}</Badge><div className="match-archive-title"><strong>vs {match.opponent}</strong><small>{match.homeAway === 'home' ? 'Casa' : 'Trasferta'}{match.location ? ` · ${match.location}` : ''}</small></div>{match.competition && <span className="match-archive-competition">{match.competition}</span>}</Link>{match.status === 'live' && <Link to={`/matches/${match.id}?tab=live`} className="match-archive-live">Entra nel Live <ChevronRight size={16} /></Link>}</Card>
 }
 
 export function MatchesPage() {
