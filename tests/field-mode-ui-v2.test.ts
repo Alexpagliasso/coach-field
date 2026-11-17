@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 const fieldMode = readFileSync('src/components/FieldModeExperience.tsx', 'utf8')
 const notes = readFileSync('src/cloud/trainingFieldNotesRepository.ts', 'utf8')
+const styles = readFileSync('src/index.css', 'utf8')
 
 describe('GP-UX-05 Field Mode', () => {
   it('keeps WorkGroup context, exercise progress and timestamp timers', () => {
@@ -25,7 +26,10 @@ describe('GP-UX-05 Field Mode', () => {
   it('preserves permissions and avoids imaginary media', () => {
     expect(fieldMode).toContain("can('training.edit')")
     expect(fieldMode).toContain('disabled={isDemoViewer}')
-    expect(fieldMode).not.toContain('<img')
+    expect(fieldMode).toContain('getExerciseExplanationGifUrl')
+    expect(fieldMode).toContain('Guarda animazione')
+    expect(styles).toContain('.field-mode-gif-canvas img')
+    expect(styles).toContain('object-fit:contain')
     expect(fieldMode).not.toContain('setInterval(() => setTimer')
   })
 })
