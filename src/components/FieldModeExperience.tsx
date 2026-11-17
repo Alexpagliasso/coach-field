@@ -14,7 +14,8 @@ const getSpeech = () => (window as unknown as { SpeechRecognition?: SpeechConstr
 const format = (seconds: number) => `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`
 
 export function ExerciseGifViewer({ title, url, loading = false, onClose, onError }: { title: string; url: string; loading?: boolean; onClose: () => void; onError?: () => void }) {
-  return <div className="field-mode-gif-viewer" role="dialog" aria-modal="true" aria-labelledby="field-gif-title" onClick={onClose}><div className="field-mode-gif-panel" onClick={event => event.stopPropagation()}><header><h2 id="field-gif-title">{title}</h2><Button type="button" size="sm" variant="secondary" onClick={onClose}><X size={18} />Chiudi</Button></header><div className="field-mode-gif-canvas">{loading ? <p>Caricamento animazione…</p> : <img src={url} alt={`Animazione di ${title}`} onError={onError} />}</div></div></div>
+  const [rotated, setRotated] = useState(false)
+  return <div className="field-mode-gif-viewer" role="dialog" aria-modal="true" aria-labelledby="field-gif-title" onClick={onClose}><div className={`field-mode-gif-panel ${rotated ? 'is-rotated' : ''}`} onClick={event => event.stopPropagation()}><header><h2 id="field-gif-title">{title}</h2><div className="field-mode-gif-actions"><Button type="button" size="sm" variant="secondary" aria-pressed={rotated} onClick={() => setRotated(value => !value)}><RotateCcw size={18} />Ruota 90°</Button><Button type="button" size="sm" variant="secondary" onClick={onClose}><X size={18} />Chiudi</Button></div></header><div className="field-mode-gif-canvas">{loading ? <p>Caricamento animazione…</p> : <img src={url} alt={`Animazione di ${title}`} onError={onError} />}</div></div></div>
 }
 
 export function FieldModeExperience({ session, onClose }: { session: CloudTrainingSession; onClose: () => void }) {
